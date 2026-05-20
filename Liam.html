@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Avatar the Creator - Liam</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; background:#0a0a1f; color:#fff; font-family:Arial; }
+  canvas { display:block; margin:20px auto; border:4px solid #333; }
+</style>
+</head>
+<body>
+<h1 style="text-align:center">Avatar the Creator - Liam (Jake the Air Avatar)</h1>
+<p style="text-align:center">Stop the cosmic event! Fight spirits and villains in New York at midnight.</p>
+
+<script>
+let jake, spirits = [], buildings = [], platforms = [];
+let health = 100;
+let score = 0;
+let gameState = "start";
+
+function setup() {
+  createCanvas(1050, 550);
+  
+  jake = { x: 200, y: 380, size: 50, vy: 0, onGround: true, airBending: false };
+  
+  // New York buildings
+  for (let i = 0; i < 8; i++) {
+    buildings.push({
+      x: i * 120,
+      w: random(80, 110),
+      h: random(150, 280)
+    });
+  }
+  
+  // Platforms / bricks on buildings for vertical gameplay
+  platforms = [];
+  for (let b of buildings) {
+    // Add 1-2 platforms per building at different heights
+    let numPlatforms = floor(random(1, 3));
+    for (let p = 0; p < numPlatforms; p++) {
+      platforms.push({
+        x: b.x + random(10, b.w - 40),
+        y: 350 - b.h + random(30, b.h - 50),
+        w: random(35, 55),
+        h: 12
+      });
+    }
+  }
+}
+
+function draw() {
+  background(10, 10, 30);
+  
+  // Night sky
+  fill(20, 20, 60);
+  rect(0, 0, width, 350);
+  
+  // Stars
+  fill(255);
+  for (let i = 0; i < 40; i++) {
+    ellipse((i * 23) % width, (i * 17) % 300, 2, 2);
+  }
+  
+  // Buildings
+  fill(30);
+  for (let b of buildings) {
+    rect(b.x, 350 - b.h, b.w, b.h);
+    // Windows
+    fill(255, 255, 150, 180);
+    for (let wy = 0; wy < b.h - 30; wy += 25) {
+      for (let wx = 8; wx < b.w - 15; wx += 20) {
+        rect(b.x + wx, 350 - b.h + wy, 8, 8);
+      }
+    }
+    fill(30);
+  }
+  
+  // Ground
+  fill(40);
+  rect(0, 450, width, 100);
+  
+  // Platforms / bricks
+  fill(120, 80, 50);
+  stroke(80, 50, 30);
+  strokeWeight(2);
+  for (let p of platforms) {
+    rect(p.x, p.y, p.w, p.h);
+    // Brick lines
+    stroke(80, 50, 30);
+    line(p.x, p.y + 6, p.x + p.w, p.y + 6);
+  }
+  noStroke();
+  
+  if (gameState === "start") {
+    fill(255);
+    textSize(36);
+    textAlign(CENTER);
+    text("JAKE THE AIR AVATAR", width/2, 150);
+    textSize(20);
+    text("Press SPACE to begin fighting spirits", width/2, 200);
+    text("Controls: ← →   SPACE = Jump   Z = Air Blast   X = Flight", width/2, 250);
+  } else if (gameState === "play") {
+    drawGame();
+  } else if (gameState === "win") {
+    fill(100, 255, 150);
+    textSize(42);
+    textAlign(CENTER);
+    text("YOU STOPPED THE COSMIC EVENT!", width/2, height/2);
+    textSize(20);
+    text("Score: " + score + "  |  Press R to restart", width/2, height/2 + 50);
+  } else if (gameState === "lose") {
+    fill(255, 80, 80);
+    textSize(48);
+    textAlign(CENTER);
+    text("GAME OVER", width/2, height/2 - 30);
+    textSize(22);
+    fill(255);
+    text("You ran out of health!", width/2, height/2 + 20);
+    textSize(18);
+    text("Spirits Defeated: " + score + "  |  Press R to restart", width/2, height/2 + 60);
+  }
+}
+
+function drawGame() {
+  // Jake - character style (air avatar)
+  push();
+  translate(jake.x, jake.y);
+  
+  // Body robe
+  fill(80, 180, 255);
+  ellipse(0, 10, 28, 35);
+  
+  // Head
+  fill(255, 220, 180);
+  ellipse(0, -8, 22, 22);
+  
+  // Air glow hair
+  fill(150, 220, 255, 150);
+  ellipse(0, -12, 26, 18);
+  
+  // Eyes
+  fill(30);
+  ellipse(-6, -10, 4, 4);
+  ellipse(6, -10, 4, 4);
+  
+  // Air bending aura
+  if (jake.airBending > 0) {
+    noFill();
+    stroke(100, 220, 255, 120);
+    strokeWeight(2);
+    ellipse(0, 0, 50, 50);
+    strokeWeight(1);
+  }
+  
+  pop();
+  
+  // Label
+  fill(255);
+  textSize(12);
+  textAlign(CENTER);
+  text("JAKE", jake.x, jake.y + 40);
+  
+  // Air bending effect
+  if (jake.airBending) {
+    noFill();
+    stroke(150, 220, 255, 180);
+    strokeWeight(3);
+    ellipse(jake.x, jake.y, jake.size * 1.8, jake.size * 1.8);
+    strokeWeight(1);
+  }
+  
+  // Spirits - ghostly characters
+  for (let s of spirits) {
+    push();
+    translate(s.x, s.y);
+    
+    // Ghostly body
+    fill(180, 140, 255, 180);
+    ellipse(0, 5, 26, 32);
+    
+    // Hooded head
+    fill(160, 120, 230);
+    ellipse(0, -6, 20, 20);
+    
+    // Ethereal glow
+    noFill();
+    stroke(200, 180, 255, 80);
+    strokeWeight(3);
+    ellipse(0, 0, 38, 42);
+    strokeWeight(1);
+    
+    // Eyes (menacing)
+    fill(255, 200, 255);
+    ellipse(-5, -8, 3, 3);
+    ellipse(5, -8, 3, 3);
+    
+    pop();
+    
+    fill(255);
+    textSize(9);
+    textAlign(CENTER);
+    text("SPIRIT", s.x, s.y + 30);
+  }
+  
+  // HUD
+  fill(255);
+  textSize(18);
+  textAlign(LEFT);
+  text("Health: " + health, 50, 50);
+  text("Spirits Defeated: " + score, 50, 80);
+  
+  // Update
+  updateGame();
+}
+
+function updateGame() {
+  // Gravity
+  jake.vy += 0.8;
+  jake.y += jake.vy;
+  
+  // Platform collision
+  jake.onGround = false;
+  for (let p of platforms) {
+    if (jake.x + 15 > p.x && jake.x - 15 < p.x + p.w &&
+        jake.y + 20 > p.y && jake.y - 20 < p.y + p.h) {
+      if (jake.vy > 0) {  // falling onto platform
+        jake.y = p.y - 20;
+        jake.vy = 0;
+        jake.onGround = true;
+      }
+    }
+  }
+  
+  // Ground collision
+  if (jake.y > 400) {
+    jake.y = 400;
+    jake.vy = 0;
+    jake.onGround = true;
+  }
+  
+  // Move spirits
+  for (let i = spirits.length - 1; i >= 0; i--) {
+    let s = spirits[i];
+    s.x -= 2;
+    
+    // Collision with Jake
+    if (dist(jake.x, jake.y, s.x, s.y) < 45) {
+      health -= 8;
+      spirits.splice(i, 1);
+      score++;  // Award point for defeating the spirit
+      if (health <= 0) gameState = "lose";
+    }
+    
+    if (s.x < -30) spirits.splice(i, 1);
+  }
+  
+  // Spawn new spirits
+  if (frameCount % 45 === 0 && spirits.length < 6) {
+    spirits.push({ x: width + 30, y: random(200, 380) });
+  }
+  
+  // Air bending cooldown
+  if (jake.airBending) jake.airBending--;
+}
+
+function keyPressed() {
+  if (gameState === "start" && key === ' ') {
+    gameState = "play";
+    health = 100;
+    score = 0;
+    spirits = [];
+  }
+  
+  if (gameState === "play") {
+    if (keyCode === LEFT_ARROW) jake.x -= 25;
+    if (keyCode === RIGHT_ARROW) jake.x += 25;
+    
+    if (key === ' ' && jake.onGround) {
+      jake.vy = -19;  // Higher jump for reaching high enemies
+      jake.onGround = false;
+    }
+    
+    if (key === 'z' || key === 'Z') {
+      // Air Blast
+      jake.airBending = 15;
+      for (let i = spirits.length - 1; i >= 0; i--) {
+        if (abs(spirits[i].x - jake.x) < 120) {
+          spirits.splice(i, 1);
+      score++;  // Award point for defeating the spirit
+          score++;
+        }
+      }
+    }
+    
+    if (key === 'x' || key === 'X') {
+      // Flight mode
+      jake.vy = -8;
+      jake.airBending = 20;
+    }
+  }
+  
+  if ((gameState === "win" || gameState === "lose") && key === 'r') {
+    gameState = "start";
+  }
+}
+</script>
+</body>
+</html>

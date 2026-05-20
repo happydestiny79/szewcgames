@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Family Edition - Life Roleplay</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            color: #fff;
+            font-family: 'Press Start 2P', system-ui;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 8px solid #4a9c6d;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(74, 156, 109, 0.5);
+        }
+        .ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 15px;
+            border: 4px solid #4a9c6d;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 280px;
+        }
+        .age-bar {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 3px solid #fff;
+            margin: 10px 0;
+        }
+        .age-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ff6b6b, #4ecdc4);
+            transition: width 0.3s;
+        }
+        button {
+            background: #4a9c6d;
+            color: white;
+            border: 3px solid #fff;
+            padding: 8px 16px;
+            margin: 4px;
+            font-family: 'Press Start 2P', system-ui;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button:hover {
+            background: #6bb88a;
+        }
+        .log {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            height: 180px;
+            background: rgba(0,0,0,0.9);
+            border: 4px solid #4a9c6d;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        .minecraft-text {
+            text-shadow: 2px 2px 0 #000;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="ui">
+        <h2 class="minecraft-text">🟩 MINECRAFT FAMILY</h2>
+        <div id="role-info">Role: <span id="role">Baby</span></div>
+        <div id="age-info">Age: <span id="age">0</span></div>
+        
+        <div class="age-bar">
+            <div class="age-fill" id="age-fill" style="width: 0%"></div>
+        </div>
+        
+        <div>Energy: <span id="energy">100</span>%</div>
+        <div>Hunger: <span id="hunger">20</span>%</div>
+        <div>Happiness: <span id="happiness">80</span>%</div>
+        
+        <div style="margin-top: 15px;">
+            <button onclick="doAction('feed')">🍎 Get Fed</button>
+            <button onclick="doAction('sleep')">🛏️ Sleep</button>
+            <button onclick="doAction('school')">🏫 School</button>
+            <button onclick="doAction('shop')">🛒 Shop</button>
+            <button onclick="doAction('homework')">📚 Homework</button>
+            <button onclick="doAction('play')">🎮 Play</button>
+            <button onclick="doAction('bad')">🔪 Do Bad Stuff</button>
+            <button onclick="doAction('grow')">⏩ Grow Up</button>
+        </div>
+        
+        <div style="margin-top: 10px; font-size: 10px; color: #aaa;">
+            Live to 100 → Die & Respawn
+        </div>
+    </div>
+    
+    <div class="log" id="log">
+        <div style="color:#4a9c6d; font-weight:bold;">[SERVER] Welcome to Minecraft Family Edition!</div>
+    </div>
+
+    <script>
+        let role = "Baby";
+        let age = 0;
+        let energy = 100;
+        let hunger = 20;
+        let happiness = 80;
+        let day = 1;
+        let location = "House";
+        let steveX = 300;
+        let steveY = 280;
+        let parentX = 150;
+        let parentY = 260;
+        let logs = [];
+        
+        const roles = ["Baby", "Toddler", "Kid", "Teenager", "Parent"];
+        const roleColors = {
+            "Baby": "#ff9ff3",
+            "Toddler": "#feca57",
+            "Kid": "#48dbfb",
+            "Teenager": "#ff6b6b",
+            "Parent": "#1dd1a1"
+        };
+        
+        function addLog(message, color = "#fff") {
+            const logDiv = document.getElementById("log");
+            const entry = document.createElement("div");
+            entry.style.color = color;
+            entry.innerHTML = `[Day ${day}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            logs.push(message);
+            if (logs.length > 12) {
+                logDiv.removeChild(logDiv.children[1]);
+                logs.shift();
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById("role").innerText = role;
+            document.getElementById("role").style.color = roleColors[role];
+            document.getElementById("age").innerText = age;
+            
+            const progress = Math.min((age / 100) * 100, 100);
+            document.getElementById("age-fill").style.width = progress + "%";
+            
+            document.getElementById("energy").innerText = Math.floor(energy);
+            document.getElementById("hunger").innerText = Math.floor(hunger);
+            document.getElementById("happiness").innerText = Math.floor(happiness);
+            
+            // Color coding
+            const energyEl = document.getElementById("energy");
+            energyEl.style.color = energy > 60 ? "#4ecdc4" : energy > 30 ? "#ffe66d" : "#ff6b6b";
+            
+            const hungerEl = document.getElementById("hunger");
+            hungerEl.style.color = hunger < 30 ? "#ff6b6b" : hunger < 60 ? "#ffe66d" : "#4ecdc4";
+        }
+        
+        function changeRole(newRole) {
+            role = newRole;
+            addLog(`You are now a ${role}!`, roleColors[role]);
+            
+            if (role === "Baby") {
+                energy = 60;
+                hunger = 40;
+            } else if (role === "Teenager") {
+                happiness -= 15;
+            } else if (role === "Parent") {
+                happiness += 20;
+                addLog("You now take care of others!", "#1dd1a1");
+            }
+            
+            updateUI();
+        }
+        
+        function growUp() {
+            const currentIndex = roles.indexOf(role);
+            
+            if (currentIndex < roles.length - 1) {
+                age += 8;
+                changeRole(roles[currentIndex + 1]);
+                addLog(`Happy birthday! You grew into a ${role}.`, "#ffe66d");
+            } else {
+                // Already a parent, continue aging
+                age += 5;
+                addLog(`You are now ${age} years old.`, "#aaa");
+            }
+            
+            if (age >= 100) {
+                dieAndRespawn();
+            }
+            
+            updateUI();
+        }
+        
+        function dieAndRespawn() {
+            addLog("You lived a full life to 100 years old!", "#ff6b6b");
+            addLog("You have passed away...", "#ff6b6b");
+            
+            setTimeout(() => {
+                addLog("Respawning as a new baby...", "#4ecdc4");
+                role = "Baby";
+                age = 0;
+                energy = 100;
+                hunger = 20;
+                happiness = 80;
+                day = 1;
+                location = "House";
+                steveX = 300;
+                steveY = 280;
+                parentX = 150;
+                parentY = 260;
+                
+                document.getElementById("log").innerHTML = 
+                    `<div style="color:#4a9c6d; font-weight:bold;">[SERVER] Welcome back to Minecraft Family Edition!</div>`;
+                updateUI();
+            }, 2500);
+        }
+        
+        function doAction(action) {
+            let message = "";
+            let color = "#fff";
+            
+            switch(action) {
+                case "feed":
+                    if (role === "Baby" || role === "Toddler") {
+                        hunger = Math.max(0, hunger - 35);
+                        happiness += 8;
+                        message = "Mom fed you delicious pumpkin pie!";
+                        color = "#feca57";
+                    } else {
+                        hunger = Math.max(0, hunger - 25);
+                        message = "You ate some bread and steak.";
+                    }
+                    energy += 10;
+                    break;
+                    
+                case "sleep":
+                    energy = Math.min(100, energy + 40);
+                    day++;
+                    message = `You slept through the night. Day ${day} begins.`;
+                    color = "#a55eea";
+                    if (role === "Baby") happiness += 12;
+                    break;
+                    
+                case "school":
+                    if (role === "Kid" || role === "Teenager") {
+                        happiness += 5;
+                        energy -= 25;
+                        message = "You learned about redstone and crafting!";
+                        color = "#48dbfb";
+                    } else if (role === "Parent") {
+                        message = "You helped your kids with school projects.";
+                    } else {
+                        message = "You're too young for school right now.";
+                        color = "#ff6b6b";
+                    }
+                    break;
+                    
+                case "shop":
+                    hunger -= 10;
+                    happiness += 15;
+                    message = "You bought some cookies and a new toy!";
+                    color = "#ff9ff3";
+                    break;
+                    
+                case "homework":
+                    if (role === "Kid" || role === "Teenager") {
+                        energy -= 15;
+                        happiness -= 5;
+                        message = "You finished your Minecraft history homework.";
+                    } else {
+                        message = "Homework isn't for babies!";
+                        color = "#ff6b6b";
+                    }
+                    break;
+                    
+                case "play":
+                    happiness += 20;
+                    energy -= 15;
+                    if (role === "Baby") message = "You played with your blocks!";
+                    else if (role === "Teenager") message = "You explored the caves with friends!";
+                    else message = "You built a cool house outside!";
+                    color = "#4ecdc4";
+                    break;
+                    
+                case "bad":
+                    if (role === "Teenager" || role === "Kid") {
+                        happiness -= 25;
+                        energy -= 10;
+                        message = "You grabbed a sharp iron sword... Steve got mad!";
+                        color = "#ff6b6b";
+                        addLog("Steve: 'That's dangerous! Put it down!'", "#ff6b6b");
+                    } else {
+                        message = "You're too little to cause trouble.";
+                        color = "#aaa";
+                    }
+                    break;
+                    
+                case "grow":
+                    growUp();
+                    return;
+            }
+            
+            // Clamp values
+            energy = Math.max(0, Math.min(100, energy));
+            hunger = Math.max(0, Math.min(100, hunger));
+            happiness = Math.max(0, Math.min(100, happiness));
+            
+            if (message) {
+                addLog(message, color);
+            }
+            
+            // Random events
+            if (Math.random() < 0.15) {
+                randomEvent();
+            }
+            
+            // Auto age progression
+            if (action !== "grow" && Math.random() < 0.08) {
+                age++;
+                if (age >= 100) {
+                    dieAndRespawn();
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function randomEvent() {
+            const events = [
+                { text: "Steve came home with diamonds!", color: "#48dbfb" },
+                { text: "A creeper exploded outside the house!", color: "#ff6b6b" },
+                { text: "Your parent gave you a hug.", color: "#ff9ff3" },
+                { text: "You found a stray cat in the village.", color: "#feca57" },
+                { text: "It started raining... better stay inside.", color: "#a55eea" }
+            ];
+            
+            const event = events[Math.floor(Math.random() * events.length)];
+            addLog(event.text, event.color);
+            
+            if (event.text.includes("creeper")) {
+                happiness -= 10;
+            } else if (event.text.includes("hug")) {
+                happiness += 15;
+            }
+        }
+        
+        function setup() {
+            createCanvas(720, 520);
+            textFont("Press Start 2P");
+            addLog("You spawned in a cozy house.", "#4ecdc4");
+            addLog("Your family is here to take care of you.", "#fff");
+            updateUI();
+            
+            // Initial role setup
+            setTimeout(() => {
+                addLog("Tip: Click actions to live your life!", "#ffe66d");
+            }, 3000);
+        }
+        
+        function draw() {
+            background(30, 60, 90);
+            
+            // House interior
+            fill(139, 90, 43);
+            rect(80, 120, 560, 320);
+            
+            // Floor
+            fill(120, 80, 40);
+            rect(80, 380, 560, 60);
+            
+            // Window
+            fill(135, 206, 250);
+            rect(140, 160, 120, 100);
+            stroke(255);
+            strokeWeight(3);
+            line(200, 160, 200, 260);
+            line(140, 210, 260, 210);
+            noStroke();
+            
+            // Bed
+            fill(139, 69, 19);
+            rect(480, 320, 140, 60);
+            fill(255, 182, 193);
+            rect(485, 315, 130, 25);
+            
+            // Table
+            fill(101, 67, 33);
+            rect(200, 340, 100, 15);
+            
+            // Steve (player character)
+            drawSteve(steveX, steveY, role);
+            
+            // Parent / family member
+            drawParent(parentX, parentY);
+            
+            // Age indicator on screen
+            fill(255);
+            textSize(14);
+            textAlign(CENTER);
+            text(`Age: ${age}  |  Location: ${location}`, width/2, 40);
+            
+            // Role label
+            fill(roleColors[role]);
+            textSize(16);
+            text(role.toUpperCase(), steveX, steveY - 55);
+            
+            // Simple animation for movement
+            if (frameCount % 40 === 0) {
+                steveX += random(-3, 3);
+                steveY += random(-2, 2);
+                parentX += random(-2, 2);
+            }
+            
+            // Clamp positions
+            steveX = constrain(steveX, 120, 580);
+            steveY = constrain(steveY, 200, 370);
+            parentX = constrain(parentX, 100, 300);
+            parentY = constrain(parentY, 220, 350);
+            
+            // Status effects
+            if (energy < 25) {
+                fill(255, 200, 0);
+                text("😴 Tired", steveX, steveY + 50);
+            }
+            if (hunger > 70) {
+                fill(255, 100, 100);
+                text("🍞 Hungry", steveX + 60, steveY - 30);
+            }
+        }
+        
+        function drawSteve(x, y, currentRole) {
+            push();
+            translate(x, y);
+            
+            // Head
+            fill(255, 220, 185);
+            rect(-12, -35, 24, 24);
+            
+            // Hair / hat
+            fill(0, 0, 0);
+            rect(-14, -38, 28, 10);
+            
+            // Eyes
+            fill(255);
+            rect(-7, -28, 6, 6);
+            rect(3, -28, 6, 6);
+            fill(0);
+            rect(-5, -27, 3, 3);
+            rect(5, -27, 3, 3);
+            
+            // Shirt (blue)
+            fill(70, 130, 180);
+            rect(-14, -10, 28, 22);
+            
+            // Pants (black)
+            fill(30);
+            rect(-12, 12, 24, 20);
+            
+            // Arms
+            fill(255, 220, 185);
+            rect(-20, -8, 8, 18);
+            rect(12, -8, 8, 18);
+            
+            // Role-specific accessories
+            if (currentRole === "Baby") {
+                fill(255, 182, 193);
+                ellipse(0, -42, 18, 10); // Baby hat
+            } else if (currentRole === "Teenager") {
+                fill(255, 215, 0);
+                rect(-4, -42, 8, 6); // Headphones
+            } else if (currentRole === "Parent") {
+                fill(139, 69, 19);
+                rect(-10, -45, 20, 8); // Hat
+            }
+            
+            pop();
+        }
+        
+        function drawParent(x, y) {
+            push();
+            translate(x, y);
+            
+            // Head
+            fill(255, 220, 185);
+            rect(-12, -30, 24, 24);
+            
+            // Hair
+            fill(101, 67, 33);
+            rect(-14, -33, 28, 8);
+            
+            // Eyes
+            fill(0);
+            rect(-6, -22, 4, 4);
+            rect(3, -22, 4, 4);
+            
+            // Shirt (green)
+            fill(34, 139, 34);
+            rect(-14, -5, 28, 22);
+            
+            // Pants
+            fill(70, 70, 70);
+            rect(-12, 17, 24, 18);
+            
+            pop();
+        }
+        
+        // Keyboard shortcuts
+        function keyPressed() {
+            if (key === 'f' || key === 'F') doAction('feed');
+            if (key === 's' || key === 'S') doAction('sleep');
+            if (key === 'p' || key === 'P') doAction('play');
+            if (key === 'g' || key === 'G') doAction('grow');
+            if (key === 'b' || key === 'B') doAction('bad');
+        }
+        
+        // Auto-save hint
+        setInterval(() => {
+            if (age > 0 && Math.random() < 0.3) {
+                console.log("%c[Auto-save] Progress saved locally", "color:#555");
+            }
+        }, 45000);
+    </script>
+</body>
+</html>

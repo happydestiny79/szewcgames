@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cairo - 3D Roblox-Style Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 100;
+        }
+        #shop {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            z-index: 100;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 30px;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div><strong>Cairo</strong> - 3D Fighting Game</div>
+        <div>Role: <span id="role">Loading...</span></div>
+        <div>Location: <span id="location">Home</span></div>
+        <div>Health: <span id="health">100</span></div>
+        <div>Coins: <span id="coins">100</span></div>
+        <div style="margin-top:10px; font-size:12px;">
+            WASD = Move | Mouse = Look | Click = Punch | E = Open Shop | T = Teleport
+        </div>
+    </div>
+
+    <div id="crosshair">+</div>
+
+    <div id="shop">
+        <h3>Shop</h3>
+        <button onclick="buyItem('Speed Boost')">Speed Boost (75 coins)</button><br>
+        <button onclick="buyItem('Troll Bomb')">Troll Bomb (50 coins)</button><br>
+        <button onclick="buyItem('Admin Powers')">Admin Powers (200 coins)</button><br>
+        <button onclick="closeShop()">Close</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ==================== THREE.JS SETUP ====================
+        let scene, camera, renderer;
+        let player, playerVelocity = new THREE.Vector3();
+        let keys = {};
+        let currentLocation = "Home";
+        let role = Math.random() > 0.5 ? "AJ (Good Guy)" : "Caleb (Bad Guy)";
+        let health = 100;
+        let coins = 100;
+        let canPunch = true;
+
+        const locations = {
+            "Home": { x: 0, z: 0, color: 0x8B4513 },
+            "Boxing Ring": { x: 40, z: 0, color: 0xFF4500 },
+            "The Creator": { x: 80, z: 0, color: 0x00CED1 },
+            "School": { x: 120, z: 0, color: 0x4169E1 }
+        };
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Player (simple box)
+            const playerGeo = new THREE.BoxGeometry(2, 4, 2);
+            const playerMat = new THREE.MeshLambertMaterial({ color: role.includes("AJ") ? 0x00ff00 : 0xff0000 });
+            player = new THREE.Mesh(playerGeo, playerMat);
+            player.position.set(0, 2, 0);
+            scene.add(player);
+
+            // Create locations
+            createLocation("Home", 0, 0, 0x8B4513);
+            createLocation("Boxing Ring", 40, 0, 0xFF4500);
+            createLocation("The Creator", 80, 0, 0x00CED1);
+            createLocation("School", 120, 0, 0x4169E1);
+
+            // Teleport pads
+            createTeleportPad(15, 0, "Boxing Ring");
+            createTeleportPad(55, 0, "The Creator");
+            createTeleportPad(95, 0, "School");
+            createTeleportPad(-15, 0, "Home");
+
+            // Ground
+            const groundGeo = new THREE.PlaneGeometry(200, 200);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+
+            // Event listeners
+            window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            window.addEventListener('click', handlePunch);
+            window.addEventListener('resize', onResize);
+
+            document.getElementById('role').textContent = role;
+            updateUI();
+
+            // Start game loop
+            animate();
+        }
+
+        function createLocation(name, x, z, color) {
+            const floor = new THREE.Mesh(
+                new THREE.BoxGeometry(30, 1, 30),
+                new THREE.MeshLambertMaterial({ color: color })
+            );
+            floor.position.set(x, 0.5, z);
+            scene.add(floor);
+
+            // Simple walls
+            const wallMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
+            const walls = [
+                new THREE.Mesh(new THREE.BoxGeometry(30, 8, 1), wallMat),
+                new THREE.Mesh(new THREE.BoxGeometry(30, 8, 1), wallMat),
+                new THREE.Mesh(new THREE.BoxGeometry(1, 8, 30), wallMat),
+                new THREE.Mesh(new THREE.BoxGeometry(1, 8, 30), wallMat)
+            ];
+            walls[0].position.set(x, 4, z - 15);
+            walls[1].position.set(x, 4, z + 15);
+            walls[2].position.set(x - 15, 4, z);
+            walls[3].position.set(x + 15, 4, z);
+            walls.forEach(w => scene.add(w));
+        }
+
+        function createTeleportPad(x, z, targetLocation) {
+            const pad = new THREE.Mesh(
+                new THREE.CylinderGeometry(3, 3, 0.5, 32),
+                new THREE.MeshLambertMaterial({ color: 0xffff00 })
+            );
+            pad.position.set(x, 1, z);
+            pad.userData = { teleportTo: targetLocation };
+            scene.add(pad);
+        }
+
+        function handlePunch() {
+            if (!canPunch) return;
+            canPunch = false;
+            setTimeout(() => canPunch = true, 800);
+
+            // Simple combat - damage nearby enemies (simulated)
+            const damage = role.includes("Caleb") ? 18 : 12;
+            health = Math.max(0, health - 5); // Self damage for demo
+            updateUI();
+
+            // Visual punch effect
+            const punchEffect = new THREE.Mesh(
+                new THREE.SphereGeometry(1.5),
+                new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.7 })
+            );
+            punchEffect.position.copy(player.position);
+            scene.add(punchEffect);
+            setTimeout(() => scene.remove(punchEffect), 200);
+        }
+
+        function buyItem(item) {
+            const prices = {
+                "Speed Boost": 75,
+                "Troll Bomb": 50,
+                "Admin Powers": 200
+            };
+            
+            if (coins >= prices[item]) {
+                coins -= prices[item];
+                
+                if (item === "Speed Boost") {
+                    player.userData.speed = 0.8;
+                    setTimeout(() => { if (player) player.userData.speed = 0.3; }, 8000);
+                } else if (item === "Troll Bomb") {
+                    alert("Troll Bomb deployed! (confetti effect in full version)");
+                } else if (item === "Admin Powers") {
+                    alert("You now have temporary admin powers!");
+                }
+                
+                updateUI();
+            } else {
+                alert("Not enough coins!");
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('location').textContent = currentLocation;
+            document.getElementById('health').textContent = health;
+            document.getElementById('coins').textContent = coins;
+        }
+
+        function checkTeleport() {
+            scene.children.forEach(obj => {
+                if (obj.userData && obj.userData.teleportTo) {
+                    const dist = player.position.distanceTo(obj.position);
+                    if (dist < 5) {
+                        const newLoc = obj.userData.teleportTo;
+                        if (newLoc !== currentLocation) {
+                            currentLocation = newLoc;
+                            const locData = locations[newLoc];
+                            player.position.set(locData.x, 2, locData.z);
+                            updateUI();
+                        }
+                    }
+                }
+            });
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Movement
+            const speed = (player.userData.speed || 0.3);
+            const moveSpeed = speed;
+
+            if (keys['w']) player.position.z -= moveSpeed;
+            if (keys['s']) player.position.z += moveSpeed;
+            if (keys['a']) player.position.x -= moveSpeed;
+            if (keys['d']) player.position.x += moveSpeed;
+
+            // Camera follows player
+            camera.position.x = player.position.x;
+            camera.position.z = player.position.z + 15;
+            camera.lookAt(player.position.x, player.position.y + 2, player.position.z);
+
+            // Check for teleports
+            checkTeleport();
+
+            // "No Friends" debuff for Caleb (slower movement)
+            if (role.includes("Caleb") && !player.userData.speed) {
+                player.userData.speed = 0.25;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'e') {
+                const shop = document.getElementById('shop');
+                shop.style.display = shop.style.display === 'block' ? 'none' : 'block';
+            }
+            if (e.key.toLowerCase() === 't') {
+                // Quick teleport to next location
+                const locNames = Object.keys(locations);
+                const currentIndex = locNames.indexOf(currentLocation);
+                const nextIndex = (currentIndex + 1) % locNames.length;
+                const nextLoc = locNames[nextIndex];
+                currentLocation = nextLoc;
+                const locData = locations[nextLoc];
+                player.position.set(locData.x, 2, locData.z);
+                updateUI();
+            }
+        });
+
+        function closeShop() {
+            document.getElementById('shop').style.display = 'none';
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>

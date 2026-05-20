@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caleb Camper MMA</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            color: white;
+            font-family: 'Arial Black', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            border: 4px solid #ffcc00;
+            box-shadow: 0 0 30px #ffcc00;
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2>CALEB CAMPER MMA</h2>
+        <p><strong>Controls:</strong></p>
+        <p>Arrow Keys / WASD - Move</p>
+        <p>SPACE - Punch</p>
+        <p>Q - Kick</p>
+        <p><strong>Level 1:</strong> Connor McGregor</p>
+    </div>
+    <script>
+        let player;
+        let opponent;
+        let level = 1;
+        let playerHealth = 100;
+        let opponentHealth = 100;
+        let gameState = "playing"; // playing, win, lose
+        let punches = [];
+        let opponentPunches = [];
+        let lastPlayerAttack = 0;
+        let lastOpponentAttack = 0;
+        let crowdNoise = 0;
+
+        function setup() {
+            createCanvas(800, 600);
+            
+            player = {
+                x: 200,
+                y: 350,
+                size: 50,
+                speed: 5,
+                color: '#00aaff'
+            };
+            
+            resetOpponent();
+        }
+
+        function resetOpponent() {
+            let oppData = getOpponentData(level);
+            opponent = {
+                x: 550,
+                y: 350,
+                size: 50,
+                speed: oppData.speed,
+                color: oppData.color,
+                name: oppData.name,
+                power: oppData.power,
+                attackRate: oppData.attackRate
+            };
+            opponentHealth = oppData.health;
+        }
+
+        function getOpponentData(lvl) {
+            if (lvl === 1) {
+                return {
+                    name: "Connor McGregor",
+                    color: '#333333',
+                    speed: 3,
+                    health: 100,
+                    power: 15,
+                    attackRate: 1200
+                };
+            } else if (lvl === 2) {
+                return {
+                    name: "Connor Gregor",
+                    color: '#666666',
+                    speed: 4,
+                    health: 120,
+                    power: 22,
+                    attackRate: 1000
+                };
+            } else if (lvl === 3) {
+                return {
+                    name: "Connor McGregor V2",
+                    color: '#990000',
+                    speed: 5,
+                    health: 140,
+                    power: 28,
+                    attackRate: 800
+                };
+            } else {
+                return {
+                    name: "Kallen Sadie (V3)",
+                    color: '#ff0000',
+                    speed: 6,
+                    health: 180,
+                    power: 35,
+                    attackRate: 600
+                };
+            }
+        }
+
+        function draw() {
+            background(20, 20, 40);
+            
+            // MMA Ring
+            drawRing();
+            
+            // Draw crowd (simple)
+            drawCrowd();
+            
+            // Player
+            fill(player.color);
+            ellipse(player.x, player.y, player.size);
+            fill(255);
+            textAlign(CENTER);
+            textSize(12);
+            text("CALEB", player.x, player.y - 40);
+            
+            // Opponent
+            fill(opponent.color);
+            ellipse(opponent.x, opponent.y, opponent.size);
+            fill(255);
+            text(opponent.name, opponent.x, opponent.y - 40);
+            
+            // Health bars
+            drawHealthBars();
+            
+            // Attacks
+            updateAttacks();
+            drawAttacks();
+            
+            // AI opponent behavior
+            if (gameState === "playing") {
+                opponentAI();
+            }
+            
+            // Game over text
+            if (gameState !== "playing") {
+                fill(255, 200, 0);
+                textSize(48);
+                textAlign(CENTER);
+                if (gameState === "win") {
+                    text("VICTORY!", width/2, height/2);
+                    textSize(24);
+                    text("Press ENTER for next level", width/2, height/2 + 50);
+                } else {
+                    text("K.O. - YOU LOST", width/2, height/2);
+                    textSize(24);
+                    text("Press R to restart", width/2, height/2 + 50);
+                }
+            }
+            
+            // Level indicator
+            fill(255);
+            textSize(20);
+            textAlign(LEFT);
+            text("LEVEL " + level, 30, 50);
+        }
+
+        function drawRing() {
+            // Ring floor
+            fill(180, 140, 100);
+            rect(100, 280, 600, 180);
+            
+            // Ring ropes
+            stroke(255);
+            strokeWeight(4);
+            // Top rope
+            line(100, 300, 700, 300);
+            line(100, 320, 700, 320);
+            line(100, 340, 700, 340);
+            
+            // Corner posts
+            noStroke();
+            fill(50);
+            rect(95, 275, 15, 190);
+            rect(690, 275, 15, 190);
+        }
+
+        function drawCrowd() {
+            // Simple crowd representation
+            fill(40, 40, 80);
+            rect(0, 0, width, 270);
+            
+            // Crowd heads
+            for (let i = 0; i < 25; i++) {
+                let x = 30 + (i % 12) * 65;
+                let y = 50 + Math.floor(i / 12) * 80;
+                fill(255, 200 + sin(frameCount * 0.1 + i) * 30, 100);
+                ellipse(x, y, 25, 25);
+            }
+            
+            // Crowd noise effect
+            if (frameCount % 10 === 0) {
+                crowdNoise = random(-2, 2);
+            }
+        }
+
+        function drawHealthBars() {
+            // Player health
+            fill(0, 255, 0);
+            rect(30, 80, playerHealth * 1.5, 20);
+            fill(255);
+            textSize(14);
+            text("CALEB", 30, 75);
+            
+            // Opponent health
+            fill(255, 0, 0);
+            rect(550, 80, opponentHealth * 1.5, 20);
+            fill(255);
+            text(opponent.name, 550, 75);
+        }
+
+        function updateAttacks() {
+            // Player punches
+            for (let i = punches.length - 1; i >= 0; i--) {
+                let p = punches[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Check hit on opponent
+                if (dist(p.x, p.y, opponent.x, opponent.y) < opponent.size / 2) {
+                    opponentHealth -= 12;
+                    punches.splice(i, 1);
+                    
+                    if (opponentHealth <= 0) {
+                        gameState = "win";
+                    }
+                }
+                
+                // Remove if off screen
+                if (p.x > width || p.x < 0) punches.splice(i, 1);
+            }
+            
+            // Opponent punches
+            for (let i = opponentPunches.length - 1; i >= 0; i--) {
+                let p = opponentPunches[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                if (dist(p.x, p.y, player.x, player.y) < player.size / 2) {
+                    playerHealth -= opponent.power;
+                    opponentPunches.splice(i, 1);
+                    
+                    if (playerHealth <= 0) {
+                        gameState = "lose";
+                    }
+                }
+                
+                if (p.x > width || p.x < 0) opponentPunches.splice(i, 1);
+            }
+        }
+
+        function drawAttacks() {
+            // Player attacks (blue)
+            fill(0, 200, 255);
+            for (let p of punches) {
+                ellipse(p.x, p.y, 15);
+            }
+            
+            // Opponent attacks (red)
+            fill(255, 50, 50);
+            for (let p of opponentPunches) {
+                ellipse(p.x, p.y, 15);
+            }
+        }
+
+        function opponentAI() {
+            // Simple AI - move toward player and attack
+            if (opponent.x > player.x + 80) {
+                opponent.x -= opponent.speed;
+            } else if (opponent.x < player.x - 80) {
+                opponent.x += opponent.speed;
+            }
+            
+            // Random attacks
+            if (millis() - lastOpponentAttack > opponent.attackRate) {
+                let dir = player.x > opponent.x ? 1 : -1;
+                opponentPunches.push({
+                    x: opponent.x,
+                    y: opponent.y,
+                    vx: dir * 8,
+                    vy: 0
+                });
+                lastOpponentAttack = millis();
+            }
+            
+            // Keep opponent in ring
+            opponent.x = constrain(opponent.x, 150, 650);
+        }
+
+        function keyPressed() {
+            if (gameState === "playing") {
+                // Player movement
+                if (keyCode === LEFT_ARROW || key === 'a' || key === 'A') {
+                    player.x -= player.speed * 3;
+                }
+                if (keyCode === RIGHT_ARROW || key === 'd' || key === 'D') {
+                    player.x += player.speed * 3;
+                }
+                if (keyCode === UP_ARROW || key === 'w' || key === 'W') {
+                    player.y -= player.speed * 2;
+                }
+                if (keyCode === DOWN_ARROW || key === 's' || key === 'S') {
+                    player.y += player.speed * 2;
+                }
+                
+                // Attacks
+                if (key === ' ' && millis() - lastPlayerAttack > 400) {
+                    let dir = opponent.x > player.x ? 1 : -1;
+                    punches.push({
+                        x: player.x,
+                        y: player.y,
+                        vx: dir * 10,
+                        vy: 0
+                    });
+                    lastPlayerAttack = millis();
+                }
+                
+                if ((key === 'q' || key === 'Q') && millis() - lastPlayerAttack > 600) {
+                    // Kick - slightly different attack
+                    let dir = opponent.x > player.x ? 1 : -1;
+                    punches.push({
+                        x: player.x,
+                        y: player.y,
+                        vx: dir * 7,
+                        vy: random(-2, 2)
+                    });
+                    lastPlayerAttack = millis();
+                }
+                
+                // Keep player in ring
+                player.x = constrain(player.x, 150, 650);
+                player.y = constrain(player.y, 300, 420);
+            }
+            
+            // Level progression
+            if (gameState === "win" && keyCode === ENTER) {
+                level++;
+                playerHealth = 100;
+                resetOpponent();
+                gameState = "playing";
+                punches = [];
+                opponentPunches = [];
+            }
+            
+            // Restart
+            if (gameState === "lose" && (key === 'r' || key === 'R')) {
+                level = 1;
+                playerHealth = 100;
+                resetOpponent();
+                gameState = "playing";
+                punches = [];
+                opponentPunches = [];
+            }
+        }
+
+        function keyReleased() {
+            // Optional: could add charge attacks later
+        }
+    </script>
+</body>
+</html>

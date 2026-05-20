@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cat Tacos - Deaglan's Taco Truck</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; background:#1a1208; color:#fff; font-family:Arial; }
+  canvas { display:block; margin:20px auto; border:6px solid #442200; border-radius:8px; }
+</style>
+</head>
+<body>
+<h1 style="text-align:center; color:#ffcc66">Cat Tacos • Deaglan's Taco Truck</h1>
+<p style="text-align:center">Make detailed tacos for unique customers!</p>
+
+<script>
+let player;
+let customers = [];
+let score = 0;
+let served = 0;
+let gameState = "start";
+let level = 1;
+let message = "";
+let messageTimer = 0;
+
+function setup() {
+  createCanvas(1100, 580);
+  
+  player = {
+    x: 280,
+    y: 395,
+    vx: 0,
+    holding: null,
+    cookingStage: 0,
+    cookingTimer: 0
+  };
+  
+  resetLevel();
+}
+
+function resetLevel() {
+  customers = [];
+  for (let i = 0; i < 3 + level; i++) {
+    customers.push(createCustomer(780 + i * 95));
+  }
+  served = 0;
+  score = 0;
+  player.x = 280;
+  player.holding = null;
+  player.cookingStage = 0;
+  player.cookingTimer = 0;
+}
+
+function createCustomer(x) {
+  let types = ["kid", "business", "tourist", "regular"];
+  let type = random(types);
+  let basePatience = (type === "kid") ? 135 : (type === "business") ? 115 : (type === "tourist") ? 165 : 185;
+  return {
+    x: x,
+    type: type,
+    patience: basePatience,
+    maxPatience: basePatience,
+    served: false,
+    rating: 0,
+    tip: 0
+  };
+}
+
+function draw() {
+  background(40, 28, 18);
+  
+  // Sky gradient
+  for (let i = 0; i < 280; i++) {
+    let c = map(i, 0, 280, 55, 95);
+    stroke(c, 50, 25);
+    line(0, i, width, i);
+  }
+  noStroke();
+  
+  // Sun
+  fill(255, 215, 120);
+  ellipse(920, 65, 58, 58);
+  
+  // Taco Truck - much better design
+  drawTacoTruck();
+  
+  // Ground
+  fill(75, 55, 35);
+  rect(0, 470, width, 120);
+  // Ground detail lines
+  stroke(55, 40, 25);
+  strokeWeight(2);
+  for (let i = 0; i < 12; i++) {
+    line(i * 95, 470, i * 95 + 40, 590);
+  }
+  noStroke();
+  
+  // Draw James
+  drawJames();
+  
+  if (gameState === "start") {
+    drawStartScreen();
+  } else if (gameState === "play") {
+    drawGame();
+  } else if (gameState === "levelup") {
+    drawLevelUpScreen();
+  } else if (gameState === "win") {
+    drawWinScreen();
+  }
+  
+  // Message
+  if (messageTimer > 0) {
+    fill(255, 255, 200);
+    textSize(17);
+    textAlign(CENTER);
+    text(message, width/2, 38);
+    messageTimer--;
+  }
+  
+  // HUD
+  fill(255);
+  textSize(16);
+  textAlign(LEFT);
+  text("Served: " + served + " / 15", 22, 25);
+  text("Score: " + score, 22, 46);
+  text("Level " + level, 22, 67);
+  if (player.holding) text("Holding: " + player.holding, 22, 88);
+}
+
+function drawTacoTruck() {
+  // Main truck body (tan metal)
+  fill(195, 155, 100);
+  rect(95, 260, 720, 215);
+  
+  // Metal panel lines
+  stroke(130, 95, 55);
+  strokeWeight(3);
+  line(95, 300, 815, 300);
+  line(95, 360, 815, 360);
+  line(95, 420, 815, 420);
+  noStroke();
+  
+  // Top trim
+  fill(160, 115, 65);
+  rect(95, 255, 720, 12);
+  
+  // Service window (big)
+  fill(90, 160, 230, 160);
+  rect(480, 285, 140, 110);
+  // Window frame
+  stroke(80, 55, 30);
+  strokeWeight(5);
+  rect(480, 285, 140, 110);
+  noStroke();
+  
+  // Serving counter
+  fill(130, 90, 50);
+  rect(470, 395, 160, 25);
+  
+  // Grill area (left side)
+  fill(70);
+  rect(160, 340, 100, 70);
+  fill(220, 95, 40);
+  rect(170, 350, 80, 50);
+  
+  // Ingredient station
+  fill(95, 165, 80);
+  rect(280, 355, 75, 55);
+  fill(255);
+  textSize(11);
+  textAlign(CENTER);
+  text("TORTILLA", 317, 385);
+  
+  // Black wheels with rims
+  fill(20);
+  ellipse(200, 485, 52, 52);
+  ellipse(700, 485, 52, 52);
+  fill(90);
+  ellipse(200, 485, 26, 26);
+  ellipse(700, 485, 26, 26);
+  fill(30);
+  ellipse(200, 485, 12, 12);
+  ellipse(700, 485, 12, 12);
+  
+  // Big CAT TACOS sign
+  fill(255, 230, 80);
+  rect(240, 195, 340, 58);
+  // Sign border
+  stroke(180, 130, 30);
+  strokeWeight(4);
+  rect(240, 195, 340, 58);
+  noStroke();
+  
+  // Text
+  fill(40, 25, 5);
+  textSize(28);
+  textAlign(CENTER);
+  text("CAT TACOS", 410, 232);
+  
+  // Cat ears on the "A"
+  fill(255, 180, 40);
+  triangle(365, 205, 378, 185, 391, 205);
+  triangle(395, 205, 408, 185, 421, 205);
+  
+  // Small cat face on sign
+  fill(40);
+  ellipse(378, 218, 5, 5);
+  ellipse(408, 218, 5, 5);
+}
+
+function drawJames() {
+  push();
+  translate(player.x, player.y);
+  
+  // Red shoes
+  fill(210, 40, 40);
+  rect(-16, 22, 12, 9);
+  rect(4, 22, 12, 9);
+  
+  // Brown shorts
+  fill(110, 72, 38);
+  rect(-14, -2, 28, 26);
+  
+  // Green shirt
+  fill(58, 158, 88);
+  rect(-16, -24, 32, 24);
+  
+  // Arms
+  fill(215, 168, 128);
+  rect(-20, -18, 6, 18);
+  rect(14, -18, 6, 18);
+  
+  // Tan head
+  fill(218, 170, 130);
+  ellipse(0, -30, 24, 24);
+  
+  // Brown hair
+  fill(88, 58, 28);
+  arc(0, -35, 26, 20, PI, TWO_PI);
+  
+  // Blue eyes
+  fill(30, 110, 210);
+  ellipse(-6, -32, 5, 5);
+  ellipse(6, -32, 5, 5);
+  
+  // Holding items
+  if (player.holding === "tortilla") {
+    fill(250, 220, 165);
+    ellipse(26, -12, 22, 14);
+  } else if (player.holding === "meat") {
+    fill(185, 75, 45);
+    ellipse(26, -12, 20, 13);
+  } else if (player.holding === "taco") {
+    fill(250, 205, 95);
+    ellipse(26, -12, 21, 15);
+    fill(205, 60, 60);
+    rect(19, -10, 14, 5);
+    fill(85, 165, 65);
+    rect(20, -14, 5, 3);
+  }
+  
+  pop();
+}
+
+function drawStartScreen() {
+  fill(255);
+  textSize(36);
+  textAlign(CENTER);
+  text("CAT TACOS", width/2, 105);
+  textSize(18);
+  text("Press SPACE to start your taco truck!", width/2, 140);
+  text("Detailed taco making • Patient customers • Fun variety", width/2, 168);
+  
+  textSize(15);
+  text("Controls:", width/2, 205);
+  text("← →  Walk     G = Grab Tortilla     SPACE = Cook / Serve", width/2, 228);
+  text("T = Talk to customers (restores patience)", width/2, 250);
+}
+
+function drawLevelUpScreen() {
+  fill(255, 235, 130);
+  textSize(32);
+  textAlign(CENTER);
+  text("CITY " + level + " COMPLETE!", width/2, height/2 - 35);
+  textSize(18);
+  text("Customers served: " + served + "   •   Score: " + score, width/2, height/2 + 5);
+  text("Press SPACE to open in the next city!", width/2, height/2 + 45);
+}
+
+function drawWinScreen() {
+  fill(130, 255, 170);
+  textSize(36);
+  textAlign(CENTER);
+  text("TACO EMPIRE SUCCESS!", width/2, height/2 - 25);
+  textSize(18);
+  text("You served 15 customers with great ratings!", width/2, height/2 + 20);
+  text("Press R to start a new adventure", width/2, height/2 + 55);
+}
+
+function drawGame() {
+  // Cooking progress bar
+  if (player.cookingStage > 0) {
+    fill(255, 210, 60);
+    rect(172, 353, player.cookingStage * 24, 10);
+    if (player.cookingStage >= 3) {
+      fill(255, 100, 50);
+      textSize(10);
+      textAlign(CENTER);
+      text("READY!", 220, 378);
+    }
+  }
+  
+  // Draw customers
+  for (let c of customers) {
+    if (!c.served) {
+      drawCustomer(c);
+      
+      // Patience bar
+      let pct = c.patience / c.maxPatience;
+      fill(255, 60, 60);
+      rect(c.x - 22, 340, 44, 7);
+      fill(90, 255, 90);
+      rect(c.x - 22, 340, 44 * pct, 7);
+    }
+  }
+  
+  updateLogic();
+}
+
+function drawCustomer(c) {
+  let y = 410;
+  
+  if (c.type === "kid") {
+    fill(255, 110, 110);
+    ellipse(c.x, y, 27, 33);
+    fill(255, 215, 185);
+    ellipse(c.x, y - 24, 20, 20);
+    fill(255, 200, 40);
+    textSize(9);
+    textAlign(CENTER);
+    text("KID", c.x, y + 24);
+  } else if (c.type === "business") {
+    fill(55, 55, 95);
+    ellipse(c.x, y, 28, 36);
+    fill(225, 185, 155);
+    ellipse(c.x, y - 25, 21, 21);
+    fill(50, 50, 70);
+    rect(c.x - 10, y - 8, 20, 20);
+    fill(255, 225, 185);
+    textSize(8);
+    text("BUSINESS", c.x, y + 25);
+  } else if (c.type === "tourist") {
+    fill(75, 135, 200);
+    ellipse(c.x, y, 28, 35);
+    fill(235, 195, 165);
+    ellipse(c.x, y - 25, 21, 21);
+    fill(45, 105, 65);
+    rect(c.x - 15, y - 33, 30, 9);
+    fill(255, 225, 185);
+    textSize(8);
+    text("TOURIST", c.x, y + 25);
+  } else {
+    fill(165, 115, 85);
+    ellipse(c.x, y, 28, 35);
+    fill(220, 175, 135);
+    ellipse(c.x, y - 25, 21, 21);
+    fill(255, 225, 185);
+    textSize(8);
+    text("REGULAR", c.x, y + 25);
+  }
+}
+
+function updateLogic() {
+  player.x += player.vx;
+  player.x = constrain(player.x, 65, 950);
+  
+  // Patience drain (slower)
+  for (let i = customers.length - 1; i >= 0; i--) {
+    let c = customers[i];
+    if (!c.served) {
+      c.patience -= 0.07 + level * 0.012;
+      if (c.patience <= 0) {
+        score -= 4;
+        customers.splice(i, 1);
+        showMessage("Customer left unhappy...");
+      }
+    }
+  }
+  
+  // Cooking
+  if (player.cookingStage > 0) {
+    player.cookingTimer += 1.25;
+    if (player.cookingTimer > 32) {
+      player.cookingStage = min(player.cookingStage + 1, 3);
+      player.cookingTimer = 0;
+    }
+    if (player.cookingStage >= 3 && player.cookingTimer > 55) {
+      player.cookingStage = 0;
+      player.holding = null;
+      showMessage("Taco got overcooked!");
+      score -= 3;
+    }
+  }
+  
+  if (served >= 15) gameState = "win";
+  if (customers.length === 0 && served < 15) {
+    level++;
+    gameState = "levelup";
+  }
+}
+
+function showMessage(txt) {
+  message = txt;
+  messageTimer = 90;
+}
+
+function keyPressed() {
+  if (gameState === "start" && key === ' ') { gameState = "play"; return; }
+  if (gameState === "levelup" && key === ' ') { resetLevel(); gameState = "play"; return; }
+  if (gameState === "win" && (key === 'r' || key === 'R')) {
+    level = 1; resetLevel(); score = 0; served = 0; gameState = "start"; return;
+  }
+  if (gameState !== "play") return;
+  
+  if (keyCode === LEFT_ARROW) player.vx = -4.2;
+  if (keyCode === RIGHT_ARROW) player.vx = 4.2;
+  
+  // Grab tortilla
+  if ((key === 'g' || key === 'G') && dist(player.x, player.y, 317, 383) < 50) {
+    if (!player.holding) {
+      player.holding = "tortilla";
+      showMessage("Fresh tortilla acquired!");
+    }
+  }
+  
+  // Cook / progress
+  if (key === ' ' && dist(player.x, player.y, 210, 380) < 60) {
+    if (player.holding === "tortilla" && player.cookingStage === 0) {
+      player.cookingStage = 1;
+      player.holding = "meat";
+      showMessage("Cooking the filling...");
+    } else if (player.holding === "meat" && player.cookingStage < 3) {
+      player.cookingStage++;
+      if (player.cookingStage === 3) {
+        player.holding = "taco";
+        showMessage("Perfect taco!");
+        score += 9;
+      }
+    }
+  }
+  
+  // Serve
+  if ((key === 's' || key === 'S' || key === ' ') && dist(player.x, player.y, 540, 390) < 55) {
+    if (player.holding === "taco") {
+      let closest = null;
+      let minD = 85;
+      for (let c of customers) {
+        if (!c.served) {
+          let d = abs(c.x - player.x);
+          if (d < minD) { minD = d; closest = c; }
+        }
+      }
+      if (closest) {
+        closest.served = true;
+        served++;
+        let pct = closest.patience / closest.maxPatience;
+        let rating = (pct > 0.6) ? 3 : (pct > 0.3) ? 2 : 1;
+        closest.rating = rating;
+        closest.tip = rating * 4;
+        score += rating * 13 + closest.tip;
+        player.holding = null;
+        player.cookingStage = 0;
+        showMessage("Served! Rating: " + rating + "/3 (+$" + closest.tip + ")");
+        setTimeout(() => {
+          let idx = customers.indexOf(closest);
+          if (idx > -1) customers.splice(idx, 1);
+        }, 650);
+      }
+    }
+  }
+  
+  // Talk
+  if ((key === 't' || key === 'T')) {
+    let talked = false;
+    for (let c of customers) {
+      if (!c.served && abs(c.x - player.x) < 70) {
+        c.patience = min(c.patience + 38, c.maxPatience);
+        talked = true;
+      }
+    }
+    if (talked) showMessage("You chatted with the customers!");
+  }
+}
+
+function keyReleased() {
+  if (keyCode === LEFT_ARROW || keyCode === RIGHT_ARROW) player.vx = 0;
+}
+</script>
+</body>
+</html>

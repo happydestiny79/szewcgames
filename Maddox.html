@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maddox Wade: Gorilla Gadget</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+        
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Press Start 2P', system-ui;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        #header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        #title {
+            font-size: 28px;
+            text-shadow: 0 0 10px #00ff00;
+            margin: 0;
+        }
+        
+        #subtitle {
+            font-size: 14px;
+            color: #ffaa00;
+        }
+        
+        #main-area {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        #canvas-container {
+            border: 4px solid #00ff00;
+            box-shadow: 0 0 20px #00ff00;
+        }
+        
+        #ui-panel {
+            width: 320px;
+            background: #111;
+            border: 4px solid #00ff00;
+            padding: 15px;
+            box-shadow: 0 0 20px #00ff00;
+        }
+        
+        .stat {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #003300;
+            color: #00ff00;
+            border: 3px solid #00ff00;
+            padding: 10px 15px;
+            font-family: 'Press Start 2P', system-ui;
+            font-size: 12px;
+            margin: 5px 2px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        
+        button:hover {
+            background: #00ff00;
+            color: #003300;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        #log {
+            height: 180px;
+            overflow-y: auto;
+            background: #000;
+            border: 3px solid #00ff00;
+            padding: 10px;
+            font-size: 11px;
+            margin-top: 15px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin: 4px 0;
+        }
+        
+        .boss {
+            color: #ff4444;
+            font-weight: bold;
+        }
+        
+        #name-input {
+            background: #000;
+            border: 3px solid #00ff00;
+            color: #00ff00;
+            padding: 8px;
+            width: 100%;
+            font-family: 'Press Start 2P', system-ui;
+            font-size: 14px;
+        }
+        
+        .biome {
+            font-size: 11px;
+            color: #ffaa00;
+            margin-top: 5px;
+        }
+        
+        .gorilla-info {
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="header">
+            <h1 id="title">MADDOX WADE</h1>
+            <p id="subtitle">GORILLA GADGET • ANIMAL COMPANY</p>
+        </div>
+        
+        <div id="main-area">
+            <!-- Game Canvas -->
+            <div id="canvas-container"></div>
+            
+            <!-- UI Panel -->
+            <div id="ui-panel">
+                <div style="margin-bottom: 15px;">
+                    <input id="name-input" type="text" placeholder="Gorilla Name" value="Maddox Wade">
+                    <button onclick="changeName()" style="width: 100%; margin-top: 8px;">CHANGE NAME</button>
+                </div>
+                
+                <div class="gorilla-info">
+                    <strong>Body Color:</strong> 
+                    <input type="color" id="body-color" value="#4a2c0a" onchange="updateGorilla()">
+                    <br>
+                    <span style="color:#00ff00">Green Eyes • No Legs</span>
+                </div>
+                
+                <div class="stat">
+                    <strong>COINS:</strong> <span id="coins">500</span>
+                </div>
+                <div class="stat">
+                    <strong>WEAPON:</strong> <span id="weapon">None</span>
+                </div>
+                <div class="stat">
+                    <strong>ITEMS:</strong> <span id="items">Stick</span>
+                </div>
+                <div class="stat">
+                    <strong>MONSTERS KILLED:</strong> <span id="kills">0</span>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <button onclick="startTutorial()">TUTORIAL</button>
+                    <button onclick="buyStick()">BUY STICK (100)</button>
+                    <button onclick="buyHookshot()">BUY HOOKSHOT (250)</button>
+                </div>
+                
+                <div style="margin-top: 10px;">
+                    <button onclick="exploreBiome()">EXPLORE BIOME</button>
+                    <button onclick="fightMonster()">FIGHT MONSTER</button>
+                    <button onclick="fightBoss()">FIGHT GREAT ORG</button>
+                </div>
+                
+                <div class="biome" id="biome-display">Current Biome: Forest</div>
+                
+                <div id="log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let coins = 500;
+        let kills = 0;
+        let hasStick = false;
+        let hasHookshot = false;
+        let currentBiome = "Forest";
+        let playerName = "Maddox Wade";
+        let bodyColor = "#4a2c0a";
+        let gameState = "idle";
+        let monstersInBiome = 0;
+        
+        let biomes = ["Forest", "Swamp", "Volcano", "Ice Peaks", "Acid Wastes"];
+        let biomeIndex = 0;
+        
+        let monsters = [
+            { name: "Slime Rat", hp: 30, damage: 5 },
+            { name: "Rock Boar", hp: 50, damage: 8 },
+            { name: "Acid Spider", hp: 40, damage: 10 },
+            { name: "Shadow Wolf", hp: 60, damage: 12 }
+        ];
+        
+        let currentMonster = null;
+        let bossHP = 300;
+        
+        function log(message, type = "normal") {
+            const logDiv = document.getElementById("log");
+            const entry = document.createElement("div");
+            entry.className = "log-entry";
+            
+            if (type === "boss") {
+                entry.classList.add("boss");
+                entry.innerHTML = "🐾 " + message;
+            } else if (type === "death") {
+                entry.style.color = "#ff4444";
+                entry.innerHTML = "💀 " + message;
+            } else {
+                entry.innerHTML = "• " + message;
+            }
+            
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            // Simulate other players chatting
+            if (Math.random() < 0.3) {
+                setTimeout(() => {
+                    const otherPlayers = ["ZaireTheFire", "LiamAir", "ElstonGunn", "GadgetGorilla42"];
+                    const randomPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+                    const chats = [
+                        "Let's gooo!",
+                        "I just killed 3!",
+                        "Watch out for the acid!",
+                        "Hookshot here is OP",
+                        "Anyone got extra coins?"
+                    ];
+                    const chatMsg = chats[Math.floor(Math.random() * chats.length)];
+                    const chatEntry = document.createElement("div");
+                    chatEntry.className = "log-entry";
+                    chatEntry.style.color = "#ffaa00";
+                    chatEntry.innerHTML = `[${randomPlayer}]: ${chatMsg}`;
+                    logDiv.appendChild(chatEntry);
+                    logDiv.scrollTop = logDiv.scrollHeight;
+                }, 800);
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById("coins").textContent = coins;
+            document.getElementById("kills").textContent = kills;
+            document.getElementById("weapon").textContent = hasStick ? "Stick" : "Fists";
+            document.getElementById("items").textContent = hasHookshot ? "Stick + Hookshot" : (hasStick ? "Stick" : "None");
+            document.getElementById("biome-display").textContent = `Current Biome: ${currentBiome}`;
+            
+            // Update name
+            document.getElementById("name-input").value = playerName;
+        }
+        
+        function changeName() {
+            const input = document.getElementById("name-input");
+            if (input.value.trim()) {
+                playerName = input.value.trim();
+                log(`Name changed to ${playerName}!`);
+                updateUI();
+            }
+        }
+        
+        function updateGorilla() {
+            bodyColor = document.getElementById("body-color").value;
+        }
+        
+        function startTutorial() {
+            if (gameState !== "idle") return;
+            
+            log("=== TUTORIAL START ===");
+            log("You are Maddox Wade, a legless gorilla with green eyes!");
+            log("Click FIGHT MONSTER to battle in the current biome.");
+            log("Kill monsters to earn coins and unlock the Great Org.");
+            log("Use HOOKSHOT to travel to new biomes.");
+            log("When ready, fight the GREAT ORG!");
+            log("=== TUTORIAL COMPLETE ===");
+            log("You received 500 coins to start!");
+            
+            gameState = "tutorial_done";
+        }
+        
+        function buyStick() {
+            if (coins >= 100 && !hasStick) {
+                coins -= 100;
+                hasStick = true;
+                log("Purchased a sturdy stick! +5 damage");
+                updateUI();
+            } else if (hasStick) {
+                log("You already have a stick!");
+            } else {
+                log("Not enough coins!");
+            }
+        }
+        
+        function buyHookshot() {
+            if (coins >= 250 && !hasHookshot) {
+                coins -= 250;
+                hasHookshot = true;
+                log("Hookshot acquired! You can now reach new biomes.");
+                updateUI();
+            } else if (hasHookshot) {
+                log("You already have the hookshot!");
+            } else {
+                log("Not enough coins!");
+            }
+        }
+        
+        function exploreBiome() {
+            if (!hasHookshot) {
+                log("You need a Hookshot to explore new biomes!");
+                return;
+            }
+            
+            biomeIndex = (biomeIndex + 1) % biomes.length;
+            currentBiome = biomes[biomeIndex];
+            monstersInBiome = 0;
+            
+            log(`Traveled to the ${currentBiome} biome!`, "normal");
+            updateUI();
+        }
+        
+        function fightMonster() {
+            if (gameState === "fighting") {
+                log("You're already in a fight!");
+                return;
+            }
+            
+            gameState = "fighting";
+            
+            // Pick random monster based on biome
+            let monsterPool = monsters;
+            if (currentBiome === "Swamp") monsterPool = [monsters[2], monsters[3]];
+            if (currentBiome === "Volcano") monsterPool = [monsters[1], monsters[3]];
+            if (currentBiome === "Ice Peaks") monsterPool = [monsters[1], monsters[3]];
+            if (currentBiome === "Acid Wastes") monsterPool = [monsters[2]];
+            
+            currentMonster = {...monsterPool[Math.floor(Math.random() * monsterPool.length)]};
+            currentMonster.maxHP = currentMonster.hp;
+            
+            log(`A wild ${currentMonster.name} appears in the ${currentBiome}!`);
+            log(`Press FIGHT again to attack!`);
+            
+            // Start fight loop
+            setTimeout(() => {
+                if (gameState === "fighting") {
+                    log(`[${currentMonster.name} HP: ${currentMonster.hp}]`, "normal");
+                }
+            }, 300);
+        }
+        
+        function performAttack() {
+            if (!currentMonster || gameState !== "fighting") return;
+            
+            let damage = hasStick ? 15 : 8;
+            
+            // Biome bonuses
+            if (currentBiome === "Swamp" && hasHookshot) damage += 5;
+            if (currentBiome === "Acid Wastes") damage += 8;
+            
+            currentMonster.hp -= damage;
+            log(`You hit the ${currentMonster.name} for ${damage} damage!`);
+            
+            if (currentMonster.hp <= 0) {
+                // Victory
+                kills++;
+                let reward = Math.floor(Math.random() * 40) + 35;
+                coins += reward;
+                
+                log(`You defeated the ${currentMonster.name}! +${reward} coins`);
+                log(`Monsters killed: ${kills}`);
+                
+                gameState = "idle";
+                currentMonster = null;
+                
+                // Check for boss unlock
+                if (kills >= 8 && !hasHookshot) {
+                    log("The Great Org is stirring... Get a Hookshot!");
+                }
+                if (kills >= 12) {
+                    log("You're strong enough to challenge the GREAT ORG!", "boss");
+                }
+                
+                updateUI();
+            } else {
+                // Monster counterattack
+                let monsterDamage = currentMonster.damage;
+                if (currentBiome === "Acid Wastes") monsterDamage += 4;
+                
+                log(`The ${currentMonster.name} hits you for ${monsterDamage} damage!`);
+                
+                // Simple death chance
+                if (Math.random() < 0.15 && kills > 3) {
+                    log("You died in battle...", "death");
+                    coins = Math.max(0, Math.floor(coins * 0.6));
+                    log("You lost some coins on death.");
+                    gameState = "idle";
+                    currentMonster = null;
+                    updateUI();
+                    return;
+                }
+                
+                // Continue fight
+                setTimeout(() => {
+                    if (gameState === "fighting" && currentMonster) {
+                        log(`[${currentMonster.name} HP: ${currentMonster.hp}]`);
+                    }
+                }, 600);
+            }
+        }
+        
+        function fightBoss() {
+            if (kills < 8) {
+                log("You need to kill at least 8 monsters before challenging the Great Org!");
+                return;
+            }
+            
+            if (gameState === "boss_fight") {
+                // Attack the boss
+                let damage = hasStick ? 22 : 12;
+                if (hasHookshot) damage += 10;
+                
+                bossHP -= damage;
+                log(`You strike the Great Org for ${damage} damage!`, "boss");
+                
+                if (bossHP <= 0) {
+                    log("🎉 YOU DEFEATED THE GREAT ORG! 🎉", "boss");
+                    log("The Acid Wastes are saved. You are a legend!", "boss");
+                    coins += 500;
+                    kills += 5;
+                    gameState = "idle";
+                    bossHP = 300;
+                    updateUI();
+                    return;
+                }
+                
+                // Boss attacks
+                const bossDamage = 18;
+                log(`The Great Org spits ACID at you for ${bossDamage} damage!`, "boss");
+                
+                if (Math.random() < 0.25) {
+                    log("You died to the Great Org's acid...", "death");
+                    coins = Math.max(0, Math.floor(coins * 0.4));
+                    gameState = "idle";
+                    bossHP = 300;
+                    updateUI();
+                }
+                
+                log(`Great Org HP: ${bossHP}`, "boss");
+                
+            } else {
+                gameState = "boss_fight";
+                bossHP = 300;
+                log("=== FINAL BOSS: THE GREAT ORG ===", "boss");
+                log("A massive, disgusting Shrek-like creature towers over you!");
+                log("It spits acid and defends itself violently.");
+                log("Press FIGHT BOSS repeatedly to attack!");
+                log(`Great Org HP: ${bossHP}`, "boss");
+            }
+        }
+        
+        // p5.js sketch for the gorilla
+        let gorillaX, gorillaY;
+        let armAngle = 0;
+        
+        function setup() {
+            let canvas = createCanvas(480, 480);
+            canvas.parent("canvas-container");
+            
+            gorillaX = width / 2;
+            gorillaY = height / 2 + 40;
+            
+            // Initial log message
+            setTimeout(() => {
+                const logDiv = document.getElementById("log");
+                logDiv.innerHTML = "";
+                log("Welcome to Animal Company!");
+                log("You are a powerful gorilla on a mission.");
+                log("Press TUTORIAL to begin your adventure.");
+                updateUI();
+            }, 500);
+        }
+        
+        function draw() {
+            background(15, 25, 15);
+            
+            // Draw biome background
+            drawBiomeBackground();
+            
+            // Draw the gorilla (no legs)
+            drawGorilla();
+            
+            // Draw current monster if fighting
+            if (currentMonster && gameState === "fighting") {
+                drawMonster();
+            }
+            
+            // Draw Great Org if boss fight
+            if (gameState === "boss_fight") {
+                drawGreatOrg();
+            }
+            
+            // Instructions
+            fill(0, 255, 0, 180);
+            textSize(11);
+            textAlign(CENTER);
+            if (gameState === "idle") {
+                text("Click buttons on the right to play!", width/2, height - 30);
+            } else if (gameState === "fighting") {
+                text("Keep clicking FIGHT MONSTER to attack!", width/2, height - 30);
+            } else if (gameState === "boss_fight") {
+                text("Keep clicking FIGHT BOSS to attack the Great Org!", width/2, height - 30);
+            }
+        }
+        
+        function drawBiomeBackground() {
+            if (currentBiome === "Forest") {
+                fill(20, 80, 30);
+                rect(0, height - 120, width, 120);
+                // Trees
+                for (let i = 0; i < 5; i++) {
+                    fill(10, 50, 20);
+                    rect(40 + i * 95, height - 180, 25, 80);
+                    fill(30, 120, 40);
+                    ellipse(52 + i * 95, height - 200, 60, 60);
+                }
+            } else if (currentBiome === "Swamp") {
+                fill(40, 70, 50);
+                rect(0, height - 100, width, 100);
+                fill(60, 100, 40);
+                for (let i = 0; i < 8; i++) {
+                    ellipse(30 + i * 60, height - 70, 80, 40);
+                }
+            } else if (currentBiome === "Volcano") {
+                fill(60, 30, 20);
+                rect(0, height - 130, width, 130);
+                fill(200, 80, 30);
+                ellipse(width/2, height - 160, 120, 80);
+            } else if (currentBiome === "Ice Peaks") {
+                fill(180, 200, 220);
+                rect(0, height - 110, width, 110);
+                fill(220, 240, 255);
+                triangle(80, height - 110, 140, height - 220, 200, height - 110);
+                triangle(280, height - 110, 340, height - 200, 400, height - 110);
+            } else if (currentBiome === "Acid Wastes") {
+                fill(50, 80, 40);
+                rect(0, height - 100, width, 100);
+                fill(30, 120, 50);
+                for (let i = 0; i < 12; i++) {
+                    rect(random(width), height - 80, 8, 60);
+                }
+            }
+        }
+        
+        function drawGorilla() {
+            push();
+            translate(gorillaX, gorillaY);
+            
+            // Body (no legs - floating gorilla style)
+            fill(bodyColor);
+            stroke(30);
+            strokeWeight(3);
+            ellipse(0, 0, 140, 110);
+            
+            // Green eyes
+            fill(0, 255, 80);
+            ellipse(-35, -20, 28, 28);
+            ellipse(35, -20, 28, 28);
+            
+            // Eye shine
+            fill(255);
+            ellipse(-32, -23, 10, 10);
+            ellipse(38, -23, 10, 10);
+            
+            // Eyebrows
+            stroke(0);
+            strokeWeight(4);
+            line(-48, -35, -22, -38);
+            line(22, -38, 48, -35);
+            
+            // Arms (animated)
+            stroke(bodyColor);
+            strokeWeight(18);
+            
+            armAngle = sin(frameCount * 0.08) * 0.4;
+            
+            // Left arm
+            push();
+            rotate(-0.8 + armAngle);
+            line(-50, 10, -95, 55);
+            pop();
+            
+            // Right arm
+            push();
+            rotate(0.8 - armAngle);
+            line(50, 10, 95, 55);
+            pop();
+            
+            // Chest gadget
+            fill(80);
+            rect(-25, 15, 50, 25, 5);
+            fill(0, 255, 0);
+            rect(-15, 20, 30, 8);
+            
+            // Name tag
+            fill(0, 255, 0);
+            textSize(14);
+            textAlign(CENTER);
+            text(playerName.split(" ")[0], 0, 65);
+            
+            pop();
+        }
+        
+        function drawMonster() {
+            push();
+            translate(width * 0.75, height * 0.45);
+            
+            fill(80, 120, 60);
+            stroke(30);
+            strokeWeight(3);
+            
+            if (currentMonster.name === "Slime Rat") {
+                ellipse(0, 0, 70, 50);
+                fill(40, 90, 30);
+                ellipse(-15, -5, 20, 15);
+                ellipse(15, -5, 20, 15);
+            } else if (currentMonster.name === "Rock Boar") {
+                fill(100, 80, 60);
+                ellipse(0, 0, 90, 60);
+                fill(60);
+                rect(-40, -15, 20, 30);
+                rect(20, -15, 20, 30);
+            } else if (currentMonster.name === "Acid Spider") {
+                fill(30, 100, 40);
+                ellipse(0, 0, 60, 50);
+                fill(0, 255, 100);
+                ellipse(-20, -10, 15, 15);
+                ellipse(20, -10, 15, 15);
+            } else {
+                fill(40, 40, 50);
+                ellipse(0, 0, 80, 55);
+                fill(255, 0, 0);
+                ellipse(-20, -8, 12, 12);
+                ellipse(20, -8, 12, 12);
+            }
+            
+            // HP bar
+            fill(0);
+            rect(-50, -50, 100, 12);
+            fill(0, 255, 0);
+            rect(-48, -48, map(currentMonster.hp, 0, currentMonster.maxHP, 0, 96), 8);
+            
+            pop();
+        }
+        
+        function drawGreatOrg() {
+            push();
+            translate(width * 0.7, height * 0.42);
+            
+            // Big ugly Shrek-like body
+            fill(60, 100, 40);
+            stroke(30);
+            strokeWeight(4);
+            ellipse(0, 20, 160, 140);
+            
+            // Big head
+            fill(70, 110, 45);
+            ellipse(0, -60, 110, 100);
+            
+            // Ugly ears
+            fill(50, 90, 30);
+            ellipse(-55, -90, 35, 50);
+            ellipse(55, -90, 35, 50);
+            
+            // Acid eyes
+            fill(0, 255, 80);
+            ellipse(-25, -65, 30, 25);
+            ellipse(25, -65, 30, 25);
+            
+            // Acid drool
+            fill(0, 255, 100, 180);
+            ellipse(-15, -30, 12, 35);
+            ellipse(20, -25, 10, 28);
+            
+            // HP bar
+            fill(0);
+            rect(-70, -130, 140, 16);
+            fill(255, 50, 50);
+            rect(-68, -128, map(bossHP, 0, 300, 0, 136), 12);
+            
+            pop();
+        }
+        
+        // Handle clicking on canvas to attack
+        function mousePressed() {
+            if (gameState === "fighting" && currentMonster) {
+                performAttack();
+            } else if (gameState === "boss_fight") {
+                // Attack boss via mouse too
+                if (mouseX > width * 0.4) {
+                    fightBoss();
+                }
+            }
+        }
+        
+        // Keyboard support
+        function keyPressed() {
+            if (key === 'f' || key === 'F') {
+                if (gameState === "fighting") {
+                    performAttack();
+                } else if (gameState === "boss_fight") {
+                    fightBoss();
+                } else {
+                    fightMonster();
+                }
+            }
+            if (key === 'e' || key === 'E') {
+                exploreBiome();
+            }
+        }
+        
+        // Auto update UI periodically
+        setInterval(updateUI, 2000);
+        
+        // Easter egg: press 'g' to change body color randomly
+        function keyReleased() {
+            if (key === 'g' || key === 'G') {
+                bodyColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                document.getElementById("body-color").value = bodyColor;
+            }
+        }
+    </script>
+</body>
+</html>

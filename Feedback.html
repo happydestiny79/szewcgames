@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Feedback Station</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    
+    :root {
+      --primary: #6366f1;
+    }
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    
+    .heading {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 600;
+    }
+
+    .game-card {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .feedback-entry {
+      transition: all 0.2s ease;
+    }
+
+    .copy-btn {
+      transition: all 0.1s ease;
+    }
+    
+    .copy-btn:hover {
+      transform: translateY(-1px);
+    }
+    
+    .section-header {
+      font-size: 0.875rem;
+      letter-spacing: 0.025em;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+  <div class="max-w-3xl mx-auto px-6 py-10">
+    <!-- Header -->
+    <div class="flex items-center gap-3 mb-8">
+      <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center">
+        <span class="text-2xl">📝</span>
+      </div>
+      <div>
+        <h1 class="text-3xl heading font-semibold tracking-tight">Game Feedback Station</h1>
+        <p class="text-zinc-400 text-sm">Help us make the games better!</p>
+      </div>
+    </div>
+
+    <!-- Feedback Form -->
+    <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 mb-10">
+      <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+        <span>Share your thoughts</span>
+      </h2>
+      
+      <div class="space-y-6">
+        <!-- Game Selector -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-2">Which game are you playing?</label>
+          <select id="gameSelect" class="w-full bg-zinc-950 border border-zinc-700 text-white rounded-2xl px-4 py-3 text-lg focus:outline-none focus:border-indigo-500">
+            <option value="">Select a game...</option>
+          </select>
+        </div>
+
+        <!-- What I liked -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-2">What did you like?</label>
+          <textarea id="liked" rows="3" 
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 resize-y"
+                    placeholder="The air bending felt really smooth..."></textarea>
+        </div>
+
+        <!-- What could be improved -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-2">What could be improved?</label>
+          <textarea id="improved" rows="3" 
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 resize-y"
+                    placeholder="The enemies were a bit too fast..."></textarea>
+        </div>
+
+        <!-- Ideas to add -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-2">What else would you add?</label>
+          <textarea id="ideas" rows="3" 
+                    class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 resize-y"
+                    placeholder="It would be cool if you could..."></textarea>
+        </div>
+
+        <!-- Name (optional) -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-2">Your name (optional)</label>
+          <input type="text" id="studentName" 
+                 class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                 placeholder="Alex or just leave blank">
+        </div>
+
+        <button onclick="saveFeedback()"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-semibold py-4 rounded-2xl text-lg">
+          Save Feedback
+        </button>
+      </div>
+    </div>
+
+    <!-- Saved Feedback -->
+    <div>
+      <div class="flex items-center justify-between mb-4 px-1">
+        <h2 class="text-xl font-semibold">Saved Feedback</h2>
+        <button onclick="clearAllFeedback()" 
+                class="text-xs px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 transition-colors">
+          Clear All
+        </button>
+      </div>
+
+      <div id="feedbackList" class="space-y-3">
+        <!-- Populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // List of all games
+    const games = [
+      "Liam.html", "Zaire.html", "Zachary.html", "Maddox.html", 
+      "Makayla.html", "AJ.html", "Alex.html", "BlockBuilder.html",
+      "CalebCamper.html", "Deaglan.html", "Jammie.html", 
+      "MinecraftFamilyEdition.html", "TackTickTack.html",
+      "3dmath.html", "math-dash-3d.html"
+    ];
+
+    // Populate game selector
+    function populateGameSelect() {
+      const select = document.getElementById('gameSelect');
+      games.forEach(game => {
+        const option = document.createElement('option');
+        option.value = game;
+        option.textContent = game.replace('.html', '');
+        select.appendChild(option);
+      });
+    }
+
+    // Save feedback to localStorage
+    function saveFeedback() {
+      const game = document.getElementById('gameSelect').value;
+      const liked = document.getElementById('liked').value.trim();
+      const improved = document.getElementById('improved').value.trim();
+      const ideas = document.getElementById('ideas').value.trim();
+      const name = document.getElementById('studentName').value.trim();
+
+      if (!game) {
+        alert("Please select a game first!");
+        return;
+      }
+
+      if (!liked && !improved && !ideas) {
+        alert("Please write at least one piece of feedback.");
+        return;
+      }
+
+      const feedback = {
+        id: Date.now(),
+        game: game,
+        liked: liked,
+        improved: improved,
+        ideas: ideas,
+        name: name || "Anonymous",
+        timestamp: new Date().toISOString()
+      };
+
+      // Get existing feedback
+      let allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
+      allFeedback.unshift(feedback); // newest first
+      localStorage.setItem('gameFeedback', JSON.stringify(allFeedback));
+
+      // Clear form
+      document.getElementById('liked').value = '';
+      document.getElementById('improved').value = '';
+      document.getElementById('ideas').value = '';
+      document.getElementById('studentName').value = '';
+
+      // Refresh list
+      renderFeedbackList();
+      
+      // Success message
+      const btn = event.currentTarget;
+      alert("Feedback saved! Thank you!");
+    }
+
+    // Render all saved feedback
+    function renderFeedbackList(filterGame = null) {
+      const container = document.getElementById('feedbackList');
+      container.innerHTML = '';
+
+      let allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
+
+      if (filterGame) {
+        allFeedback = allFeedback.filter(f => f.game === filterGame);
+      }
+
+      if (allFeedback.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-zinc-500">
+            No feedback yet. Be the first to share your thoughts!
+          </div>
+        `;
+        return;
+      }
+
+      allFeedback.forEach(entry => {
+        const date = new Date(entry.timestamp);
+        const timeAgo = getTimeAgo(date);
+        
+        const gameName = entry.game.replace('.html', '');
+        
+        const div = document.createElement('div');
+        div.className = `feedback-entry bg-zinc-900 border border-zinc-800 rounded-2xl p-5`;
+        
+        div.innerHTML = `
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <div class="font-semibold text-lg">${gameName}</div>
+              <div class="text-xs text-zinc-500">${timeAgo} • by ${entry.name}</div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="copyToDiscord(${entry.id})" 
+                      class="copy-btn px-3 py-1 text-xs bg-zinc-800 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-1">
+                <span>📋</span>
+                <span>Copy for Discord</span>
+              </button>
+              <button onclick="deleteFeedback(${entry.id})" 
+                      class="px-3 py-1 text-xs bg-zinc-800 hover:bg-red-600 hover:text-white rounded-xl transition-all">
+                ✕
+              </button>
+            </div>
+          </div>
+          
+          ${entry.liked ? `
+          <div class="mb-2">
+            <div class="text-emerald-400 text-xs font-medium mb-0.5">LIKED</div>
+            <div class="text-sm">${entry.liked}</div>
+          </div>` : ''}
+          
+          ${entry.improved ? `
+          <div class="mb-2">
+            <div class="text-amber-400 text-xs font-medium mb-0.5">COULD IMPROVE</div>
+            <div class="text-sm">${entry.improved}</div>
+          </div>` : ''}
+          
+          ${entry.ideas ? `
+          <div>
+            <div class="text-sky-400 text-xs font-medium mb-0.5">IDEAS TO ADD</div>
+            <div class="text-sm">${entry.ideas}</div>
+          </div>` : ''}
+        `;
+        
+        container.appendChild(div);
+      });
+    }
+
+    function getTimeAgo(date) {
+      const seconds = Math.floor((new Date() - date) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Copy formatted feedback for Discord
+    function copyToDiscord(id) {
+      const allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
+      const entry = allFeedback.find(f => f.id === id);
+      if (!entry) return;
+
+      const gameName = entry.game.replace('.html', '');
+      
+      let text = `**${gameName} Feedback** (${entry.name})\n`;
+      
+      if (entry.liked) text += `✅ **Liked:** ${entry.liked}\n`;
+      if (entry.improved) text += `🔧 **Improve:** ${entry.improved}\n`;
+      if (entry.ideas) text += `💡 **Add:** ${entry.ideas}\n`;
+      
+      text += `\n*Submitted: ${new Date(entry.timestamp).toLocaleString()}*`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = event.target.innerHTML;
+        event.target.innerHTML = '✅ Copied!';
+        setTimeout(() => {
+          if (event.target) event.target.innerHTML = originalText;
+        }, 1500);
+      }).catch(() => {
+        // Fallback
+        prompt("Copy this text:", text);
+      });
+    }
+
+    function deleteFeedback(id) {
+      if (!confirm("Delete this feedback entry?")) return;
+      
+      let allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
+      allFeedback = allFeedback.filter(f => f.id !== id);
+      localStorage.setItem('gameFeedback', JSON.stringify(allFeedback));
+      renderFeedbackList();
+    }
+
+    function clearAllFeedback() {
+      if (!confirm("Delete ALL feedback? This cannot be undone.")) return;
+      localStorage.removeItem('gameFeedback');
+      renderFeedbackList();
+    }
+
+    // Initialize
+    function init() {
+      populateGameSelect();
+      renderFeedbackList();
+      
+      // Allow pressing Enter in textareas to save (with Ctrl/Cmd)
+      document.querySelectorAll('textarea').forEach(textarea => {
+        textarea.addEventListener('keydown', function(e) {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            saveFeedback();
+          }
+        });
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

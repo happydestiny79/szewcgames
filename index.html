@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎮 Game Lab • Play &amp; Improve</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    
+    .heading {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 600;
+    }
+
+    .game-card {
+      transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                  box-shadow 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+
+    .nav-button {
+      transition: all 0.2s ease;
+    }
+    
+    .nav-button:hover {
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+  <div class="max-w-5xl mx-auto px-6 py-12">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <div class="text-4xl">🎮</div>
+          <h1 class="text-5xl heading font-semibold tracking-tighter">Game Lab</h1>
+        </div>
+        <p class="text-xl text-zinc-400">Play the games • Share your ideas • Help us improve</p>
+      </div>
+      
+      <!-- Feedback Button -->
+      <a href="Feedback.html" 
+         class="nav-button inline-flex items-center gap-2 px-6 py-3 bg-white text-zinc-900 font-semibold rounded-2xl hover:bg-zinc-100 transition-all">
+        <span>📝</span>
+        <span>Give Feedback</span>
+      </a>
+    </div>
+
+    <!-- Games Section -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4 px-1">
+        <h2 class="text-2xl font-semibold tracking-tight">Games</h2>
+        <div class="text-sm text-zinc-500">Click any game to play</div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        
+        <!-- Game Cards -->
+
+        <!-- Air & Fire Avatars -->
+        <a href="Liam.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-indigo-400 transition-colors">Liam</div>
+              <div class="text-emerald-400 text-sm">Air Avatar</div>
+            </div>
+            <div class="text-3xl opacity-75 group-hover:opacity-100 transition-all">💨</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Air bending • Flight • 100 levels</div>
+        </a>
+
+        <a href="Zaire.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-orange-500/50 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-orange-400 transition-colors">Zaire</div>
+              <div class="text-orange-400 text-sm">Fire Avatar</div>
+            </div>
+            <div class="text-3xl opacity-75 group-hover:opacity-100 transition-all">🔥</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Fire bending • Flame dash</div>
+        </a>
+
+        <!-- Renamed Games -->
+        <a href="Roberto.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Roberto</div>
+              <div class="text-zinc-400 text-sm">Building</div>
+            </div>
+            <div class="text-3xl opacity-75">🧱</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Block building game</div>
+        </a>
+
+        <a href="Caleb.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Caleb</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🏕️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Caleb's adventure</div>
+        </a>
+
+        <a href="Celin.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Celin</div>
+              <div class="text-zinc-400 text-sm">Timing</div>
+            </div>
+            <div class="text-3xl opacity-75">⏱️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Timing challenge</div>
+        </a>
+
+        <a href="Jaylen.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-emerald-500/50 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-emerald-400 transition-colors">Jaylen</div>
+              <div class="text-emerald-400 text-sm">Minecraft Style</div>
+            </div>
+            <div class="text-3xl opacity-75">⛏️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Minecraft Family Edition</div>
+        </a>
+
+        <a href="Sage.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Sage</div>
+              <div class="text-zinc-400 text-sm">Fun</div>
+            </div>
+            <div class="text-3xl opacity-75">🎉</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Fun casual game</div>
+        </a>
+
+        <!-- New Games -->
+        <a href="Landon.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Landon</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🌟</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Landon's game</div>
+        </a>
+
+        <a href="Ralayah.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Ralayah</div>
+              <div class="text-zinc-400 text-sm">Creative</div>
+            </div>
+            <div class="text-3xl opacity-75">🎨</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Ralayah's creative game</div>
+        </a>
+
+        <a href="Lily.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Lily</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🌸</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Lily's game</div>
+        </a>
+
+        <a href="MJ.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">MJ</div>
+              <div class="text-zinc-400 text-sm">Battle</div>
+            </div>
+            <div class="text-3xl opacity-75">⚔️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">MJ's battle game</div>
+        </a>
+
+        <a href="Sophia.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Sophia</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🌟</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Sophia's game</div>
+        </a>
+
+        <a href="Cairo.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl group-hover:text-zinc-300 transition-colors">Cairo</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🏜️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Cairo's game</div>
+        </a>
+
+        <!-- Other Games -->
+        <a href="Zachary.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">Zachary</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🗺️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Explore &amp; discover</div>
+        </a>
+
+        <a href="Maddox.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">Maddox</div>
+              <div class="text-zinc-400 text-sm">Action</div>
+            </div>
+            <div class="text-3xl opacity-75">⚔️</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Fast-paced action</div>
+        </a>
+
+        <a href="Makayla.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">Makayla</div>
+              <div class="text-zinc-400 text-sm">Creative</div>
+            </div>
+            <div class="text-3xl opacity-75">🎨</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Creative building game</div>
+        </a>
+
+        <a href="AJ.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">AJ</div>
+              <div class="text-zinc-400 text-sm">Adventure</div>
+            </div>
+            <div class="text-3xl opacity-75">🌟</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">AJ's adventure</div>
+        </a>
+
+        <a href="Alex.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">Alex</div>
+              <div class="text-zinc-400 text-sm">Action</div>
+            </div>
+            <div class="text-3xl opacity-75">🏃</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Fast action game</div>
+        </a>
+
+        <a href="Deaglan.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">Deaglan</div>
+              <div class="text-zinc-400 text-sm">Puzzle</div>
+            </div>
+            <div class="text-3xl opacity-75">🧩</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Puzzle adventure</div>
+        </a>
+
+        <!-- Math Games -->
+        <a href="math-dash-3d.html" class="game-card group block bg-zinc-900 border border-zinc-800 hover:border-violet-500/50 rounded-3xl p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold text-xl">Math Dash 3D</div>
+              <div class="text-violet-400 text-sm">Learning</div>
+            </div>
+            <div class="text-3xl opacity-75">🔢</div>
+          </div>
+          <div class="mt-4 text-xs text-zinc-400">Fast 3D math racing</div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="mt-12 pt-8 border-t border-zinc-800">
+      <div class="flex flex-wrap gap-4">
+        <a href="Feedback.html" 
+           class="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-2xl text-sm flex items-center gap-2 transition-colors">
+          📝 <span>Give Feedback on any game</span>
+        </a>
+        <div class="text-xs text-zinc-500 self-center px-3">
+          All feedback is saved locally and easy to copy into our Discord
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

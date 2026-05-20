@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tack Tick Tick Tack - Dice Duel</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; background:#1a140f; color:#f4e9c8; font-family: 'Georgia', serif; }
+  canvas { display:block; margin:20px auto; border:6px solid #5c4033; box-shadow: 0 0 20px #3a2a1f; }
+  h1 { text-align:center; color:#d4af37; text-shadow: 2px 2px #3a2a1f; }
+</style>
+</head>
+<body>
+<h1>Tack Tick Tick Tack</h1>
+<p style="text-align:center; font-style:italic;">Compete • Roll the Dice • Earn Points in the Old Tavern</p>
+
+<script>
+let gameState = "lobby"; // lobby, battle, result
+let players = [
+  {name: "Alex", status: "waiting", wins: 3},
+  {name: "Jordan", status: "waiting", wins: 5},
+  {name: "Sam", status: "in-battle", wins: 2},
+  {name: "Taylor", status: "waiting", wins: 7},
+  {name: "Casey", status: "waiting", wins: 1},
+  {name: "Morgan", status: "in-battle", wins: 4}
+];
+let selectedOpponent = null;
+let myPoints = 0;
+let opponentPoints = 0;
+let timer = 60;
+let lastRollTime = 0;
+let diceValue = 1;
+let rollLog = [];
+let myTotalWins = 0;
+let diceRolling = false;
+let rollAnim = 0;
+let winner = "";
+let resultMessage = "";
+
+function setup() {
+  createCanvas(1100, 600);
+  textFont('Georgia');
+}
+
+function draw() {
+  background(26, 20, 15); // Dark wood tavern bg
+  
+  // Tavern wood floor / table feel
+  fill(60, 45, 35);
+  rect(0, 450, width, 150);
+  // Wood grain lines
+  stroke(40, 30, 25);
+  strokeWeight(1);
+  for (let i = 0; i < 20; i++) {
+    line(0, 460 + i*8, width, 460 + i*8);
+  }
+  noStroke();
+  
+  if (gameState === "lobby") {
+    drawLobby();
+  } else if (gameState === "battle") {
+    drawBattle();
+  } else if (gameState === "result") {
+    drawResult();
+  }
+}
+
+function drawLobby() {
+  // Title banner
+  fill(212, 175, 55);
+  rect(220, 30, 660, 60);
+  fill(26, 20, 15);
+  textSize(28);
+  textAlign(CENTER);
+  text("THE OLD TAVERN LOBBY", 550, 68);
+  
+  // Sidebar - Connected Players
+  fill(45, 35, 28);
+  rect(20, 110, 200, 420);
+  fill(212, 175, 55);
+  textSize(16);
+  textAlign(LEFT);
+  text("CONNECTED PLAYERS", 35, 135);
+  
+  // Player list
+  let y = 165;
+  for (let i = 0; i < players.length; i++) {
+    let p = players[i];
+    if (p.status === "in-battle") {
+      fill(80, 60, 40);
+    } else {
+      fill(70, 55, 45);
+    }
+    rect(30, y, 180, 42, 4);
+    
+    fill(244, 233, 200);
+    textSize(14);
+    text(p.name, 40, y + 20);
+    textSize(11);
+    text("Wins: " + p.wins, 40, y + 35);
+    
+    if (p.status === "in-battle") {
+      fill(200, 80, 60);
+      text("IN BATTLE", 130, y + 20);
+    } else {
+      fill(100, 180, 100);
+      text("READY", 150, y + 20);
+    }
+    y += 52;
+  }
+  
+  // Instructions
+  fill(244, 233, 200);
+  textSize(14);
+  textAlign(CENTER);
+  text("Click a player to challenge them to a dice duel!", 550, 120);
+  text("1 minute timer • Roll to deal damage • Highest points wins 150 bonus points", 550, 140);
+  
+  // Central table area hint
+  fill(80, 65, 50);
+  rect(250, 180, 600, 300, 10);
+  fill(212, 175, 55);
+  textSize(22);
+  text("Pick your opponent from the left", 550, 280);
+  text("to begin the Tack Tick Tick Tack duel", 550, 310);
+  
+  // Skill hint
+  fill(180, 140, 80);
+  textSize(13);
+  text("SKILL: Consistent high rolls unlock special 'Lucky Streak' bonuses!", 550, 450);
+}
+
+function drawBattle() {
+  // Battle header
+  fill(212, 175, 55);
+  rect(220, 20, 660, 50);
+  fill(26, 20, 15);
+  textSize(22);
+  textAlign(CENTER);
+  text("DUEL: YOU vs " + (selectedOpponent ? selectedOpponent.name : "OPPONENT"), 550, 52);
+  
+  // Timer
+  fill(200, 80, 60);
+  textSize(32);
+  textAlign(CENTER);
+  text("TIME: " + timer + "s", 550, 95);
+  
+  // Left: YOU
+  fill(50, 70, 50);
+  rect(240, 120, 220, 280, 8);
+  fill(244, 233, 200);
+  textSize(18);
+  textAlign(CENTER);
+  text("YOU", 350, 150);
+  textSize(14);
+  text("Points Dealt: " + myPoints, 350, 175);
+  
+  // Your health bar (representing remaining points to lose)
+  fill(40, 40, 40);
+  rect(260, 190, 180, 20);
+  let myHealthPct = constrain(100 - myPoints, 0, 100);
+  fill(100, 200, 100);
+  rect(260, 190, 180 * (myHealthPct/100), 20);
+  
+  // Dice area for you
+  fill(60, 50, 40);
+  rect(290, 230, 120, 120, 10);
+  if (diceRolling) {
+    fill(255);
+    textSize(48);
+    text(floor(random(1,7)), 350, 300);
+  } else {
+    drawDice(350, 290, diceValue);
+  }
+  
+  // Roll button
+  if (millis() - lastRollTime > 800) {
+    fill(180, 140, 60);
+    rect(270, 370, 160, 45, 6);
+    fill(26, 20, 15);
+    textSize(16);
+    textAlign(CENTER);
+    text("ROLL THE DICE", 350, 398);
+  }
+  
+  // Right: OPPONENT
+  fill(70, 50, 50);
+  rect(640, 120, 220, 280, 8);
+  fill(244, 233, 200);
+  textSize(18);
+  textAlign(CENTER);
+  text(selectedOpponent ? selectedOpponent.name : "OPPONENT", 750, 150);
+  textSize(14);
+  text("Points Dealt: " + opponentPoints, 750, 175);
+  
+  fill(40, 40, 40);
+  rect(660, 190, 180, 20);
+  let oppHealthPct = constrain(100 - opponentPoints, 0, 100);
+  fill(200, 100, 100);
+  rect(660, 190, 180 * (oppHealthPct/100), 20);
+  
+  // Opponent dice
+  fill(60, 50, 40);
+  rect(690, 230, 120, 120, 10);
+  drawDice(750, 290, floor(random(1,7))); // fake opponent dice visual
+  
+  // Battle log
+  fill(35, 28, 22);
+  rect(240, 430, 620, 140, 6);
+  fill(244, 233, 200);
+  textSize(12);
+  textAlign(LEFT);
+  let logY = 450;
+  text("ROLL HISTORY:", 255, logY);
+  for (let i = rollLog.length - 1; i >= max(0, rollLog.length - 5); i--) {
+    logY += 18;
+    text(rollLog[i], 255, logY);
+  }
+  
+  // Update timer
+  if (frameCount % 60 === 0 && timer > 0) {
+    timer--;
+    // Simulate opponent rolling occasionally
+    if (random() < 0.6) {
+      let oppRoll = floor(random(1,7));
+      opponentPoints += oppRoll;
+      rollLog.push(selectedOpponent.name + " rolled " + oppRoll + " → -" + oppRoll + " to you");
+    }
+  }
+  
+  if (timer <= 0) {
+    endBattle();
+  }
+  
+  // Finger tap hint
+  fill(180, 140, 80);
+  textAlign(CENTER);
+  textSize(11);
+  text("Tap or click the ROLL button with your fingers to compete!", 550, 585);
+}
+
+function drawDice(x, y, val) {
+  fill(255);
+  rect(x - 35, y - 35, 70, 70, 8);
+  fill(30);
+  // Draw pips based on value
+  let s = 8;
+  if (val === 1) {
+    ellipse(x, y, s, s);
+  } else if (val === 2) {
+    ellipse(x - 18, y - 18, s, s);
+    ellipse(x + 18, y + 18, s, s);
+  } else if (val === 3) {
+    ellipse(x - 18, y - 18, s, s);
+    ellipse(x, y, s, s);
+    ellipse(x + 18, y + 18, s, s);
+  } else if (val === 4) {
+    ellipse(x - 18, y - 18, s, s);
+    ellipse(x + 18, y - 18, s, s);
+    ellipse(x - 18, y + 18, s, s);
+    ellipse(x + 18, y + 18, s, s);
+  } else if (val === 5) {
+    ellipse(x - 18, y - 18, s, s);
+    ellipse(x + 18, y - 18, s, s);
+    ellipse(x, y, s, s);
+    ellipse(x - 18, y + 18, s, s);
+    ellipse(x + 18, y + 18, s, s);
+  } else if (val === 6) {
+    ellipse(x - 18, y - 18, s, s);
+    ellipse(x + 18, y - 18, s, s);
+    ellipse(x - 18, y, s, s);
+    ellipse(x + 18, y, s, s);
+    ellipse(x - 18, y + 18, s, s);
+    ellipse(x + 18, y + 18, s, s);
+  }
+}
+
+function drawResult() {
+  fill(45, 35, 28);
+  rect(200, 100, 700, 380, 12);
+  
+  fill(212, 175, 55);
+  textSize(36);
+  textAlign(CENTER);
+  text("DUEL COMPLETE", 550, 160);
+  
+  textSize(24);
+  if (winner === "you") {
+    fill(100, 220, 100);
+    text("YOU WIN!", 550, 210);
+    textSize(18);
+    fill(244, 233, 200);
+    text("You dealt " + myPoints + " points • Opponent dealt " + opponentPoints, 550, 245);
+    text("+150 bonus points added to your total!", 550, 275);
+  } else {
+    fill(220, 100, 100);
+    text("OPPONENT WINS", 550, 210);
+    textSize(18);
+    fill(244, 233, 200);
+    text("You dealt " + myPoints + " points • Opponent dealt " + opponentPoints, 550, 245);
+  }
+  
+  textSize(16);
+  text("Click anywhere to return to the Lobby", 550, 320);
+  
+  // Skill note
+  fill(180, 140, 80);
+  textSize(14);
+  text("SKILL BONUS: High rollers unlock 'Lucky Streak' in future duels", 550, 380);
+}
+
+function mousePressed() {
+  if (gameState === "lobby") {
+    // Check if clicked on a player
+    let y = 165;
+    for (let i = 0; i < players.length; i++) {
+      if (mouseX > 30 && mouseX < 210 && mouseY > y && mouseY < y + 42) {
+        if (players[i].status !== "in-battle") {
+          selectedOpponent = players[i];
+          startBattle();
+          return;
+        }
+      }
+      y += 52;
+    }
+  } else if (gameState === "battle") {
+    // Roll button
+    if (mouseX > 270 && mouseX < 430 && mouseY > 370 && mouseY < 415 && millis() - lastRollTime > 800) {
+      rollDice();
+    }
+  } else if (gameState === "result") {
+    resetToLobby();
+  }
+}
+
+function rollDice() {
+  diceRolling = true;
+  rollAnim = 0;
+  lastRollTime = millis();
+  
+  // Simulate roll animation frames
+  setTimeout(() => {
+    diceValue = floor(random(1, 7));
+    myPoints += diceValue;
+    rollLog.push("You rolled " + diceValue + " → -" + diceValue + " to opponent");
+    diceRolling = false;
+  }, 400);
+}
+
+function startBattle() {
+  gameState = "battle";
+  myPoints = 0;
+  opponentPoints = 0;
+  timer = 60;
+  rollLog = [];
+  diceValue = 1;
+  lastRollTime = 0;
+  diceRolling = false;
+}
+
+function endBattle() {
+  if (myPoints > opponentPoints) {
+    winner = "you";
+    myTotalWins++;
+    resultMessage = "Victory! You earned 150 points.";
+    // Give winner bonus
+    myPoints += 150;
+  } else if (opponentPoints > myPoints) {
+    winner = "opponent";
+    resultMessage = "Defeat... Better luck next time.";
+  } else {
+    winner = "tie";
+    resultMessage = "It's a tie!";
+  }
+  gameState = "result";
+}
+
+function resetToLobby() {
+  gameState = "lobby";
+  selectedOpponent = null;
+  myPoints = 0;
+  opponentPoints = 0;
+  timer = 60;
+  rollLog = [];
+  // Occasionally mark someone as in-battle for flavor
+  if (random() < 0.3) {
+    players[floor(random(players.length))].status = "in-battle";
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clash Super - Alex</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; background:#0f0f1a; color:#fff; font-family:Arial; }
+  canvas { display:block; margin:20px auto; border:5px solid #333; }
+</style>
+</head>
+<body>
+<h1 style="text-align:center">Clash Super • Alex</h1>
+<p style="text-align:center">Reaper (Player) vs Frost (CPU) — 5 Rounds</p>
+
+<script>
+let reaper, frost;
+let gameState = "story";
+let round = 1;
+let maxRounds = 5;
+let reaperHealth = 100;
+let frostHealth = 100;
+let reaperEffects = [], frostEffects = [];
+let crowd = [];
+let winner = "";
+let screenShake = 0;
+
+// Ultimate cinematic state
+let ultimateActive = false;
+let ultimateTimer = 0;
+let ultimateImpactFrame = 0;
+
+function setup() {
+  createCanvas(1000, 620);
+  
+  reaper = {
+    x: 220,
+    y: 430,
+    vx: 0,
+    vy: 0,
+    onGround: true,
+    facing: 1,
+    attacking: false,
+    attackType: "",
+    attackTimer: 0
+  };
+  
+  frost = {
+    x: 780,
+    y: 430,
+    vx: 0,
+    vy: 0,
+    onGround: true,
+    facing: -1,
+    attacking: false,
+    attackType: "",
+    attackTimer: 0,
+    lastAttack: 0
+  };
+  
+  // Cheering crowd
+  for (let i = 0; i < 14; i++) {
+    crowd.push({
+      x: random(40, 960),
+      y: random(70, 130),
+      bob: random(0, TWO_PI)
+    });
+  }
+}
+
+function draw() {
+  background(15, 18, 32);
+  
+  // Arena
+  fill(45, 40, 60);
+  rect(0, 490, width, 130);
+  
+  // Stage lights
+  fill(30);
+  rect(80, 210, 840, 18);
+  
+  // Draw cheering crowd
+  for (let c of crowd) {
+    c.bob += 0.12;
+    let bobY = sin(c.bob) * 5;
+    fill(255, 210, 120);
+    ellipse(c.x, c.y + bobY, 16, 20);
+    fill(255, 230, 200);
+    ellipse(c.x, c.y + bobY - 11, 10, 10);
+  }
+  
+  if (gameState === "story") {
+    drawStory();
+  } else if (gameState === "fight") {
+    if (ultimateActive) {
+      drawUltimateCinematic();
+    } else {
+      drawFight();
+    }
+  } else if (gameState === "ko") {
+    drawKO();
+  } else if (gameState === "win") {
+    drawWin();
+  }
+}
+
+function drawStory() {
+  fill(255);
+  textSize(30);
+  textAlign(CENTER);
+  text("THE HERO AND THE VILLAIN", width/2, 170);
+  
+  textSize(18);
+  text("Reaper and Frost carry tragic pasts.", width/2, 220);
+  text("They meet in the present-day arena and agree to settle it once and for all.", width/2, 250);
+  text("Best of 5 rounds. Only one leaves victorious.", width/2, 280);
+  
+  textSize(22);
+  fill(100, 255, 160);
+  text("Press SPACE to begin", width/2, 360);
+  
+  textSize(15);
+  fill(120, 200, 255);
+  text("REAPER: pointy hair • bandana • blue skin • white eyes • green hoodie • scythe", width/2, 430);
+  fill(255, 140, 255);
+  text("FROST: white skin • purple eyes • scepter • blue pants • yellow shirt • light orb", width/2, 455);
+}
+
+function drawFight() {
+  // Apply screen shake
+  let shakeX = random(-screenShake, screenShake);
+  let shakeY = random(-screenShake, screenShake);
+  translate(shakeX, shakeY);
+  screenShake *= 0.85;
+  
+  // Draw characters with arms
+  drawReaper();
+  drawFrost();
+  
+  // Health bars
+  drawHealthBars();
+  
+  // Round text
+  fill(255);
+  textSize(26);
+  textAlign(CENTER);
+  text("ROUND " + round + " / " + maxRounds, width/2, 52);
+  
+  // Controls
+  textSize(13);
+  text("← → = Move   SPACE = Jump   J = Side Special   K = ULTIMATE   L = Light Attack", width/2, 590);
+  
+  // Update logic
+  updatePlayer();
+  updateCPU();
+  updateEffects();
+  
+  // Win / lose checks
+  if (reaperHealth <= 0) {
+    winner = "Frost";
+    gameState = "ko";
+  }
+  if (frostHealth <= 0) {
+    winner = "Reaper";
+    gameState = "ko";
+  }
+}
+
+function drawHealthBars() {
+  // Reaper
+  fill(40);
+  rect(40, 25, 320, 28);
+  fill(70, 230, 110);
+  rect(40, 25, map(reaperHealth, 0, 100, 0, 320), 28);
+  fill(255);
+  textSize(14);
+  text("REAPER", 50, 44);
+  
+  // Frost
+  fill(40);
+  rect(640, 25, 320, 28);
+  fill(180, 90, 255);
+  rect(640, 25, map(frostHealth, 0, 100, 0, 320), 28);
+  fill(255);
+  text("FROST (CPU)", 650, 44);
+}
+
+function drawReaper() {
+  push();
+  translate(reaper.x, reaper.y);
+  scale(reaper.facing, 1);
+  
+  // Legs / pants
+  fill(110, 70, 35);
+  rect(-14, 8, 12, 32);
+  rect(2, 8, 12, 32);
+  
+  // Green hoodie
+  fill(35, 150, 75);
+  rect(-20, -22, 40, 32);
+  
+  // Arms (hoodie sleeves)
+  fill(30, 130, 65);
+  rect(-26, -18, 10, 22);   // left arm
+  rect(16, -18, 10, 22);    // right arm
+  
+  // Hands
+  fill(70, 130, 210);
+  ellipse(-22, 6, 9, 9);
+  ellipse(22, 6, 9, 9);
+  
+  // Head (blue skin)
+  fill(75, 135, 215);
+  ellipse(0, -30, 26, 26);
+  
+  // Pointy hair
+  fill(25);
+  triangle(-13, -42, 0, -56, 13, -42);
+  
+  // Bandana
+  fill(190, 45, 45);
+  rect(-15, -38, 30, 10);
+  
+  // White eyes
+  fill(255);
+  ellipse(-7, -32, 6, 6);
+  ellipse(7, -32, 6, 6);
+  
+  // Scythe when attacking
+  if (reaper.attacking) {
+    stroke(220);
+    strokeWeight(5);
+    line(18, -5, 52, -32);
+    line(52, -32, 58, -18);
+    noStroke();
+  }
+  
+  pop();
+}
+
+function drawFrost() {
+  push();
+  translate(frost.x, frost.y);
+  scale(frost.facing, 1);
+  
+  // Blue pants
+  fill(55, 85, 195);
+  rect(-14, 8, 12, 32);
+  rect(2, 8, 12, 32);
+  
+  // Yellow shirt
+  fill(250, 215, 70);
+  rect(-18, -20, 36, 30);
+  
+  // Arms
+  fill(235, 195, 50);
+  rect(-24, -16, 10, 20);
+  rect(14, -16, 10, 20);
+  
+  // Hands
+  fill(250, 235, 210);
+  ellipse(-20, 6, 8, 8);
+  ellipse(20, 6, 8, 8);
+  
+  // Head (white skin)
+  fill(245, 235, 220);
+  ellipse(0, -28, 24, 24);
+  
+  // Purple eyes
+  fill(190, 70, 220);
+  ellipse(-6, -30, 5, 5);
+  ellipse(6, -30, 5, 5);
+  
+  // Scepter when attacking
+  if (frost.attacking && frost.attackType === "orb") {
+    stroke(230, 210, 120);
+    strokeWeight(4);
+    line(-18, -2, -42, -28);
+    fill(255, 255, 180);
+    ellipse(-45, -30, 11, 11);
+    noStroke();
+  }
+  
+  pop();
+}
+
+function updatePlayer() {
+  // Movement
+  if (keyIsDown(LEFT_ARROW)) {
+    reaper.x -= 5;
+    reaper.facing = -1;
+  }
+  if (keyIsDown(RIGHT_ARROW)) {
+    reaper.x += 5;
+    reaper.facing = 1;
+  }
+  
+  // Gravity
+  reaper.vy += 0.85;
+  reaper.y += reaper.vy;
+  if (reaper.y > 430) {
+    reaper.y = 430;
+    reaper.vy = 0;
+    reaper.onGround = true;
+  }
+  
+  // Attack timers
+  if (reaper.attacking) {
+    reaper.attackTimer--;
+    if (reaper.attackTimer <= 0) reaper.attacking = false;
+  }
+}
+
+function updateCPU() {
+  // Simple but aggressive CPU AI for Frost
+  let distance = abs(frost.x - reaper.x);
+  
+  // Move toward player
+  if (distance > 90) {
+    if (frost.x > reaper.x) {
+      frost.x -= 3.2;
+      frost.facing = -1;
+    } else {
+      frost.x += 3.2;
+      frost.facing = 1;
+    }
+  }
+  
+  // Occasional jump
+  if (random() < 0.015 && frost.onGround) {
+    frost.vy = -11;
+    frost.onGround = false;
+  }
+  
+  // Gravity for Frost
+  frost.vy += 0.85;
+  frost.y += frost.vy;
+  if (frost.y > 430) {
+    frost.y = 430;
+    frost.vy = 0;
+    frost.onGround = true;
+  }
+  
+  // CPU attacks
+  let now = millis();
+  if (now - frost.lastAttack > 900) {
+    if (distance < 110 && random() < 0.6) {
+      // Light attack
+      frost.attacking = true;
+      frost.attackType = "light";
+      frost.attackTimer = 14;
+      reaperHealth -= random(6, 9);
+      frost.lastAttack = now;
+    } else if (distance < 160 && random() < 0.4) {
+      // Orb projectile
+      frost.attacking = true;
+      frost.attackType = "orb";
+      frost.attackTimer = 22;
+      frostEffects.push({
+        x: frost.x - 35 * frost.facing,
+        y: frost.y - 15,
+        vx: -7 * frost.facing,
+        vy: 0,
+        life: 26,
+        type: "orb"
+      });
+      frost.lastAttack = now;
+    }
+  }
+  
+  // Timer for Frost attacks
+  if (frost.attacking) {
+    frost.attackTimer--;
+    if (frost.attackTimer <= 0) frost.attacking = false;
+  }
+}
+
+function updateEffects() {
+  // Reaper effects
+  for (let i = reaperEffects.length - 1; i >= 0; i--) {
+    let e = reaperEffects[i];
+    e.x += e.vx;
+    e.y += e.vy;
+    e.life--;
+    if (e.life <= 0) reaperEffects.splice(i, 1);
+  }
+  
+  // Frost effects (projectiles)
+  for (let i = frostEffects.length - 1; i >= 0; i--) {
+    let e = frostEffects[i];
+    e.x += e.vx;
+    e.y += e.vy;
+    e.life--;
+    
+    // Hit player
+    if (abs(e.x - reaper.x) < 35 && abs(e.y - reaper.y) < 40) {
+      reaperHealth -= 11;
+      screenShake = 6;
+      frostEffects.splice(i, 1);
+      continue;
+    }
+    if (e.life <= 0) frostEffects.splice(i, 1);
+  }
+}
+
+function keyPressed() {
+  if (gameState === "story" && key === " ") {
+    gameState = "fight";
+    reaperHealth = 100;
+    frostHealth = 100;
+  }
+  
+  if (gameState === "fight" && !ultimateActive) {
+    // Jump
+    if (key === " ") {
+      if (reaper.onGround) {
+        reaper.vy = -12.5;
+        reaper.onGround = false;
+      }
+    }
+    
+    // Side Special - Scythe Swing
+    if (key === "j" || key === "J") {
+      reaper.attacking = true;
+      reaper.attackType = "scythe";
+      reaper.attackTimer = 16;
+      reaperEffects.push({ x: reaper.x + 35 * reaper.facing, y: reaper.y - 18, vx: 7 * reaper.facing, vy: -1, life: 18 });
+      
+      if (abs(reaper.x - frost.x) < 115) {
+        frostHealth -= 14;
+        screenShake = 4;
+      }
+    }
+    
+    // ULTIMATE - Cinematic Impact
+    if (key === "k" || key === "K") {
+      reaper.attacking = true;
+      reaper.attackType = "ultimate";
+      reaper.attackTimer = 30;
+      
+      ultimateActive = true;
+      ultimateTimer = 0;
+      ultimateImpactFrame = 0;
+      screenShake = 0;
+      
+      // Big damage
+      if (abs(reaper.x - frost.x) < 180) {
+        frostHealth -= 32;
+      }
+    }
+    
+    // Light Attack
+    if (key === "l" || key === "L") {
+      reaper.attacking = true;
+      reaper.attackType = "light";
+      reaper.attackTimer = 11;
+      
+      if (abs(reaper.x - frost.x) < 95) {
+        frostHealth -= 9;
+        screenShake = 3;
+      }
+    }
+  }
+  
+  // KO / Win navigation
+  if (gameState === "ko" && key === " ") {
+    if (round < maxRounds) {
+      round++;
+      reaperHealth = 100;
+      frostHealth = 100;
+      reaper.x = 220;
+      frost.x = 780;
+      reaperEffects = [];
+      frostEffects = [];
+      gameState = "fight";
+    } else {
+      gameState = "win";
+    }
+  }
+  
+  if ((gameState === "ko" || gameState === "win") && (key === "r" || key === "R")) {
+    resetGame();
+  }
+}
+
+function drawUltimateCinematic() {
+  ultimateTimer++;
+  
+  // Dramatic background flash
+  if (ultimateTimer % 4 < 2) {
+    fill(255, 240, 200, 60);
+    rect(0, 0, width, height);
+  }
+  
+  // Big impact frame
+  drawReaper();
+  drawFrost();
+  
+  // Massive scythe slam visual
+  if (ultimateTimer < 35) {
+    push();
+    translate(reaper.x + 60 * reaper.facing, reaper.y - 40);
+    rotate(radians(ultimateTimer * 3));
+    stroke(255, 230, 180);
+    strokeWeight(8);
+    line(0, 0, 90, -60);
+    line(90, -60, 105, -35);
+    noStroke();
+    pop();
+  }
+  
+  // Impact explosion
+  if (ultimateTimer > 18 && ultimateTimer < 55) {
+    for (let i = 0; i < 18; i++) {
+      let angle = (i * 20) + (ultimateTimer * 2);
+      let dist = 40 + sin(ultimateTimer * 0.3) * 20;
+      let px = frost.x + cos(radians(angle)) * dist;
+      let py = frost.y - 30 + sin(radians(angle)) * dist * 0.6;
+      fill(255, 200, 80, 220 - ultimateTimer * 3);
+      ellipse(px, py, 18, 18);
+    }
+    screenShake = 9;
+  }
+  
+  // Text
+  if (ultimateTimer > 8 && ultimateTimer < 50) {
+    fill(255, 230, 100);
+    textSize(36);
+    textAlign(CENTER);
+    text("ULTIMATE IMPACT", width/2, 180);
+  }
+  
+  // End cinematic
+  if (ultimateTimer > 65) {
+    ultimateActive = false;
+    reaper.attacking = false;
+    screenShake = 0;
+  }
+  
+  drawHealthBars();
+}
+
+function drawKO() {
+  fill(255, 60, 60);
+  textSize(46);
+  textAlign(CENTER);
+  text(winner + " WINS THE ROUND!", width/2, 270);
+  
+  textSize(20);
+  fill(255);
+  text("Press SPACE for next round", width/2, 330);
+  text("Press R to restart the whole match", width/2, 365);
+}
+
+function drawWin() {
+  fill(255, 220, 90);
+  textSize(40);
+  textAlign(CENTER);
+  text(winner + " IS THE CHAMPION!", width/2, 250);
+  
+  textSize(18);
+  fill(255);
+  text("Tragic pasts. One final victory.", width/2, 300);
+  text("Press R to play again", width/2, 350);
+}
+
+function resetGame() {
+  gameState = "story";
+  round = 1;
+  reaperHealth = 100;
+  frostHealth = 100;
+  reaper.x = 220;
+  frost.x = 780;
+  reaperEffects = [];
+  frostEffects = [];
+  winner = "";
+  ultimateActive = false;
+  screenShake = 0;
+}
+</script>
+</body>
+</html>
