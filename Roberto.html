@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Block Builder: War Buddies</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; background:#0a1a0a; color:#fff; font-family:Arial; }
+  canvas { display:block; margin:20px auto; border:4px solid #333; }
+  .info { text-align:center; max-width:800px; margin:0 auto; }
+</style>
+</head>
+<body>
+<h1 style="text-align:center">Block Builder: War Buddies</h1>
+<p class="info">Future Ruined Forest • Former War Buddies • Build Bigger to Win!</p>
+<p class="info">Pick your character • Build your home • Fly & Teleport • Break blocks • Reach 1000 points</p>
+
+<script>
+// Block Builder: War Buddies - Minecraft-inspired 2D building game
+// Setting: Ruined future neighborhood forest (dark, overgrown, broken houses)
+// Characters: Rob (Robber/Shape-shifter who can fly & teleport) and his former war buddy
+
+let player;
+let blocks = [];
+let trees = [];
+let ruins = [];
+let score = 0;
+let gameState = "character-select";
+let selectedCharacter = null;
+let blockTypes = ["wood", "stone", "leaf", "brick", "glass"];
+let currentBlockType = 0;
+let worldSize = 1200;
+let cameraX = 0;
+
+function setup() {
+  createCanvas(1000, 600);
+  
+  // Generate ruined future forest world
+  generateWorld();
+  
+  // Player starts off-screen until character picked
+  player = {
+    x: 300,
+    y: 400,
+    size: 40,
+    vx: 0,
+    vy: 0,
+    flying: false,
+    character: null,
+    shapeShift: 0
+  };
+}
+
+function generateWorld() {
+  blocks = [];
+  trees = [];
+  ruins = [];
+  
+  // Ground / dirt layer
+  for (let x = 0; x < worldSize; x += 40) {
+    blocks.push({
+      x: x,
+      y: 520,
+      w: 40,
+      h: 80,
+      type: "dirt",
+      health: 3
+    });
+  }
+  
+  // Ruined neighborhood houses (broken buildings)
+  for (let i = 0; i < 6; i++) {
+    let rx = 150 + i * 180 + random(-30, 30);
+    ruins.push({
+      x: rx,
+      y: 380,
+      w: 90,
+      h: 140,
+      broken: true
+    });
+    
+    // Add some broken walls as blocks
+    for (let j = 0; j < 4; j++) {
+      blocks.push({
+        x: rx + j * 22,
+        y: 420 + random(0, 60),
+        w: 22,
+        h: 22,
+        type: random() > 0.5 ? "brick" : "stone",
+        health: 2
+      });
+    }
+  }
+  
+  // Future forest trees (overgrown, dark, damaged)
+  for (let i = 0; i < 25; i++) {
+    trees.push({
+      x: random(50, worldSize - 50),
+      y: 480,
+      size: random(60, 110),
+      type: random() > 0.6 ? "dead" : "overgrown"
+    });
+  }
+  
+  // Scattered blocks for building (resources)
+  for (let i = 0; i < 40; i++) {
+    blocks.push({
+      x: random(100, worldSize - 100),
+      y: random(300, 500),
+      w: 30,
+      h: 30,
+      type: random(blockTypes),
+      health: 2
+    });
+  }
+}
+
+function draw() {
+  background(15, 25, 15);
+  
+  // Futuristic ruined sky
+  fill(10, 20, 30);
+  rect(0, 0, width, 280);
+  
+  // Stars / distant lights
+  fill(200, 220, 255, 180);
+  for (let i = 0; i < 50; i++) {
+    ellipse((i * 31 + frameCount * 0.1) % width, 40 + (i * 7) % 120, 2, 2);
+  }
+  
+  // Camera follow
+  cameraX = lerp(cameraX, player.x - width / 2, 0.1);
+  cameraX = constrain(cameraX, 0, worldSize - width);
+  
+  push();
+  translate(-cameraX, 0);
+  
+  // Draw ruined ground
+  fill(40, 30, 20);
+  rect(0, 520, worldSize, 100);
+  
+  // Draw trees (ruined forest)
+  for (let t of trees) {
+    if (t.type === "dead") {
+      fill(30, 25, 15);
+      rect(t.x, t.y - t.size, t.size * 0.3, t.size);
+      fill(20, 35, 15);
+      ellipse(t.x + 15, t.y - t.size - 20, t.size * 0.8, t.size * 0.6);
+    } else {
+      fill(25, 40, 20);
+      rect(t.x, t.y - t.size * 0.7, t.size * 0.25, t.size * 0.7);
+      fill(15, 50, 15);
+      ellipse(t.x + 12, t.y - t.size, t.size * 0.9, t.size * 0.7);
+    }
+  }
+  
+  // Draw ruins (broken future neighborhood)
+  for (let r of ruins) {
+    fill(50, 45, 40);
+    rect(r.x, r.y, r.w, r.h);
+    // Broken windows
+    fill(0);
+    for (let wx = 0; wx < 3; wx++) {
+      for (let wy = 0; wy < 4; wy++) {
+        if (random() > 0.3) {
+          rect(r.x + 12 + wx * 22, r.y + 15 + wy * 28, 14, 18);
+        }
+      }
+    }
+    // Cracks
+    stroke(20);
+    line(r.x, r.y + 40, r.x + r.w, r.y + 100);
+    noStroke();
+  }
+  
+  // Draw blocks
+  for (let b of blocks) {
+    if (b.type === "wood") fill(139, 90, 43);
+    else if (b.type === "stone") fill(100);
+    else if (b.type === "leaf") fill(20, 90, 30);
+    else if (b.type === "brick") fill(150, 60, 40);
+    else if (b.type === "glass") fill(180, 220, 255, 150);
+    else if (b.type === "dirt") fill(101, 67, 33);
+    
+    rect(b.x, b.y, b.w, b.h);
+    
+    // Block details
+    if (b.type === "wood" || b.type === "brick") {
+      stroke(0, 0, 0, 60);
+      for (let i = 1; i < 4; i++) {
+        line(b.x, b.y + i * (b.h / 4), b.x + b.w, b.y + i * (b.h / 4));
+      }
+      noStroke();
+    }
+  }
+  
+  // Draw player
+  if (player.character) {
+    drawPlayer();
+  }
+  
+  pop();
+  
+  // UI
+  drawUI();
+}
+
+function drawPlayer() {
+  push();
+  translate(player.x, player.y);
+  
+  let c = player.character;
+  
+  if (c === "rob") {
+    // Rob - the robber shape-shifter (dark hoodie, can change shape)
+    fill(20, 20, 30);
+    rect(-18, -10, 36, 45); // Hoodie
+    
+    fill(255, 200, 150);
+    ellipse(0, -18, 22, 22); // Head
+    
+    // Shape shift effect
+    if (player.shapeShift > 0) {
+      fill(255, 50, 50, 100);
+      ellipse(0, 0, 50 + sin(frameCount * 0.3) * 10, 50);
+      player.shapeShift--;
+    }
+    
+    // Eyes (sneaky robber look)
+    fill(255);
+    ellipse(-6, -20, 6, 4);
+    ellipse(6, -20, 6, 4);
+    fill(0);
+    ellipse(-6, -20, 3, 3);
+    ellipse(6, -20, 3, 3);
+    
+  } else if (c === "buddy") {
+    // Former war buddy - more heroic/military look
+    fill(60, 60, 80);
+    rect(-16, -5, 32, 40);
+    
+    fill(220, 180, 140);
+    ellipse(0, -15, 20, 20);
+    
+    // Camo pattern
+    fill(40, 80, 40);
+    rect(-10, 5, 20, 8);
+    rect(-14, 18, 28, 6);
+  }
+  
+  pop();
+}
+
+function drawUI() {
+  fill(255);
+  textSize(18);
+  textAlign(LEFT);
+  
+  if (gameState === "character-select") {
+    fill(255);
+    textSize(32);
+    textAlign(CENTER);
+    text("PICK YOUR CHARACTER", width/2, 80);
+    
+    textSize(20);
+    text("1. ROB - The Robber (Fly + Teleport + Shape Shift)", width/2, 160);
+    text("   Former war buddy turned... friendly robber", width/2, 185);
+    
+    text("2. BUDDY - The Builder (Strong builds + Repair)", width/2, 240);
+    text("   Still believes in their old friendship", width/2, 265);
+    
+    textSize(16);
+    text("Press 1 or 2 to choose", width/2, 320);
+    text("Then use mouse to build/break blocks", width/2, 350);
+    text("SPACE = Fly / Teleport   B = Change Block Type", width/2, 375);
+  } else {
+    text("Score: " + score + " / 1000", 20, 30);
+    text("Block: " + blockTypes[currentBlockType], 20, 55);
+    
+    if (player.character === "rob") {
+      text("Rob the Shape-Shifter | Fly & Teleport", 20, 80);
+    } else {
+      text("Buddy the Builder | Build bigger homes!", 20, 80);
+    }
+    
+    // Win condition hint
+    if (score >= 1000) {
+      gameState = "win";
+    }
+  }
+  
+  if (gameState === "win") {
+    fill(255, 220, 100);
+    textSize(36);
+    textAlign(CENTER);
+    text("YOU BUILT THE BIGGEST HOME!", width/2, height/2 - 40);
+    textSize(24);
+    text("Score: " + score, width/2, height/2 + 10);
+    text("Press R to restart", width/2, height/2 + 60);
+  }
+}
+
+function mousePressed() {
+  if (gameState === "play") {
+    let worldMouseX = mouseX + cameraX;
+    
+    // Check if clicking on existing block to break
+    let hitBlock = false;
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      let b = blocks[i];
+      if (worldMouseX > b.x && worldMouseX < b.x + b.w &&
+          mouseY > b.y && mouseY < b.y + b.h) {
+        
+        b.health--;
+        if (b.health <= 0) {
+          blocks.splice(i, 1);
+          score += 15;
+        }
+        hitBlock = true;
+        break;
+      }
+    }
+    
+    // Place new block if no hit and not on ground
+    if (!hitBlock && mouseY < 500) {
+      let newBlock = {
+        x: floor(worldMouseX / 30) * 30,
+        y: floor(mouseY / 30) * 30,
+        w: 30,
+        h: 30,
+        type: blockTypes[currentBlockType],
+        health: 4
+      };
+      
+      // Don't place on top of existing
+      let canPlace = true;
+      for (let b of blocks) {
+        if (abs(b.x - newBlock.x) < 25 && abs(b.y - newBlock.y) < 25) {
+          canPlace = false;
+          break;
+        }
+      }
+      
+      if (canPlace) {
+        blocks.push(newBlock);
+        score += 25;
+      }
+    }
+  }
+}
+
+function keyPressed() {
+  if (gameState === "character-select") {
+    if (key === '1') {
+      selectedCharacter = "rob";
+      startGame();
+    }
+    if (key === '2') {
+      selectedCharacter = "buddy";
+      startGame();
+    }
+  }
+  
+  if (gameState === "play" || gameState === "win") {
+    if (key === 'r' || key === 'R') {
+      resetGame();
+    }
+    
+    if (key === 'b' || key === 'B') {
+      currentBlockType = (currentBlockType + 1) % blockTypes.length;
+    }
+    
+    // Rob's special abilities
+    if (player.character === "rob") {
+      if (key === ' ') {
+        player.flying = !player.flying;
+        player.shapeShift = 20;
+        score += 5;
+      }
+      
+      // Teleport with T
+      if (key === 't' || key === 'T') {
+        player.x += random(-200, 200);
+        player.y += random(-150, 150);
+        player.x = constrain(player.x, 50, worldSize - 50);
+        player.y = constrain(player.y, 100, 480);
+        score += 10;
+        player.shapeShift = 30;
+      }
+    }
+    
+    // Buddy's build bonus
+    if (player.character === "buddy" && key === ' ') {
+      // Buddy can do a big build boost
+      score += 30;
+      // Auto place a few blocks around
+      let wx = floor(player.x / 30) * 30;
+      for (let i = -1; i <= 1; i++) {
+        blocks.push({
+          x: wx + i * 30,
+          y: player.y - 60,
+          w: 30,
+          h: 30,
+          type: blockTypes[currentBlockType],
+          health: 5
+        });
+      }
+    }
+  }
+}
+
+function startGame() {
+  gameState = "play";
+  player.character = selectedCharacter;
+  player.x = 250;
+  player.y = 420;
+  score = 0;
+}
+
+function resetGame() {
+  gameState = "character-select";
+  player.character = null;
+  selectedCharacter = null;
+  score = 0;
+  generateWorld();
+}
+
+function updatePlayer() {
+  if (gameState !== "play") return;
+  
+  // Movement
+  let speed = 5;
+  if (player.flying) speed = 8;
+  
+  if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) player.x -= speed;
+  if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) player.x += speed;
+  
+  // Flying / jumping
+  if ((keyIsDown(UP_ARROW) || keyIsDown(87)) && player.flying) {
+    player.y -= speed;
+  } else if (keyIsDown(UP_ARROW) || keyIsDown(87)) {
+    player.y -= 8; // small hop
+  }
+  
+  if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) {
+    player.y += 4;
+  }
+  
+  // Gravity when not flying
+  if (!player.flying) {
+    player.y += 3;
+  }
+  
+  // Boundaries
+  player.x = constrain(player.x, 30, worldSize - 30);
+  player.y = constrain(player.y, 50, 500);
+  
+  // Simple ground collision
+  if (player.y > 480 && !player.flying) {
+    player.y = 480;
+  }
+  
+  // Win condition: big builds
+  if (score >= 1000) {
+    gameState = "win";
+  }
+  
+  // Motion sensor idea: if player moves too wildly, add a "security" block or reduce score slightly
+  if (abs(player.vx) > 7 && frameCount % 40 === 0 && player.character === "rob") {
+    score -= 2; // Rob gets detected by motion sensors
+  }
+}
+
+// p5.js automatically calls draw() - we override behavior via gameState
+function mouseDragged() {
+  if (gameState === "play") {
+    mousePressed(); // Allow continuous building while dragging
+  }
+}
+</script>
+</body>
+</html>

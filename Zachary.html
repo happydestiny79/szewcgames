@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KJ vs Bluedude - Zachary's Game</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin: 0; background: #111; color: #fff; font-family: Arial, sans-serif; }
+  canvas { display: block; margin: 20px auto; border: 4px solid #555; }
+  .info { text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="info">
+  <h1>KJ vs Bluedude</h1>
+  <p>Zachary's Minecraft-style Fighter • 99 Levels • Use Arrow Keys + Z/X/C</p>
+</div>
+
+<script>
+let kj, bluedude;
+let kjHealth = 100;
+let blueHealth = 100;
+let gameState = "start"; // start, fight, win, lose
+let winner = "";
+let particles = [];
+let backgroundBlocks = [];
+
+function setup() {
+  createCanvas(800, 500);
+  
+  // Create background Minecraft-style blocks
+  for (let i = 0; i < 20; i++) {
+    backgroundBlocks.push({
+      x: random(width),
+      y: random(height * 0.6, height - 20),
+      size: random(20, 40),
+      color: color(random(80, 120), random(60, 90), random(40, 60))
+    });
+  }
+  
+  // Initialize characters
+  kj = {
+    x: 200,
+    y: 320,
+    size: 60,
+    color: color(220, 50, 50),
+    superMode: false,
+    superTimer: 0,
+    facing: 1
+  };
+  
+  bluedude = {
+    x: 600,
+    y: 320,
+    size: 60,
+    color: color(30, 100, 220),
+    transform: false,
+    transformType: 0
+  };
+}
+
+function draw() {
+  background(20, 30, 50);
+  
+  // Minecraft-style ground
+  fill(101, 67, 33);
+  rect(0, 380, width, 120);
+  
+  // Draw background blocks
+  for (let block of backgroundBlocks) {
+    fill(block.color);
+    rect(block.x, block.y, block.size, block.size);
+    // Block highlight
+    fill(255, 255, 255, 40);
+    rect(block.x, block.y, block.size * 0.3, block.size);
+  }
+  
+  if (gameState === "start") {
+    drawStartScreen();
+  } else if (gameState === "fight") {
+    drawFight();
+  } else if (gameState === "win" || gameState === "lose") {
+    drawEndScreen();
+  }
+  
+  // Particles
+  updateParticles();
+}
+
+function drawStartScreen() {
+  fill(255);
+  textSize(48);
+  textAlign(CENTER);
+  text("KJ vs BLUEDUDE", width/2, 150);
+  
+  textSize(24);
+  text("Press SPACE to START the FIGHT", width/2, 220);
+  
+  textSize(18);
+  fill(255, 200, 100);
+  text("KJ (Red Cat from Minecraft)  vs  Bluedude (Blue Demon)", width/2, 280);
+  text("Z = Punch   X = Teleport (KJ)   C = Super Mode / Ultimate", width/2, 320);
+}
+
+function drawFight() {
+  // Draw KJ
+  drawKJ();
+  
+  // Draw Bluedude
+  drawBluedude();
+  
+  // Health bars
+  drawHealthBars();
+  
+  // Controls reminder
+  fill(200);
+  textSize(14);
+  textAlign(LEFT);
+  text("KJ Controls: ← →  |  Z Punch  |  X Teleport  |  C Super/Ultimate", 20, 470);
+}
+
+function drawKJ() {
+  push();
+  translate(kj.x, kj.y);
+  scale(kj.facing, 1);
+  
+  // Body - Minecraft style
+  fill(kj.superMode ? color(255, 220, 50) : kj.color);
+  rect(-kj.size/2, -kj.size/2, kj.size, kj.size * 0.8);
+  
+  // Head (cat-like)
+  fill(255, 150, 50);
+  rect(-kj.size/3, -kj.size * 0.9, kj.size * 0.66, kj.size * 0.5);
+  
+  // Ears
+  triangle(-kj.size/3, -kj.size * 0.9, -kj.size/6, -kj.size * 1.2, 0, -kj.size * 0.9);
+  triangle(kj.size/3, -kj.size * 0.9, kj.size/6, -kj.size * 1.2, 0, -kj.size * 0.9);
+  
+  // Eyes
+  fill(0);
+  ellipse(-kj.size/8, -kj.size * 0.75, 8, 8);
+  ellipse(kj.size/8, -kj.size * 0.75, 8, 8);
+  
+  // Gloves (special)
+  fill(50);
+  rect(-kj.size/2 - 10, -kj.size/4, 15, 20);
+  rect(kj.size/2 - 5, -kj.size/4, 15, 20);
+  
+  pop();
+  
+  // Super mode glow
+  if (kj.superMode) {
+    noFill();
+    stroke(255, 220, 50, 150);
+    strokeWeight(4);
+    ellipse(kj.x, kj.y - 10, kj.size * 1.4, kj.size * 1.4);
+    strokeWeight(1);
+  }
+}
+
+function drawBluedude() {
+  push();
+  translate(bluedude.x, bluedude.y);
+  
+  let bColor = bluedude.transform ? color(100, 0, 150) : bluedude.color;
+  fill(bColor);
+  
+  // Demon body
+  rect(-bluedude.size/2, -bluedude.size/2, bluedude.size, bluedude.size * 0.9);
+  
+  // Horns
+  fill(50);
+  triangle(-bluedude.size/3, -bluedude.size/2, -bluedude.size/6, -bluedude.size * 0.9, 0, -bluedude.size/2);
+  triangle(bluedude.size/3, -bluedude.size/2, bluedude.size/6, -bluedude.size * 0.9, 0, -bluedude.size/2);
+  
+  // Eyes
+  fill(255, 0, 0);
+  ellipse(-bluedude.size/5, -bluedude.size * 0.35, 12, 12);
+  ellipse(bluedude.size/5, -bluedude.size * 0.35, 12, 12);
+  
+  // Transformation effect
+  if (bluedude.transform) {
+    fill(150, 0, 200, 80);
+    ellipse(0, 0, bluedude.size * 1.6, bluedude.size * 1.6);
+  }
+  
+  pop();
+}
+
+function drawHealthBars() {
+  // KJ Health
+  fill(50);
+  rect(50, 30, 200, 25);
+  fill(0, 255, 0);
+  rect(50, 30, kjHealth * 2, 25);
+  fill(255);
+  textSize(16);
+  text("KJ", 260, 48);
+  
+  // Bluedude Health
+  fill(50);
+  rect(550, 30, 200, 25);
+  fill(0, 150, 255);
+  rect(550, 30, blueHealth * 2, 25);
+  fill(255);
+  text("Bluedude", 760, 48);
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    fill(p.color);
+    noStroke();
+    ellipse(p.x, p.y, p.size);
+    
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+function keyPressed() {
+  if (gameState === "start" && key === ' ') {
+    gameState = "fight";
+    kjHealth = 100;
+    blueHealth = 100;
+    kj.x = 200;
+    bluedude.x = 600;
+  }
+  
+  if (gameState === "fight") {
+    if (key === 'z' || key === 'Z') {
+      punch();
+    }
+    if (key === 'x' || key === 'X') {
+      teleport();
+    }
+    if (key === 'c' || key === 'C') {
+      superOrUltimate();
+    }
+    
+    // Movement
+    if (keyCode === LEFT_ARROW) {
+      kj.x -= 30;
+      kj.facing = -1;
+    }
+    if (keyCode === RIGHT_ARROW) {
+      kj.x += 30;
+      kj.facing = 1;
+    }
+  }
+  
+  if ((gameState === "win" || gameState === "lose") && key === ' ') {
+    gameState = "start";
+  }
+}
+
+function punch() {
+  // KJ punches Bluedude
+  let distToBlue = abs(kj.x - bluedude.x);
+  
+  if (distToBlue < 120) {
+    let damage = kj.superMode ? 18 : 10;
+    blueHealth -= damage;
+    
+    // Hit particles
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        x: bluedude.x,
+        y: bluedude.y - 20,
+        vx: random(-3, 3),
+        vy: random(-2, -5),
+        size: random(4, 8),
+        life: 25,
+        color: color(255, 200, 0)
+      });
+    }
+    
+    // Check win
+    if (blueHealth <= 0) {
+      gameState = "win";
+      winner = "KJ";
+    }
+  }
+}
+
+function teleport() {
+  // KJ teleport behind Bluedude
+  kj.x = bluedude.x + (random() > 0.5 ? 80 : -80);
+  kj.facing = (kj.x < bluedude.x) ? 1 : -1;
+  
+  // Teleport particles
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x: kj.x,
+      y: kj.y,
+      vx: random(-4, 4),
+      vy: random(-3, 3),
+      size: random(3, 7),
+      life: 20,
+      color: color(255, 255, 100)
+    });
+  }
+}
+
+function superOrUltimate() {
+  if (kjHealth < 40 || blueHealth < 40) {
+    // UTMINE ULTIMATE!
+    let damage = 35;
+    blueHealth -= damage;
+    
+    // Massive explosion particles
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: bluedude.x,
+        y: bluedude.y,
+        vx: random(-6, 6),
+        vy: random(-6, 6),
+        size: random(5, 12),
+        life: 40,
+        color: color(random(200, 255), random(100, 200), 0)
+      });
+    }
+    
+    if (blueHealth <= 0) {
+      gameState = "win";
+      winner = "KJ (UTMINE!)";
+    }
+  } else {
+    // Normal Super Mode
+    kj.superMode = true;
+    kj.superTimer = 180; // 3 seconds
+    
+    // Super particles
+    for (let i = 0; i < 15; i++) {
+      particles.push({
+        x: kj.x,
+        y: kj.y,
+        vx: random(-3, 3),
+        vy: random(-5, -1),
+        size: random(4, 9),
+        life: 30,
+        color: color(255, 220, 50)
+      });
+    }
+  }
+}
+
+function drawEndScreen() {
+  fill(0, 0, 0, 180);
+  rect(0, 0, width, height);
+  
+  fill(255);
+  textSize(42);
+  textAlign(CENTER);
+  
+  if (gameState === "win") {
+    fill(100, 255, 100);
+    text("KJ WINS!", width/2, height/2 - 40);
+    textSize(24);
+    fill(255);
+    text(winner + " used the UTMINE POWER!", width/2, height/2 + 20);
+  } else {
+    fill(255, 80, 80);
+    text("BLUEDUDE WINS!", width/2, height/2 - 40);
+    textSize(24);
+    fill(255);
+    text("KJ was defeated...", width/2, height/2 + 20);
+  }
+  
+  textSize(20);
+  text("Press SPACE to play again", width/2, height/2 + 80);
+}
+
+// Simple AI for Bluedude
+function mousePressed() {
+  if (gameState === "fight") {
+    // Bluedude attacks when clicked (for demo)
+    if (random() < 0.7) {
+      let damage = bluedude.transform ? 15 : 8;
+      kjHealth -= damage;
+      
+      for (let i = 0; i < 6; i++) {
+        particles.push({
+          x: kj.x,
+          y: kj.y,
+          vx: random(-3, 3),
+          vy: random(-4, -2),
+          size: random(4, 8),
+          life: 20,
+          color: color(100, 50, 200)
+        });
+      }
+      
+      if (kjHealth <= 0) {
+        gameState = "lose";
+      }
+    }
+    
+    // Random transformation
+    if (random() < 0.4) {
+      bluedude.transform = !bluedude.transform;
+    }
+  }
+}
+
+// Auto decrease super mode
+function updateSuperMode() {
+  if (kj.superMode) {
+    kj.superTimer--;
+    if (kj.superTimer <= 0) {
+      kj.superMode = false;
+    }
+  }
+}
+
+// Run update every frame
+setInterval(() => {
+  if (gameState === "fight") {
+    updateSuperMode();
+    
+    // Simple AI movement
+    if (frameCount % 60 === 0 && random() < 0.6) {
+      if (bluedude.x > kj.x) bluedude.x -= 25;
+      else bluedude.x += 25;
+    }
+  }
+}, 100);
+</script>
+</body>
+</html>

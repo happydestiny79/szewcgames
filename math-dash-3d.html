@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Dash 3D</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0a12; }
+    canvas { display: block; }
+    #ui {
+      position: absolute; top: 20px; left: 20px; color: #fff;
+      font-family: 'Courier New', monospace; font-size: 18px; z-index: 10;
+      text-shadow: 0 0 10px #00f0ff;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div>SCORE: <span id="score">0</span></div>
+    <div>DISTANCE: <span id="distance">0</span>m</div>
+    <div style="margin-top:8px; font-size:14px; opacity:0.8;">
+      Click game first → SPACE = Jump | A/D or ←/→ = Lane | 1-9 = Solve Math
+    </div>
+  </div>
+  <script>
+    let player;
+    let obstacles = [];
+    let mathPrompts = [];
+    let score = 0;
+    let distance = 0;
+    let gameSpeed = 5.0;
+    let laneWidth = 130;
+    let currentLane = 1;
+    let isJumping = false;
+    let jumpVelocity = 0;
+    let gravity = 0.55;
+    let groundY = 0;
+    let lastSpawnZ = 0;
+    let lastMathZ = 0;
+    let cameraOffset = { x: 0, y: 150, z: 320 };
+    let gameStarted = false;
+    let textBuffer;
+
+    class Player {
+      constructor() {
+        this.x = 0;
+        this.y = groundY;
+        this.z = 0;
+        this.size = 42;
+        this.rotation = 0;
+      }
+      
+      update() {
+        this.z -= gameSpeed;
+        let targetX = (currentLane - 1) * laneWidth;
+        this.x = lerp(this.x, targetX, 0.18);
+        
+        if (isJumping) {
+          this.y += jumpVelocity;
+          jumpVelocity -= gravity;
+          
+          // Allow higher, more satisfying jumps
+          if (this.y < -195) {
+            this.y = -195;
+            jumpVelocity = Math.abs(jumpVelocity) * 0.55;
+          }
+          
+          if (this.y >= groundY) {
+            this.y = groundY;
+            isJumping = false;
+            jumpVelocity = 0;
+          }
+        }
+        this.rotation += 0.12;
+      }
+      
+      display() {
+        push();
+        translate(this.x, this.y - 45, this.z);
+        rotateY(this.rotation);
+        rotateX(this.rotation * 0.45);
+        
+        specularMaterial(170, 235, 255);
+        shininess(95);
+        metalness(140);
+        
+        cone(this.size * 0.8, this.size * 1.85, 4, 1);
+        rotateX(PI);
+        cone(this.size * 0.8, this.size * 1.85, 4, 1);
+        
+        emissiveMaterial(0, 255, 255);
+        sphere(this.size * 0.32);
+        pop();
+      }
+    }
+    
+    class Obstacle {
+      constructor(x, z, type = 'pyramid') {
+        this.x = x;
+        this.y = groundY - 15;
+        this.z = z;
+        this.type = type;
+        this.size = random(50, 70);
+        this.rotation = random(TWO_PI);
+        this.hue = random(200, 340);
+      }
+      
+      update() {
+        this.z -= gameSpeed;
+        this.rotation += 0.03;
+      }
+      
+      display() {
+        push();
+        translate(this.x, this.y, this.z);
+        rotateY(this.rotation);
+        
+        colorMode(HSB, 360, 100, 100);
+        specularMaterial(this.hue, 85, 92);
+        shininess(50);
+        
+        if (this.type === 'pyramid') cone(this.size * 0.72, this.size * 1.2, 3);
+        else if (this.type === 'cube') box(this.size);
+        else sphere(this.size * 0.7, 3, 2);
+        
+        stroke(255, 100, 100);
+        strokeWeight(2);
+        noFill();
+        if (this.type === 'pyramid') cone(this.size * 0.75, this.size * 1.25, 3);
+        else if (this.type === 'cube') box(this.size * 1.04);
+        
+        pop();
+        colorMode(RGB, 255);
+      }
+      
+      collides(px, py, pz) {
+        let dx = abs(this.x - px);
+        let dy = abs(this.y - py);
+        let dz = abs(this.z - pz);
+        return dx < this.size * 0.6 && dy < this.size * 0.9 && dz < this.size;
+      }
+    }
+    
+    class MathPrompt {
+      constructor(x, z) {
+        this.x = x;
+        this.y = groundY - 95;
+        this.z = z;
+        
+        // Generate equation with answer between 3 and 12 (single key press)
+        let a = floor(random(2, 7));
+        let b = floor(random(2, 7));
+        this.equation = `${a}+${b}`;
+        this.answer = a + b;
+        
+        this.solved = false;
+        this.glow = 0;
+        this.updateTexture();
+      }
+      
+      updateTexture() {
+        textBuffer.clear();
+        textBuffer.background(15, 22, 50);
+        textBuffer.stroke(0, 255, 255);
+        textBuffer.strokeWeight(3);
+        textBuffer.fill(0, 255, 255);
+        textBuffer.textAlign(CENTER, CENTER);
+        textBuffer.textSize(26);
+        textBuffer.text(this.equation + " = ?", textBuffer.width / 2, textBuffer.height / 2);
+      }
+      
+      update() {
+        this.z -= gameSpeed;
+        this.glow = (this.glow + 0.1) % TWO_PI;
+      }
+      
+      display() {
+        if (this.solved) return;
+        
+        push();
+        translate(this.x, this.y, this.z);
+        rotateY(sin(this.glow) * 0.4);
+        
+        // Draw textured plane with real text
+        texture(textBuffer);
+        noStroke();
+        plane(170, 58);
+        pop();
+      }
+      
+      checkAnswer(key) {
+        if (this.solved) return false;
+        if (parseInt(key) === this.answer) {
+          this.solved = true;
+          score += 250;
+          gameSpeed = min(gameSpeed + 0.45, 11);
+          return true;
+        }
+        return false;
+      }
+    }
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      pixelDensity(1);
+      
+      // Create offscreen buffer for crisp math text
+      textBuffer = createGraphics(200, 70);
+      textBuffer.pixelDensity(1);
+      
+      player = new Player();
+      lastSpawnZ = player.z - 280;
+      lastMathZ = player.z - 380;
+      
+      for (let i = 0; i < 4; i++) {
+        let z = player.z - 380 - i * 350;
+        let lane = floor(random(3));
+        let x = (lane - 1) * laneWidth;
+        obstacles.push(new Obstacle(x, z, random() > 0.5 ? 'pyramid' : 'cube'));
+      }
+    }
+    
+    function draw() {
+      background(5, 5, 18);
+      
+      let camX = player.x * 0.5 + cameraOffset.x;
+      let camY = player.y - cameraOffset.y;
+      let camZ = player.z + cameraOffset.z;
+      camera(camX, camY, camZ, player.x, player.y - 60, player.z - 100, 0, 1, 0);
+      
+      ambientLight(20, 25, 45);
+      directionalLight(160, 195, 255, -0.35, -1, -0.45);
+      pointLight(0, 255, 255, player.x + 90, -160, player.z - 70);
+      pointLight(255, 90, 210, player.x - 130, -110, player.z + 50);
+      
+      // Grid
+      stroke(30, 65, 100, 120);
+      strokeWeight(1.3);
+      for (let i = -12; i <= 12; i++) {
+        let zLine = (floor(player.z / 95) * 95) + i * 95;
+        line(-laneWidth * 2.2, groundY, zLine, laneWidth * 2.2, groundY, zLine);
+      }
+      for (let lx = -2; lx <= 2; lx++) {
+        let xLine = lx * laneWidth;
+        line(xLine, groundY, player.z - 800, xLine, groundY, player.z + 300);
+      }
+      
+      player.update();
+      player.display();
+      
+      // Obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        obs.update();
+        obs.display();
+        
+        if (!isJumping && obs.collides(player.x, player.y, player.z)) {
+          background(255, 15, 60, 90);
+          gameSpeed = 0;
+          textSize(52);
+          fill(255);
+          textAlign(CENTER);
+          text("CRASHED", 0, -90);
+          textSize(22);
+          text("Press R to restart", 0, -35);
+          noLoop();
+          return;
+        }
+        
+        if (obs.z > player.z + 400) obstacles.splice(i, 1);
+      }
+      
+      // Math prompts
+      for (let i = mathPrompts.length - 1; i >= 0; i--) {
+        let mp = mathPrompts[i];
+        mp.update();
+        mp.display();
+        if (mp.z > player.z + 280) mathPrompts.splice(i, 1);
+      }
+      
+      // Spawn obstacles
+      if (player.z - lastSpawnZ < -280) {
+        let lane = floor(random(3));
+        let x = (lane - 1) * laneWidth;
+        let type = random() > 0.5 ? 'pyramid' : (random() > 0.5 ? 'cube' : 'sphere');
+        obstacles.push(new Obstacle(x, player.z - 780, type));
+        lastSpawnZ = player.z;
+      }
+      
+      // Spawn math prompts
+      if (player.z - lastMathZ < -380 && random() < 0.95) {
+        let lane = floor(random(3));
+        let x = (lane - 1) * laneWidth;
+        mathPrompts.push(new MathPrompt(x, player.z - 920));
+        lastMathZ = player.z;
+      }
+      
+      distance = floor(-player.z / 10);
+      score = floor(distance * 0.95 + mathPrompts.length * 60);
+      
+      document.getElementById('score').innerText = score;
+      document.getElementById('distance').innerText = distance;
+      
+      if (obstacles.length > 18) obstacles.shift();
+    }
+    
+    function mousePressed() {
+      if (!gameStarted) gameStarted = true;
+    }
+    
+    function keyPressed() {
+      if (!gameStarted) return;
+      
+      if (key === ' ') {
+        if (!isJumping) {
+          isJumping = true;
+          jumpVelocity = -19.5; // Improved jump impulse
+        }
+        return false;
+      }
+      
+      if (key === 'a' || key === 'A' || keyCode === LEFT_ARROW) currentLane = max(0, currentLane - 1);
+      if (key === 'd' || key === 'D' || keyCode === RIGHT_ARROW) currentLane = min(2, currentLane + 1);
+      
+      if (key >= '1' && key <= '9') {
+        for (let mp of mathPrompts) {
+          if (mp.checkAnswer(key)) {
+            for (let i = 0; i < 9; i++) {
+              let b = new Obstacle(mp.x + random(-45, 45), mp.z + random(-25, 25), 'sphere');
+              b.size = random(12, 20);
+              obstacles.push(b);
+            }
+            break;
+          }
+        }
+      }
+      
+      if (key === 'r' || key === 'R') location.reload();
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kevin's Big Lesson - 1920s Park Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #ffd700;
+        }
+        canvas {
+            border: 8px solid #8B4513;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(139, 69, 19, 0.6);
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+        }
+        h1 {
+            margin: 0;
+            font-size: 26px;
+            text-shadow: 2px 2px #8B4513;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🌳 Kevin's Big Lesson 🌳</h1>
+        <p>1920s Park • Help Kevin Do the Right Thing!</p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script>
+        let kevin, mom, ralayah;
+        let trashCans = [];
+        let trashItems = [];
+        let score = 0;
+        let level = 1;
+        let timeLeft = 60;
+        let gameState = "play";
+        let message = "";
+        let messageTimer = 0;
+        let wind = 0;
+        let audioCtx;
+
+        function setup() {
+            createCanvas(800, 600);
+            
+            // Simple Web Audio for 1920s-style beeps
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            kevin = {
+                x: 350, y: 450, size: 40, speed: 5,
+                hasTrash: false, flying: false
+            };
+            
+            mom = { x: 650, y: 420, size: 50 };
+            
+            // Ralayah Williams - the girl in red (helpful friend)
+            ralayah = {
+                x: 200, y: 430, size: 38,
+                pointing: false
+            };
+            
+            generateLevel();
+            
+            setInterval(() => {
+                if (gameState === "play" && timeLeft > 0) {
+                    timeLeft--;
+                    if (timeLeft <= 0) gameState = "lose";
+                }
+            }, 1000);
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if (type === "pickup") {
+                osc.frequency.value = 600;
+                osc.type = "square";
+                gain.gain.value = 0.2;
+                setTimeout(() => { osc.stop(); }, 120);
+            } else if (type === "correct") {
+                osc.frequency.value = 880;
+                osc.type = "sine";
+                gain.gain.value = 0.3;
+                setTimeout(() => { osc.stop(); }, 200);
+            } else if (type === "wrong") {
+                osc.frequency.value = 220;
+                osc.type = "sawtooth";
+                gain.gain.value = 0.25;
+                setTimeout(() => { osc.stop(); }, 180);
+            } else if (type === "hint") {
+                osc.frequency.value = 750;
+                osc.type = "triangle";
+                gain.gain.value = 0.15;
+                setTimeout(() => { osc.stop(); }, 300);
+            }
+            osc.start();
+        }
+
+        function generateLevel() {
+            trashCans = [];
+            trashItems = [];
+            wind = random(-1.5, 1.5); // wind gusts for difficulty
+            
+            let numCans = min(2 + floor(level / 8), 4);
+            
+            // Creative & challenging trash can placement
+            for (let i = 0; i < numCans; i++) {
+                let canX, canY;
+                // Hide cans in interesting 1920s park spots
+                if (random() < 0.4) {
+                    canX = random(120, 280); canY = random(380, 480); // near slide
+                } else if (random() < 0.4) {
+                    canX = random(520, 680); canY = random(300, 380); // near rock wall
+                } else {
+                    canX = random(320, 500); canY = random(420, 520); // middle path
+                }
+                trashCans.push({ x: canX, y: canY, size: 36, found: false, sparkle: 0 });
+            }
+            
+            // More trash + creative hiding spots
+            for (let i = 0; i < 6 + level; i++) {
+                let tx = random(90, 710);
+                let ty = random(390, 555);
+                // Sometimes hide trash on playground equipment
+                if (level > 5 && random() < 0.3) ty = random(320, 370);
+                trashItems.push({ x: tx, y: ty, size: 14, collected: false });
+            }
+            
+            timeLeft = max(35, 65 - level * 1.8);
+            kevin.hasTrash = false;
+            ralayah.pointing = false;
+            message = level === 1 ? "Ralayah says: 'I'll help you find the trash cans!'" : "New level! Find those cans!";
+            messageTimer = 140;
+        }
+
+        function draw() {
+            // === FULL GAME DRAW LOOP ===
+            background(180, 200, 220); // Sky
+            fill(60, 110, 60); rect(0, 400, width, 200); // Grass
+            fill(160, 120, 70); rect(0, 490, width, 30); // Dirt path
+
+            drawPlayground();
+            drawTrees();
+
+            // Draw trash items
+            for (let t of trashItems) {
+                if (!t.collected) {
+                    fill(110, 110, 110);
+                    ellipse(t.x, t.y, t.size, t.size * 0.65);
+                    fill(70);
+                    rect(t.x - 2, t.y - 7, 5, 3);
+                }
+            }
+
+            // Draw trash cans
+            for (let can of trashCans) {
+                if (!can.found) {
+                    fill(140, 140, 145);
+                    rect(can.x - 14, can.y - 26, 28, 38);
+                    fill(90);
+                    ellipse(can.x, can.y - 26, 28, 7);
+                    fill(50);
+                    textSize(9);
+                    text("ASH", can.x - 10, can.y - 5);
+
+                    if (can.sparkle > 0) {
+                        can.sparkle--;
+                        fill(255, 255, 200, 180);
+                        ellipse(can.x, can.y - 35, 8, 8);
+                    }
+                }
+            }
+
+            drawMom();
+            drawRalayah();
+            drawKevin();
+            drawUI();
+
+            // Messages
+            if (messageTimer > 0) {
+                messageTimer--;
+                fill(255, 215, 0);
+                textSize(17);
+                textAlign(CENTER);
+                text(message, width / 2, 75);
+            }
+
+            // End states
+            if (gameState === "win") {
+                fill(50, 255, 100);
+                textSize(28);
+                textAlign(CENTER);
+                text("Excellent work, Kevin! God is smiling! 🌟", width / 2, height / 2);
+                textSize(18);
+                text("Press SPACE for the next level", width / 2, height / 2 + 45);
+            }
+            if (gameState === "lose") {
+                fill(255, 80, 80);
+                textSize(24);
+                textAlign(CENTER);
+                text("Trash hurts the Earth... Let's try again!", width / 2, height / 2);
+                textSize(16);
+                text("Press R to restart this level", width / 2, height / 2 + 45);
+            }
+
+            // Always update movement
+            updateKevin();
+        }
+        
+        function drawPlayground() {
+            // Wooden slide (1920s style)
+            fill(139, 90, 43);
+            triangle(140, 340, 230, 340, 185, 430);
+            rect(178, 430, 18, 55);
+            
+            // Monkey bars
+            stroke(70); strokeWeight(5);
+            line(290, 295, 470, 295);
+            for (let i = 0; i < 7; i++) line(305 + i*26, 295, 305 + i*26, 345);
+            noStroke();
+            
+            // Rock climbing wall
+            fill(120, 120, 130);
+            rect(530, 270, 130, 150);
+            fill(80);
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 4; col++) {
+                    ellipse(550 + col*30, 295 + row*28, 18, 14);
+                }
+            }
+        }
+        
+        function drawTrees() {
+            for (let i = 0; i < 3; i++) {
+                let tx = 70 + i * 290;
+                fill(90, 60, 30); rect(tx-9, 310, 18, 90);
+                fill(30, 120, 50); 
+                ellipse(tx, 295, 75, 75);
+                ellipse(tx-22, 315, 55, 55);
+                ellipse(tx+22, 315, 55, 55);
+            }
+        }
+        function drawMom() {
+            // Mom - 1920s teacher look (brown hair, black glasses, big nose)
+            fill(80, 20, 90);
+            rect(mom.x - 18, mom.y, 36, 55);
+            fill(255, 240, 220);
+            rect(mom.x - 18, mom.y, 36, 8); // collar
+            
+            fill(255, 218, 185);
+            ellipse(mom.x, mom.y - 12, 32, 32);
+            
+            fill(101, 67, 33);
+            arc(mom.x, mom.y - 18, 36, 30, PI, TWO_PI);
+            ellipse(mom.x, mom.y - 28, 18, 14); // bun
+            
+            stroke(0);
+            strokeWeight(2.5);
+            noFill();
+            ellipse(mom.x - 8, mom.y - 10, 10, 8);
+            ellipse(mom.x + 8, mom.y - 10, 10, 8);
+            line(mom.x - 3, mom.y - 10, mom.x + 3, mom.y - 10);
+            noStroke();
+            
+            fill(255, 200, 180);
+            triangle(mom.x, mom.y - 4, mom.x - 3, mom.y + 4, mom.x + 3, mom.y + 4);
+            
+            fill(30, 144, 255);
+            ellipse(mom.x - 8, mom.y - 10, 4, 4);
+            ellipse(mom.x + 8, mom.y - 10, 4, 4);
+            
+            stroke(180, 80, 80);
+            strokeWeight(1.5);
+            noFill();
+            arc(mom.x, mom.y + 2, 10, 6, 0, PI);
+            noStroke();
+        }
+
+        function drawRalayah() {
+            // Ralayah Williams - the girl in red (improved)
+            fill(200, 30, 60);
+            rect(ralayah.x - 14, ralayah.y, 28, 45);
+            fill(255, 245, 230);
+            rect(ralayah.x - 14, ralayah.y, 28, 6); // white collar
+            
+            fill(255, 218, 185);
+            ellipse(ralayah.x, ralayah.y - 9, 28, 28);
+            
+            fill(40, 20, 10);
+            ellipse(ralayah.x - 7, ralayah.y - 16, 11, 11);
+            ellipse(ralayah.x + 7, ralayah.y - 16, 11, 11);
+            fill(255, 255, 255);
+            ellipse(ralayah.x, ralayah.y - 20, 9, 7); // bow
+            
+            fill(255, 200, 180);
+            triangle(ralayah.x, ralayah.y - 2, ralayah.x - 3, ralayah.y + 5, ralayah.x + 3, ralayah.y + 5);
+            
+            fill(30, 144, 255);
+            ellipse(ralayah.x - 7, ralayah.y - 9, 4, 4);
+            ellipse(ralayah.x + 7, ralayah.y - 9, 4, 4);
+            
+            fill(80, 30, 30);
+            rect(ralayah.x - 10, ralayah.y + 45, 6, 8);
+            rect(ralayah.x + 4, ralayah.y + 45, 6, 8);
+        }
+
+        function drawKevin() {
+            // Kevin Wilson - improved 1920s boy look
+            fill(25, 25, 112);
+            rect(kevin.x - 12, kevin.y, 24, 38);
+            fill(200, 180, 160);
+            rect(kevin.x - 12, kevin.y, 24, 5); // collar
+            
+            fill(50, 50, 60);
+            rect(kevin.x - 10, kevin.y + 38, 7, 18);
+            rect(kevin.x + 3, kevin.y + 38, 7, 18);
+            fill(40, 30, 20);
+            rect(kevin.x - 10, kevin.y + 54, 7, 5);
+            rect(kevin.x + 3, kevin.y + 54, 7, 5);
+            
+            fill(255, 218, 185);
+            ellipse(kevin.x, kevin.y - 7, 30, 30);
+            
+            fill(55, 35, 15);
+            for (let i = -4; i <= 4; i++) {
+                ellipse(kevin.x + i * 4, kevin.y - 19, 12, 12);
+            }
+            
+            stroke(0);
+            strokeWeight(1.8);
+            noFill();
+            ellipse(kevin.x - 7, kevin.y - 5, 9, 7);
+            ellipse(kevin.x + 7, kevin.y - 5, 9, 7);
+            line(kevin.x - 2, kevin.y - 5, kevin.x + 2, kevin.y - 5);
+            noStroke();
+            
+            fill(255, 200, 180);
+            triangle(kevin.x, kevin.y, kevin.x - 4, kevin.y + 8, kevin.x + 4, kevin.y + 8);
+            
+            fill(30, 144, 255);
+            ellipse(kevin.x - 7, kevin.y - 5, 3.5, 3.5);
+            ellipse(kevin.x + 7, kevin.y - 5, 3.5, 3.5);
+            
+            if (kevin.hasTrash) {
+                fill(110, 110, 110);
+                ellipse(kevin.x + 18, kevin.y + 10, 14, 11);
+            }
+            if (kevin.flying) {
+                fill(200, 220, 255, 110);
+                ellipse(kevin.x, kevin.y + 30, 30, 13);
+            }
+        }
+        
+        function drawUI() {
+            fill(255); textSize(15); textAlign(LEFT);
+            text("Level " + level + " / 100", 20, 28);
+            text("Trash: " + score + " / " + trashCans.length, 20, 50);
+            text("Time: " + timeLeft + "s", 20, 72);
+            if (abs(wind) > 0.3) {
+                fill(200, 220, 255); text("Wind: " + (wind > 0 ? "→" : "←"), 20, 94);
+            }
+            
+            fill(255, 215, 0); textSize(11);
+            text("WASD/Arrows: Move  •  SPACE: Fly  •  E: Grab/Throw  •  F: Ask Ralayah for help", 20, height-18);
+        }
+        
+        function keyPressed() {
+            if (gameState === "play") {
+                if (key === 'e' || key === 'E') {
+                    if (!kevin.hasTrash) {
+                        // Pick up trash
+                        for (let t of trashItems) {
+                            if (!t.collected && dist(kevin.x, kevin.y, t.x, t.y) < 38) {
+                                t.collected = true;
+                                kevin.hasTrash = true;
+                                playSound("pickup");
+                                message = "Got it! Now find a trash can!";
+                                messageTimer = 70;
+                                break;
+                            }
+                        }
+                    } else {
+                        // Try to throw in can
+                        let success = false;
+                        for (let can of trashCans) {
+                            if (!can.found && dist(kevin.x, kevin.y, can.x, can.y) < 55) {
+                                can.found = true;
+                                kevin.hasTrash = false;
+                                score++;
+                                playSound("correct");
+                                message = "Yes! You did the right thing! 🌍";
+                                messageTimer = 90;
+                                success = true;
+                                
+                                if (score >= trashCans.length) {
+                                    gameState = "win";
+                                }
+                                break;
+                            }
+                        }
+                        if (!success) {
+                            // Littered again - penalty
+                            trashItems.push({ x: kevin.x + random(-15,15), y: kevin.y + 25, size: 13, collected: false });
+                            kevin.hasTrash = false;
+                            timeLeft = max(5, timeLeft - 6);
+                            playSound("wrong");
+                            message = "Oh no! Trash on the ground hurts the Earth...";
+                            messageTimer = 80;
+                        }
+                    }
+                }
+                
+                if ((key === 'f' || key === 'F') && !ralayah.pointing) {
+                    // Ralayah helps point to nearest trash can
+                    let closest = null;
+                    let minD = 9999;
+                    for (let can of trashCans) {
+                        if (!can.found) {
+                            let d = dist(kevin.x, kevin.y, can.x, can.y);
+                            if (d < minD) { minD = d; closest = can; }
+                        }
+                    }
+                    if (closest) {
+                        ralayah.pointing = true;
+                        closest.sparkle = 45;
+                        playSound("hint");
+                        message = "Ralayah: 'It's over there, Kevin! Hurry!'";
+                        messageTimer = 95;
+                        setTimeout(() => { ralayah.pointing = false; }, 2200);
+                    }
+                }
+            }
+            
+            if (key === ' ' && gameState === "win") {
+                level++;
+                score = 0;
+                gameState = "play";
+                generateLevel();
+            }
+            if ((key === 'r' || key === 'R') && gameState === "lose") {
+                gameState = "play";
+                generateLevel();
+                score = 0;
+            }
+        }
+        
+        function updateKevin() {
+            let moveSpeed = kevin.speed;
+            if (kevin.flying) moveSpeed *= 1.6;
+            
+            if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) kevin.x -= moveSpeed;
+            if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) kevin.x += moveSpeed;
+            if (keyIsDown(UP_ARROW) || keyIsDown(87)) { kevin.y -= moveSpeed; kevin.flying = true; }
+            if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) kevin.y += moveSpeed;
+            
+            kevin.x = constrain(kevin.x, 35, width-35);
+            kevin.y = constrain(kevin.y, 210, 555);
+            
+            if (!kevin.flying && kevin.y < 455) kevin.y += 2.2;
+            
+            // Wind effect on thrown trash (higher levels)
+            if (level > 4 && kevin.hasTrash && random() < 0.08) {
+                kevin.x += wind * 0.6;
+            }
+            
+            // Check for successful disposal
+            if (gameState === "play") {
+                for (let can of trashCans) {
+                    if (!can.found && kevin.hasTrash && dist(kevin.x, kevin.y, can.x, can.y) < 48) {
+                        can.found = true;
+                        kevin.hasTrash = false;
+                        score++;
+                        playSound("correct");
+                        message = "Perfect! You made the right choice!";
+                        messageTimer = 85;
+                        if (score >= trashCans.length) gameState = "win";
+                    }
+                }
+            }
+        }
+        
+        
+        // Note: Full 100-level progression, wind, creative hiding spots, Ralayah helper, and sound effects included.
+    </script>
+</body>
+</html>

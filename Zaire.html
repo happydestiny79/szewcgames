@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Avatar the Creator - Zaire</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; background:#1a0a0a; color:#fff; font-family:Arial; }
+  canvas { display:block; margin:20px auto; border:4px solid #333; }
+</style>
+</head>
+<body>
+<h1 style="text-align:center">Avatar the Creator - Zaire (Jack the Fire Avatar)</h1>
+<p style="text-align:center">Stop the cosmic event! Fight spirits and villains in New York at midnight.</p>
+
+<script>
+let jack, spirits = [], buildings = [], platforms = [];
+let health = 100;
+let score = 0;
+let gameState = "start";
+let fireEffects = [];
+
+function setup() {
+  createCanvas(1050, 550);
+  
+  jack = { x: 200, y: 380, size: 50, vy: 0, onGround: true, fireMode: false };
+  
+  for (let i = 0; i < 8; i++) {
+    buildings.push({
+      x: i * 120,
+      w: random(80, 110),
+      h: random(150, 280)
+    });
+  }
+}
+
+function draw() {
+  background(15, 5, 5);
+  
+  // Night sky
+  fill(25, 10, 10);
+  rect(0, 0, width, 350);
+  
+  // Stars
+  fill(255, 220, 150);
+  for (let i = 0; i < 35; i++) {
+    ellipse((i * 29) % width, (i * 19) % 300, 2, 2);
+  }
+  
+  // Buildings
+  fill(25);
+  for (let b of buildings) {
+    rect(b.x, 350 - b.h, b.w, b.h);
+    fill(255, 180, 100, 160);
+    for (let wy = 0; wy < b.h - 30; wy += 25) {
+      for (let wx = 8; wx < b.w - 15; wx += 20) {
+        rect(b.x + wx, 350 - b.h + wy, 8, 8);
+      }
+    }
+    fill(25);
+  }
+  
+  fill(50);
+  rect(0, 450, width, 100);
+  
+  if (gameState === "start") {
+    fill(255);
+    textSize(36);
+    textAlign(CENTER);
+    text("JACK THE FIRE AVATAR", width/2, 150);
+    textSize(20);
+    text("Press SPACE to begin", width/2, 200);
+    text("Controls: ← →   SPACE = Jump   Z = Fire Blast   X = Flame Dash", width/2, 250);
+  } else if (gameState === "play") {
+    drawGame();
+  } else if (gameState === "win") {
+    fill(255, 180, 80);
+    textSize(42);
+    textAlign(CENTER);
+    text("COSMIC EVENT STOPPED!", width/2, height/2);
+    textSize(20);
+    text("Score: " + score + "  |  Press R to restart", width/2, height/2 + 50);
+  }
+}
+
+function drawGame() {
+  // Jack - character style (fire avatar)
+  push();
+  translate(jack.x, jack.y);
+  
+  // Fiery robe
+  fill(255, 80, 30);
+  ellipse(0, 10, 28, 35);
+  
+  // Head
+  fill(255, 210, 160);
+  ellipse(0, -8, 22, 22);
+  
+  // Flame hair
+  fill(255, 150, 0);
+  ellipse(0, -13, 24, 16);
+  
+  // Eyes
+  fill(30);
+  ellipse(-6, -10, 4, 4);
+  ellipse(6, -10, 4, 4);
+  
+  // Flame aura
+  if (fireEffects.length > 0) {
+    noFill();
+    stroke(255, 120, 0, 100);
+    strokeWeight(2);
+    ellipse(0, 0, 48, 48);
+    strokeWeight(1);
+  }
+  
+  pop();
+  
+  // Label
+  fill(255);
+  textSize(12);
+  textAlign(CENTER);
+  text("JACK", jack.x, jack.y + 40);
+  
+  // Fire effects
+  for (let f of fireEffects) {
+    fill(255, random(100, 200), 0, f.life * 8);
+    ellipse(f.x, f.y, f.size, f.size);
+    f.life--;
+  }
+  
+  // Spirits - ghostly characters
+  for (let s of spirits) {
+    push();
+    translate(s.x, s.y);
+    
+    // Ghostly body
+    fill(170, 130, 255, 170);
+    ellipse(0, 6, 28, 34);
+    
+    // Hooded head
+    fill(150, 110, 220);
+    ellipse(0, -7, 21, 21);
+    
+    // Ethereal glow layers
+    noFill();
+    stroke(210, 190, 255, 70);
+    strokeWeight(4);
+    ellipse(0, 0, 40, 44);
+    strokeWeight(1);
+    
+    // Glowing eyes
+    fill(255, 220, 255);
+    ellipse(-5, -9, 3, 3);
+    ellipse(5, -9, 3, 3);
+    
+    pop();
+    
+    fill(255);
+    textSize(9);
+    textAlign(CENTER);
+    text("SPIRIT", s.x, s.y + 32);
+  }
+  
+  fill(255);
+  textSize(18);
+  textAlign(LEFT);
+  text("Health: " + health, 50, 50);
+  text("Spirits Defeated: " + score, 50, 80);
+  
+  updateGame();
+}
+
+function updateGame() {
+  jack.vy += 0.8;
+  jack.y += jack.vy;
+  if (jack.y > 400) {
+    jack.y = 400;
+    jack.vy = 0;
+    jack.onGround = true;
+  }
+  
+  for (let i = spirits.length - 1; i >= 0; i--) {
+    let s = spirits[i];
+    s.x -= 2.2;
+    
+    if (dist(jack.x, jack.y, s.x, s.y) < 48) {
+      health -= 9;
+      spirits.splice(i, 1);
+      score++;  // Award point for defeating the spirit
+      if (health <= 0) gameState = "lose";
+    }
+    
+    if (s.x < -30) spirits.splice(i, 1);
+  }
+  
+  if (frameCount % 42 === 0 && spirits.length < 7) {
+    spirits.push({ x: width + 30, y: random(200, 380) });
+  }
+  
+  // Clean up fire effects
+  for (let i = fireEffects.length - 1; i >= 0; i--) {
+    if (fireEffects[i].life <= 0) fireEffects.splice(i, 1);
+  }
+}
+
+function keyPressed() {
+  if (gameState === "start" && key === ' ') {
+    gameState = "play";
+    health = 100;
+    score = 0;
+    spirits = [];
+    fireEffects = [];
+  }
+  
+  if (gameState === "play") {
+    if (keyCode === LEFT_ARROW) jack.x -= 28;
+    if (keyCode === RIGHT_ARROW) jack.x += 28;
+    
+    if (key === ' ' && jack.onGround) {
+      jack.vy = -15;
+      jack.onGround = false;
+    }
+    
+    if (key === 'z' || key === 'Z') {
+      // Fire Blast
+      for (let i = spirits.length - 1; i >= 0; i--) {
+        if (abs(spirits[i].x - jack.x) < 130) {
+          fireEffects.push({ x: spirits[i].x, y: spirits[i].y, size: 40, life: 12 });
+          spirits.splice(i, 1);
+          score++;
+        }
+      }
+    }
+    
+    if (key === 'x' || key === 'X') {
+      // Flame Dash
+      jack.x += 80;
+      fireEffects.push({ x: jack.x, y: jack.y, size: 35, life: 10 });
+    }
+  }
+  
+  if ((gameState === "win" || gameState === "lose") && key === 'r') {
+    gameState = "start";
+  }
+}
+</script>
+</body>
+</html>
