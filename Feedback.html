@@ -110,20 +110,7 @@
       </div>
     </div>
 
-    <!-- Saved Feedback -->
-    <div>
-      <div class="flex items-center justify-between mb-4 px-1">
-        <h2 class="text-xl font-semibold">Saved Feedback</h2>
-        <button onclick="clearAllFeedback()" 
-                class="text-xs px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 transition-colors">
-          Clear All
-        </button>
-      </div>
 
-      <div id="feedbackList" class="space-y-3">
-        <!-- Populated by JavaScript -->
-      </div>
-    </div>
   </div>
 
   <script>
@@ -197,134 +184,32 @@
       alert("Feedback saved! Thank you!");
     }
 
+    // Send feedback to Google Sheets
+    function sendToGoogleSheets(feedback) {
+      const sheetUrl = "https://script.google.com/macros/s/AKfycbzkXOPEEOuoK-3bOG3jH36kFHC5HGNI6K49pFvbpthhp4HhQ_VpoqspcxaBiptL6Nc/exec";
+      
+      fetch(sheetUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(feedback)
+      }).then(() => {
+        console.log("Feedback sent to Google Sheets");
+      }).catch(err => {
+        console.log("Could not send to Google Sheets:", err);
+      });
+    }
+
     // Render all saved feedback
-    function renderFeedbackList(filterGame = null) {
-      const container = document.getElementById('feedbackList');
-      container.innerHTML = '';
-
-      let allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
-
-      if (filterGame) {
-        allFeedback = allFeedback.filter(f => f.game === filterGame);
-      }
-
-      if (allFeedback.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-8 text-zinc-500">
-            No feedback yet. Be the first to share your thoughts!
-          </div>
-        `;
-        return;
-      }
-
-      allFeedback.forEach(entry => {
-        const date = new Date(entry.timestamp);
-        const timeAgo = getTimeAgo(date);
-        
-        const gameName = entry.game.replace('.html', '');
-        
-        const div = document.createElement('div');
-        div.className = `feedback-entry bg-zinc-900 border border-zinc-800 rounded-2xl p-5`;
-        
-        div.innerHTML = `
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <div class="font-semibold text-lg">${gameName}</div>
-              <div class="text-xs text-zinc-500">${timeAgo} • by ${entry.name}</div>
-            </div>
-            <div class="flex gap-2">
-              <button onclick="copyToDiscord(${entry.id})" 
-                      class="copy-btn px-3 py-1 text-xs bg-zinc-800 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center gap-1">
-                <span>📋</span>
-                <span>Copy for Discord</span>
-              </button>
-              <button onclick="deleteFeedback(${entry.id})" 
-                      class="px-3 py-1 text-xs bg-zinc-800 hover:bg-red-600 hover:text-white rounded-xl transition-all">
-                ✕
-              </button>
-            </div>
-          </div>
-          
-          ${entry.liked ? `
-          <div class="mb-2">
-            <div class="text-emerald-400 text-xs font-medium mb-0.5">LIKED</div>
-            <div class="text-sm">${entry.liked}</div>
-          </div>` : ''}
-          
-          ${entry.improved ? `
-          <div class="mb-2">
-            <div class="text-amber-400 text-xs font-medium mb-0.5">COULD IMPROVE</div>
-            <div class="text-sm">${entry.improved}</div>
-          </div>` : ''}
-          
-          ${entry.ideas ? `
-          <div>
-            <div class="text-sky-400 text-xs font-medium mb-0.5">IDEAS TO ADD</div>
-            <div class="text-sm">${entry.ideas}</div>
-          </div>` : ''}
-        `;
-        
-        container.appendChild(div);
-      });
-    }
-
-    function getTimeAgo(date) {
-      const seconds = Math.floor((new Date() - date) / 1000);
-      if (seconds < 60) return 'just now';
-      const minutes = Math.floor(seconds / 60);
-      if (minutes < 60) return `${minutes}m ago`;
-      const hours = Math.floor(minutes / 60);
-      if (hours < 24) return `${hours}h ago`;
-      return date.toLocaleDateString();
-    }
-
-    // Copy formatted feedback for Discord
-    function copyToDiscord(id) {
-      const allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
-      const entry = allFeedback.find(f => f.id === id);
-      if (!entry) return;
-
-      const gameName = entry.game.replace('.html', '');
-      
-      let text = `**${gameName} Feedback** (${entry.name})\n`;
-      
-      if (entry.liked) text += `✅ **Liked:** ${entry.liked}\n`;
-      if (entry.improved) text += `🔧 **Improve:** ${entry.improved}\n`;
-      if (entry.ideas) text += `💡 **Add:** ${entry.ideas}\n`;
-      
-      text += `\n*Submitted: ${new Date(entry.timestamp).toLocaleString()}*`;
-
-      navigator.clipboard.writeText(text).then(() => {
-        const originalText = event.target.innerHTML;
-        event.target.innerHTML = '✅ Copied!';
-        setTimeout(() => {
-          if (event.target) event.target.innerHTML = originalText;
-        }, 1500);
-      }).catch(() => {
-        // Fallback
-        prompt("Copy this text:", text);
-      });
-    }
-
-    function deleteFeedback(id) {
-      if (!confirm("Delete this feedback entry?")) return;
-      
-      let allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
-      allFeedback = allFeedback.filter(f => f.id !== id);
-      localStorage.setItem('gameFeedback', JSON.stringify(allFeedback));
-      renderFeedbackList();
-    }
-
-    function clearAllFeedback() {
-      if (!confirm("Delete ALL feedback? This cannot be undone.")) return;
-      localStorage.removeItem('gameFeedback');
-      renderFeedbackList();
-    }
-
-    // Initialize
+    
+    
+    
+    
+    
     function init() {
       populateGameSelect();
-      renderFeedbackList();
       
       // Allow pressing Enter in textareas to save (with Ctrl/Cmd)
       document.querySelectorAll('textarea').forEach(textarea => {
