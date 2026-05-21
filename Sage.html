@@ -10,53 +10,57 @@
     canvas { display: block; }
     .instructions {
       position: absolute; top: 10px; left: 10px; color: white; font-family: monospace;
-      background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 6px; font-size: 14px;
+      background: rgba(0,0,0,0.65); padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.4;
     }
   </style>
 </head>
 <body>
 <div class="instructions">
-  JAMMIE vs SNAKE • Minecraft Adventure<br>
-  ← → Move | SHIFT Jump | SPACE Water Blast | Click to Adopt Animal / Collect Food<br>
-  Goal: 100 Points • Don't lose 10 hearts in fights!
+  <strong>JAMMIE vs SNAKE</strong> — Minecraft Railroad Adventure<br>
+  ← → / A D = Move &nbsp;&nbsp; SHIFT = Jump &nbsp;&nbsp; SPACE = Water Blast<br>
+  Click animals/food to adopt/collect &nbsp;&nbsp; F = Toggle Fight Mode<br>
+  <strong>Win:</strong> Reach 100 points &nbsp; | &nbsp; <strong>Lose:</strong> 0 hearts
 </div>
 <script>
 p5.disableFriendlyErrors = true;
 
 let player, enemy, platforms, particles, animals, foods, score, hearts, level;
 let gameState = 'explore'; // explore, fight, win, lose
-let bgOffset = 0;
-let railroadX = 0;
+let railroadOffset = 0;
+let worldWidth = 1400;
 
 function setup() {
-  createCanvas(1100, 620);
+  createCanvas(1400, 680);
   colorMode(HSB, 360, 100, 100, 100);
   pixelDensity(1);
   
-  // Initialize player Jammie (Water Hero)
+  // Jammie - Water Hero
   player = {
-    x: 200, y: 420, w: 32, h: 48,
+    x: 180, y: 460, w: 32, h: 48,
     vx: 0, vy: 0,
     onGround: true,
     facing: 1,
     powerCooldown: 0,
-    color: { body: '#2a9dff', cape: '#1e7acc', hair: '#0a3d2e', highlight: '#4ade80' }
   };
   
-  // Initialize villain Snake (Fire)
+  // Snake - Fire Villain (now moves!)
   enemy = {
-    x: 850, y: 420, w: 34, h: 50,
+    x: 1100, y: 460, w: 34, h: 50,
     vx: 0, vy: 0,
     health: 100,
     attackCooldown: 0,
-    color: { body: '#4a1a1a', outfit: '#6b2d5c', hair: '#111111', eyes: '#ff2222' }
+    patrolDir: 1,
+    patrolTarget: 1100
   };
   
+  // Wider world platforms
   platforms = [
-    {x: 0, y: 500, w: 1100, h: 120}, // ground
-    {x: 150, y: 380, w: 120, h: 20}, // platform
-    {x: 450, y: 320, w: 100, h: 20},
-    {x: 750, y: 360, w: 140, h: 20}
+    {x: 0, y: 540, w: 1400, h: 140},      // ground
+    {x: 120, y: 420, w: 140, h: 18},
+    {x: 380, y: 360, w: 110, h: 18},
+    {x: 620, y: 400, w: 130, h: 18},
+    {x: 880, y: 340, w: 120, h: 18},
+    {x: 1080, y: 420, w: 160, h: 18},
   ];
   
   particles = [];
@@ -66,161 +70,175 @@ function setup() {
   hearts = 10;
   level = 1;
   
-  // Spawn some animals and food
-  for (let i = 0; i < 5; i++) {
-    animals.push({x: random(80, 1000), y: random(380, 470), type: random(['pig', 'cow', 'chicken'])});
-  }
-  for (let i = 0; i < 4; i++) {
-    foods.push({x: random(100, 980), y: random(350, 480), eaten: false});
+  // Spawn animals across big map
+  for (let i = 0; i < 8; i++) {
+    animals.push({
+      x: random(60, worldWidth - 80), 
+      y: random(420, 510), 
+      type: random(['pig', 'cow', 'chicken', 'sheep'])
+    });
   }
   
-  // House
-  house = {x: 920, y: 280, w: 140, h: 220};
+  // Food scattered
+  for (let i = 0; i < 7; i++) {
+    foods.push({
+      x: random(80, worldWidth - 80), 
+      y: random(390, 520), 
+      eaten: false
+    });
+  }
+  
+  // Big Minecraft-style house
+  house = {x: 1200, y: 300, w: 160, h: 240};
 }
 
 function draw() {
-  background(20, 70, 35); // grassy green
-  
-  // Sky gradient
-  for (let i = 0; i < 8; i++) {
-    fill(200, 80, 95 - i*8, 60);
-    rect(0, i*40, width, 40);
+  // Sky + future grassy field
+  background(195, 60, 92);
+  for (let i = 0; i < 6; i++) {
+    fill(195, 50, 85 - i * 6, 40);
+    rect(0, i * 55, width, 55);
   }
   
-  // Future field - flowers and trees
   drawEnvironment();
-  
-  // Railroad tracks
   drawRailroad();
-  
-  // House (can't enter during fight)
   drawHouse();
   
-  // Platforms
-  fill(60, 40, 30);
+  // Platforms (Minecraft block look)
   for (let p of platforms) {
+    fill(85, 45, 38);
     rect(p.x, p.y, p.w, p.h);
-    // Minecraft block style
-    fill(70, 50, 35);
-    rect(p.x, p.y, p.w, 8);
-    fill(60, 40, 30);
+    fill(95, 55, 45);
+    rect(p.x, p.y, p.w, 9);
   }
   
-  // Draw animals
-  for (let a of animals) {
-    drawAnimal(a);
-  }
+  // Animals & Food
+  for (let a of animals) drawAnimal(a);
+  for (let f of foods) if (!f.eaten) drawFood(f);
   
-  // Draw food
-  for (let f of foods) {
-    if (!f.eaten) drawFood(f);
-  }
-  
-  // Update & draw player (Jammie)
+  // Update & draw characters
   updatePlayer();
   drawJammie(player);
   
-  // Update & draw enemy if fighting
-  if (gameState === 'fight' || gameState === 'explore') {
-    updateEnemy();
-    drawSnake(enemy);
-  }
+  updateEnemy();   // ← Villain now always moves!
+  drawSnake(enemy);
   
-  // Particles
   updateParticles();
-  
-  // HUD
   drawHUD();
   
-  // Win / Lose overlays
+  // Win condition
   if (score >= 100) {
     gameState = 'win';
-    fill(0, 0, 0, 70);
+    fill(0, 0, 0, 75);
     rect(0, 0, width, height);
-    fill(140, 90, 95);
-    textSize(48);
+    fill(140, 85, 92);
+    textSize(52);
     textAlign(CENTER);
-    text("YOU WIN! 🌊", width/2, height/2 - 30);
-    textSize(24);
-    text("Jammie stopped Snake and saved the world!", width/2, height/2 + 20);
-    text("Points: " + score, width/2, height/2 + 60);
+    text("🌊 YOU WIN! 🌊", width/2, height/2 - 40);
+    textSize(26);
+    text("Jammie defeated Snake and saved the future!", width/2, height/2 + 20);
+    text("Final Score: " + score, width/2, height/2 + 70);
     noLoop();
   }
   
   if (hearts <= 0) {
     gameState = 'lose';
-    fill(0, 0, 0, 70);
+    fill(0, 0, 0, 75);
     rect(0, 0, width, height);
-    fill(0, 80, 70);
-    textSize(48);
+    fill(0, 80, 75);
+    textSize(52);
     textAlign(CENTER);
-    text("GAME OVER", width/2, height/2);
-    textSize(22);
-    text("Snake took over... Try again!", width/2, height/2 + 40);
+    text("GAME OVER", width/2, height/2 - 20);
+    textSize(24);
+    text("Snake took over the world...", width/2, height/2 + 30);
+    text("Press R to try again", width/2, height/2 + 70);
     noLoop();
   }
 }
 
 function drawEnvironment() {
   // Grass
-  fill(100, 70, 45);
-  rect(0, 480, width, 140);
+  fill(105, 65, 42);
+  rect(0, 520, width, 160);
   
-  // Flowers
-  for (let i = 0; i < 18; i++) {
-    let fx = (i * 61 + sin(i) * 20) % width;
-    let fy = 470 + sin(i * 0.8) * 12;
-    fill((i % 3 === 0) ? color(340, 80, 90) : color(50, 70, 95));
-    ellipse(fx, fy, 8, 8);
-    fill(120, 60, 40);
-    rect(fx - 1, fy + 4, 2, 10);
+  // Flowers (lots more for bigger world)
+  for (let i = 0; i < 32; i++) {
+    let fx = (i * 43 + sin(i * 1.3) * 18) % worldWidth;
+    let fy = 505 + cos(i) * 14;
+    fill((i % 4 === 0) ? color(340, 75, 92) : (i % 3 === 0) ? color(55, 80, 95) : color(290, 70, 88));
+    ellipse(fx, fy, 9, 9);
+    fill(115, 55, 38);
+    rect(fx - 1.5, fy + 4, 3, 12);
   }
   
-  // Trees (Minecraft style)
-  for (let i = 0; i < 4; i++) {
-    let tx = 120 + i * 280;
-    fill(30, 60, 35);
-    rect(tx - 15, 280, 30, 200); // trunk
-    fill(80, 65, 40);
-    ellipse(tx, 260, 90, 90); // leaves
-    ellipse(tx - 25, 280, 70, 70);
-    ellipse(tx + 25, 280, 70, 70);
+  // Trees (Minecraft style) - more of them
+  let treePositions = [90, 280, 490, 710, 950, 1180];
+  for (let tx of treePositions) {
+    fill(30, 55, 32);
+    rect(tx - 18, 300, 36, 220);
+    fill(85, 70, 38);
+    ellipse(tx, 275, 95, 95);
+    ellipse(tx - 30, 300, 75, 75);
+    ellipse(tx + 28, 295, 78, 78);
   }
+  
+  // Distant hills
+  fill(100, 40, 55);
+  beginShape();
+  vertex(0, 520);
+  vertex(200, 380);
+  vertex(380, 510);
+  vertex(620, 340);
+  vertex(850, 490);
+  vertex(1100, 360);
+  vertex(1400, 520);
+  endShape(CLOSE);
 }
 
 function drawRailroad() {
-  // Tracks
-  stroke(40);
-  strokeWeight(6);
-  line(0, 530, width, 530);
-  line(0, 555, width, 555);
-  strokeWeight(3);
-  for (let i = 0; i < width; i += 60) {
-    line(i + railroadX % 60, 525, i + railroadX % 60, 560);
+  stroke(35);
+  strokeWeight(8);
+  line(0, 570, width, 570);
+  line(0, 598, width, 598);
+  
+  strokeWeight(4);
+  for (let i = -60; i < width + 60; i += 70) {
+    let rx = (i + railroadOffset) % worldWidth;
+    line(rx, 562, rx, 605);
   }
   noStroke();
-  // Minecart hint
-  fill(80);
-  rect(300 + sin(frameCount * 0.03) * 40, 510, 70, 35, 4);
-  fill(200, 60, 30);
-  textSize(12);
-  text("🚂 Explore!", 310, 532);
+  
+  // Moving minecart
+  let cartX = 420 + sin(frameCount * 0.022) * 180;
+  fill(70);
+  rect(cartX, 550, 78, 32, 5);
+  fill(210, 55, 35);
+  textSize(13);
+  text("🚂 EXPLORE", cartX + 8, 572);
 }
 
 function drawHouse() {
-  // Simple Minecraft house
-  fill(120, 50, 25);
+  // Large Minecraft house
+  fill(125, 48, 22);
   rect(house.x, house.y, house.w, house.h);
-  fill(80, 40, 20);
-  triangle(house.x - 10, house.y, house.x + house.w/2, house.y - 60, house.x + house.w + 10, house.y);
-  fill(60, 30, 15);
-  rect(house.x + 50, house.y + 100, 40, 120); // door
   
-  // Sign
+  // Roof
+  fill(75, 38, 18);
+  triangle(house.x - 15, house.y, house.x + house.w/2, house.y - 70, house.x + house.w + 15, house.y);
+  
+  // Door
+  fill(55, 28, 12);
+  rect(house.x + 55, house.y + 110, 50, 130);
+  
+  // Windows
+  fill(220, 90, 95);
+  rect(house.x + 20, house.y + 40, 28, 28);
+  rect(house.x + 110, house.y + 40, 28, 28);
+  
   fill(255);
-  textSize(11);
+  textSize(13);
   textAlign(CENTER);
-  text("HOME", house.x + 70, house.y + 95);
+  text("HOME", house.x + 80, house.y + 105);
 }
 
 function drawJammie(p) {
@@ -228,42 +246,40 @@ function drawJammie(p) {
   translate(p.x, p.y);
   if (p.facing === -1) scale(-1, 1);
   
-  // Blue cape (flowing)
-  fill(210, 70, 85);
+  // Flowing blue cape
+  fill(205, 75, 82);
   beginShape();
-  vertex(-8, 5);
-  vertex(8, 5);
-  vertex(18, 35);
-  vertex(-18, 35);
+  vertex(-9, 6);
+  vertex(9, 6);
+  vertex(20, 38);
+  vertex(-20, 38);
   endShape(CLOSE);
   
-  // Body (blue outfit)
-  fill(200, 80, 75);
-  rect(-12, 0, 24, 32, 3);
+  // Blue outfit
+  fill(195, 85, 72);
+  rect(-13, 2, 26, 34, 4);
   
   // Head
-  fill(35, 40, 85); // skin tone approx
-  ellipse(0, -18, 22, 22);
+  fill(38, 42, 82);
+  ellipse(0, -18, 23, 23);
   
-  // Black hair
+  // Black hair + green highlights
   fill(0);
-  arc(0, -20, 26, 22, PI, TWO_PI);
-  
-  // Green highlights
-  fill(140, 80, 70);
-  rect(-10, -26, 20, 6, 2);
+  arc(0, -21, 27, 23, PI, TWO_PI);
+  fill(135, 85, 68);
+  rect(-11, -27, 22, 7, 3);
   
   // Brown eyes
-  fill(30, 60, 40);
-  ellipse(-5, -18, 4, 5);
-  ellipse(5, -18, 4, 5);
+  fill(28, 65, 35);
+  ellipse(-6, -18, 5, 6);
+  ellipse(6, -18, 5, 6);
   
-  // Water power aura when attacking
+  // Water aura when using power
   if (p.powerCooldown > 0) {
     noFill();
-    stroke(180, 70, 95, 60);
-    strokeWeight(3);
-    ellipse(0, 0, 55, 55);
+    stroke(185, 75, 92, 55);
+    strokeWeight(4);
+    ellipse(0, 8, 60, 60);
     noStroke();
   }
   pop();
@@ -274,191 +290,204 @@ function drawSnake(e) {
   translate(e.x, e.y);
   if (e.vx < 0) scale(-1, 1);
   
-  // Purple black outfit
-  fill(280, 60, 35);
-  rect(-13, 2, 26, 34, 4);
+  // Dark purple/black outfit
+  fill(275, 65, 32);
+  rect(-14, 3, 28, 36, 5);
   
   // Head
-  fill(20);
-  ellipse(0, -18, 24, 24);
+  fill(15);
+  ellipse(0, -18, 25, 25);
   
   // Black hair
   fill(0);
-  rect(-11, -28, 22, 12, 2);
+  rect(-12, -29, 24, 13, 3);
   
-  // Red eyes (evil)
-  fill(0, 90, 95);
-  ellipse(-6, -18, 5, 6);
-  ellipse(6, -18, 5, 6);
+  // Glowing red eyes
+  fill(0, 92, 96);
+  ellipse(-7, -18, 6, 7);
+  ellipse(7, -18, 6, 7);
   
-  // Fire aura when attacking
+  // Fire particles when attacking
   if (e.attackCooldown > 0) {
-    for (let i = 0; i < 5; i++) {
-      fill(20, 90, 95, 70);
-      ellipse(random(-20, 20), random(-10, 30), 8, 12);
+    for (let i = 0; i < 6; i++) {
+      fill(18, 92, 96, 65);
+      ellipse(random(-22, 22), random(-8, 32), 9, 11);
     }
   }
   pop();
 }
 
 function drawAnimal(a) {
-  fill(200);
+  push();
+  translate(a.x, a.y);
   if (a.type === 'pig') {
-    ellipse(a.x, a.y, 22, 16);
-    fill(220, 80, 75);
-    ellipse(a.x + 10, a.y - 3, 6, 4); // snout
+    fill(245, 180, 190);
+    ellipse(0, 0, 24, 17);
+    fill(255, 140, 150);
+    ellipse(11, -2, 7, 5);
+    fill(0);
+    ellipse(12, -2, 2, 2);
   } else if (a.type === 'cow') {
-    fill(60, 30, 20);
-    ellipse(a.x, a.y, 26, 18);
+    fill(55, 28, 18);
+    ellipse(0, 0, 28, 19);
     fill(255);
-    rect(a.x - 8, a.y - 6, 16, 8);
-  } else {
-    fill(240, 200, 60);
-    ellipse(a.x, a.y, 16, 14);
+    rect(-9, -7, 18, 9);
+  } else if (a.type === 'sheep') {
+    fill(230);
+    ellipse(0, 0, 26, 20);
+    fill(240);
+    ellipse(0, -3, 18, 12);
+  } else { // chicken
+    fill(245, 210, 60);
+    ellipse(0, 0, 17, 15);
+    fill(255, 80, 40);
+    triangle(9, -1, 14, 3, 9, 4);
   }
+  pop();
 }
 
 function drawFood(f) {
-  fill(30, 80, 60);
-  ellipse(f.x, f.y, 14, 14);
-  fill(60, 90, 50);
-  ellipse(f.x - 2, f.y - 2, 6, 6);
+  fill(25, 85, 58);
+  ellipse(f.x, f.y, 15, 15);
+  fill(55, 92, 48);
+  ellipse(f.x - 3, f.y - 3, 7, 7);
 }
 
 function updatePlayer() {
-  // Gravity
-  player.vy += 0.8;
+  player.vy += 0.85;
   player.y += player.vy;
   player.x += player.vx;
+  player.vx *= 0.82;
   
-  // Friction
-  player.vx *= 0.85;
-  
-  // Ground / platform collision
   player.onGround = false;
   for (let p of platforms) {
-    if (player.x + player.w/2 > p.x && player.x - player.w/2 < p.x + p.w &&
-        player.y + player.h/2 > p.y && player.y + player.h/2 < p.y + 20) {
-      player.y = p.y - player.h/2;
+    if (player.x + 12 > p.x && player.x - 12 < p.x + p.w &&
+        player.y + 24 > p.y && player.y + 24 < p.y + 25) {
+      player.y = p.y - 24;
       player.vy = 0;
       player.onGround = true;
     }
   }
   
-  // Keep in bounds
-  player.x = constrain(player.x, 40, width - 60);
+  // World boundaries
+  player.x = constrain(player.x, 35, worldWidth - 45);
   
-  // Power cooldown
   if (player.powerCooldown > 0) player.powerCooldown--;
   
-  // Attack particles
-  if (keyIsDown(32) && player.powerCooldown === 0) { // SPACE
-    player.powerCooldown = 18;
-    // Water blast
-    for (let i = 0; i < 6; i++) {
+  // Water Blast (SPACE)
+  if (keyIsDown(32) && player.powerCooldown === 0) {
+    player.powerCooldown = 16;
+    for (let i = 0; i < 7; i++) {
       particles.push({
-        x: player.x + player.facing * 25,
-        y: player.y - 10,
-        vx: player.facing * random(6, 10),
-        vy: random(-2, 2),
-        life: 25,
+        x: player.x + player.facing * 28,
+        y: player.y - 8,
+        vx: player.facing * random(7, 11),
+        vy: random(-2.2, 2.2),
+        life: 26,
         type: 'water'
       });
     }
     
-    // Check hit on enemy
-    if (gameState === 'fight' && dist(player.x, player.y, enemy.x, enemy.y) < 180) {
-      enemy.health -= 12;
-      score += 3;
+    // Hit enemy if close
+    if (dist(player.x, player.y, enemy.x, enemy.y) < 195) {
+      enemy.health -= 11;
+      score += 4;
       createHitParticles(enemy.x, enemy.y, 'water');
     }
   }
   
-  // Jump with SHIFT
+  // Jump (SHIFT)
   if (keyIsDown(16) && player.onGround) {
-    player.vy = -13;
+    player.vy = -14;
     player.onGround = false;
   }
   
   // Movement
   if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) {
-    player.vx = -5;
+    player.vx = -5.5;
     player.facing = -1;
   }
   if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) {
-    player.vx = 5;
+    player.vx = 5.5;
     player.facing = 1;
   }
-  
-  // Collect food / adopt animals with mouse click handled in mousePressed
 }
 
 function updateEnemy() {
-  if (gameState !== 'fight') return;
-  
   enemy.attackCooldown = max(0, enemy.attackCooldown - 1);
   
-  // Simple AI: move toward player and attack
   let dx = player.x - enemy.x;
-  if (abs(dx) > 60) {
-    enemy.vx = dx > 0 ? 2.2 : -2.2;
+  let distToPlayer = abs(dx);
+  
+  if (gameState === 'fight') {
+    // Chase player aggressively
+    if (distToPlayer > 55) {
+      enemy.vx = dx > 0 ? 2.8 : -2.8;
+    } else {
+      enemy.vx *= 0.6;
+    }
+    
+    // Fire attack
+    if (enemy.attackCooldown === 0 && distToPlayer < 240) {
+      enemy.attackCooldown = 38;
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          x: enemy.x,
+          y: enemy.y - 12,
+          vx: (dx > 0 ? 1 : -1) * random(5, 9),
+          vy: random(-2, 2),
+          life: 32,
+          type: 'fire'
+        });
+      }
+      if (distToPlayer < 95) {
+        hearts = max(0, hearts - 1);
+        createHitParticles(player.x, player.y, 'fire');
+      }
+    }
   } else {
-    enemy.vx *= 0.7;
+    // Explore mode: Patrol back and forth
+    if (enemy.x > enemy.patrolTarget + 40 || enemy.x < enemy.patrolTarget - 180) {
+      enemy.patrolDir *= -1;
+      enemy.patrolTarget = random(600, 1250);
+    }
+    enemy.vx = enemy.patrolDir * 1.6;
   }
   
+  // Apply movement
   enemy.x += enemy.vx;
   enemy.y += enemy.vy;
-  enemy.vy += 0.6;
+  enemy.vy += 0.65;
   
-  // Platform collision for enemy
+  // Platform collision
   for (let p of platforms) {
-    if (enemy.x > p.x && enemy.x < p.x + p.w && enemy.y > p.y - 30 && enemy.y < p.y) {
-      enemy.y = p.y - 25;
+    if (enemy.x > p.x && enemy.x < p.x + p.w && enemy.y > p.y - 35 && enemy.y < p.y) {
+      enemy.y = p.y - 26;
       enemy.vy = 0;
     }
   }
   
-  enemy.y = min(enemy.y, 470);
+  // Keep enemy in world
+  enemy.x = constrain(enemy.x, 200, worldWidth - 60);
+  enemy.y = min(enemy.y, 505);
   
-  // Fire attack
-  if (enemy.attackCooldown === 0 && abs(dx) < 220) {
-    enemy.attackCooldown = 45;
-    for (let i = 0; i < 4; i++) {
-      particles.push({
-        x: enemy.x,
-        y: enemy.y - 15,
-        vx: (dx > 0 ? 1 : -1) * random(4, 8),
-        vy: random(-1.5, 1.5),
-        life: 30,
-        type: 'fire'
-      });
-    }
-    
-    // Hit player
-    if (dist(enemy.x, enemy.y, player.x, player.y) < 90) {
-      hearts -= 1;
-      createHitParticles(player.x, player.y, 'fire');
-    }
-  }
-  
-  // Enemy dies / defeated
+  // Defeat enemy
   if (enemy.health <= 0) {
-    score += 25;
+    score += 28;
     enemy.health = 100;
-    enemy.x = random(700, 950);
-    // Level up or progress
+    enemy.x = random(750, 1250);
     if (level < 2) level = 2;
   }
 }
 
 function createHitParticles(x, y, type) {
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 14; i++) {
     particles.push({
-      x: x + random(-15, 15),
-      y: y + random(-20, 20),
-      vx: random(-3, 3),
-      vy: random(-4, 0),
-      life: random(15, 28),
+      x: x + random(-18, 18),
+      y: y + random(-22, 22),
+      vx: random(-3.5, 3.5),
+      vy: random(-5, 0),
+      life: random(18, 30),
       type: type
     });
   }
@@ -470,14 +499,14 @@ function updateParticles() {
     p.x += p.vx;
     p.y += p.vy;
     p.life--;
-    p.vy += 0.15;
+    p.vy += 0.12;
     
     if (p.type === 'water') {
-      fill(200, 80, 90, p.life * 3);
-      ellipse(p.x, p.y, 7, 7);
-    } else if (p.type === 'fire') {
-      fill(20, 90, 95, p.life * 3);
+      fill(190, 82, 93, p.life * 3.2);
       ellipse(p.x, p.y, 8, 8);
+    } else {
+      fill(16, 92, 96, p.life * 3.2);
+      ellipse(p.x, p.y, 9, 9);
     }
     
     if (p.life <= 0) particles.splice(i, 1);
@@ -486,56 +515,54 @@ function updateParticles() {
 
 function drawHUD() {
   textAlign(LEFT);
-  fill(0, 0, 95);
-  textSize(20);
-  text("SCORE: " + score, 30, 45);
+  fill(0, 0, 96);
+  textSize(22);
+  text("SCORE: " + score, 28, 48);
   
-  // Hearts
-  fill(0, 90, 85);
-  text("HEARTS: " + hearts, 30, 75);
+  fill(0, 88, 88);
+  text("HEARTS: " + hearts, 28, 80);
   for (let i = 0; i < hearts; i++) {
-    fill(0, 90, 85);
-    text("♥", 130 + i * 18, 75);
+    text("♥", 145 + i * 20, 80);
   }
   
-  textSize(16);
-  fill(200, 80, 90);
-  text("LEVEL " + level + " • FIGHTING MODE", 30, 105);
+  textSize(17);
+  fill(200, 75, 88);
+  text("LEVEL " + level + "  •  " + (gameState === 'fight' ? "FIGHTING MODE" : "EXPLORING"), 28, 112);
   
-  // Instructions
   textSize(13);
-  fill(0, 0, 90);
-  text("SPACE = Water Blast  |  SHIFT = Jump  |  Click animals/food to collect", 30, 580);
+  fill(0, 0, 92);
+  text("SPACE = Water Blast  |  SHIFT = Jump  |  F = Toggle Fight  |  Click to collect", 28, 625);
 }
 
 function mousePressed() {
-  // Adopt animals or collect food
+  // Adopt animals
   for (let i = animals.length - 1; i >= 0; i--) {
     let a = animals[i];
-    if (dist(mouseX, mouseY, a.x, a.y) < 25) {
-      score += 8;
+    if (dist(mouseX, mouseY, a.x, a.y) < 28) {
+      score += 9;
       animals.splice(i, 1);
       createHitParticles(a.x, a.y, 'water');
-      // Spawn new animal occasionally
-      if (random() < 0.6) animals.push({x: random(80, 1000), y: random(390, 470), type: random(['pig', 'cow', 'chicken'])});
+      if (random() < 0.65) {
+        animals.push({x: random(60, worldWidth - 80), y: random(430, 510), type: random(['pig', 'cow', 'chicken', 'sheep'])});
+      }
       return;
     }
   }
   
+  // Collect food
   for (let i = foods.length - 1; i >= 0; i--) {
     let f = foods[i];
-    if (!f.eaten && dist(mouseX, mouseY, f.x, f.y) < 18) {
-      score += 5;
+    if (!f.eaten && dist(mouseX, mouseY, f.x, f.y) < 20) {
+      score += 6;
       f.eaten = true;
       foods.splice(i, 1);
-      // Respawn food
-      foods.push({x: random(100, 980), y: random(360, 480), eaten: false});
+      foods.push({x: random(80, worldWidth - 80), y: random(400, 515), eaten: false});
       return;
     }
   }
   
-  // Toggle fight mode near enemy
-  if (dist(mouseX, mouseY, enemy.x, enemy.y) < 80) {
+  // Click near enemy to toggle fight
+  if (dist(mouseX, mouseY, enemy.x, enemy.y) < 90) {
     gameState = (gameState === 'fight') ? 'explore' : 'fight';
   }
 }
@@ -545,20 +572,19 @@ function keyPressed() {
     gameState = (gameState === 'fight') ? 'explore' : 'fight';
   }
   if (key === 'r' || key === 'R') {
-    // Reset
     score = 10;
     hearts = 10;
     level = 1;
-    player.x = 200;
-    player.y = 420;
-    enemy.x = 850;
+    player.x = 180;
+    player.y = 460;
+    enemy.x = 1100;
     enemy.health = 100;
+    enemy.patrolDir = 1;
     gameState = 'explore';
     loop();
   }
 }
 
-// Touch / mobile support
 function touchStarted() {
   mousePressed();
 }

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rory's Roblox Pet Care • Adopt &amp; Drive</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <style>
+    body { margin:0; background:#0f0f23; color:#fff; font-family:Arial, sans-serif; }
+    canvas { display:block; margin:20px auto; border:6px solid #ff69b4; border-radius:12px; }
+    .header { text-align:center; padding:10px; }
+    .header h1 { color:#ff69b4; margin:0; font-size:2.2em; text-shadow: 0 0 10px #ff69b4; }
+    .sub { color:#aaa; margin:5px 0 15px; }
+    .controls { text-align:center; margin-bottom:15px; }
+    button { background:#ff69b4; color:white; border:none; padding:10px 18px; margin:4px; border-radius:8px; font-size:15px; cursor:pointer; transition:0.2s; }
+    button:hover { background:#ff1493; transform:scale(1.05); }
+    .stats { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin:10px 0; }
+    .stat { background:#1a1a3a; padding:8px 16px; border-radius:8px; min-width:120px; }
+    .pet-name { color:#ffd700; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🐾 Rory's Roblox Pet Care 🐾</h1>
+    <p class="sub">Adopt • Feed • Drive • Have Fun! • New Update: Admin Abuse Mode!</p>
+  </div>
+
+  <div class="controls">
+    <button onclick="adoptPet()">🆕 Adopt New Pet</button>
+    <button onclick="feedPet()">🍔 Feed Pet</button>
+    <button onclick="playWithPet()">🎮 Play</button>
+    <button onclick="driveCar()">🚗 Drive Car</button>
+    <button onclick="cleanPet()">🛁 Clean</button>
+    <button onclick="adminAbuse()">👑 ADMIN ABUSE</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">💰 Robux: <span id="robux">250</span></div>
+    <div class="stat">❤️ Happiness: <span id="happiness">85</span></div>
+    <div class="stat">🐾 Pets Adopted: <span id="petCount">1</span></div>
+  </div>
+
+  <script>
+    let pets = [];
+    let robux = 250;
+    let currentPet = 0;
+    let happiness = 85;
+    let messages = [];
+    let carX = 200;
+    let carSpeed = 0;
+    let adminMode = false;
+
+    function setup() {
+      createCanvas(900, 520);
+      // Starting pet: Blocky Roblox-style cat
+      pets.push({
+        name: "RoryCat",
+        type: "cat",
+        x: 450,
+        y: 280,
+        hunger: 70,
+        happiness: 90,
+        cleanliness: 80,
+        energy: 85,
+        hasCar: true,
+        color: [255, 105, 180]
+      });
+      updateUI();
+    }
+
+    function draw() {
+      background(20, 20, 50);
+      
+      // Roblox-style floor
+      fill(60, 60, 90);
+      rect(0, 380, width, 140);
+      
+      // Grid lines (Roblox vibe)
+      stroke(100, 100, 140);
+      strokeWeight(1);
+      for (let x = 0; x < width; x += 60) {
+        line(x, 380, x, height);
+      }
+      
+      // Title banner
+      fill(255, 105, 180);
+      rect(0, 0, width, 50);
+      fill(255);
+      textSize(22);
+      textAlign(CENTER);
+      text("ROBLOX PET CARE CENTER — Rory's World", width/2, 33);
+      
+      // Draw all pets
+      for (let i = 0; i < pets.length; i++) {
+        let p = pets[i];
+        drawRobloxPet(p, i === currentPet);
+      }
+      
+      // Draw cars for pets that have them
+      for (let p of pets) {
+        if (p.hasCar) {
+          drawRobloxCar(p);
+        }
+      }
+      
+      // Fun floating messages
+      drawMessages();
+      
+      // Admin mode indicator
+      if (adminMode) {
+        fill(255, 215, 0);
+        textSize(16);
+        text("👑 ADMIN ABUSE MODE ACTIVE — EVERYONE IS HAVING FUN!", width/2, 70);
+      }
+      
+      // Pet needs bars for current pet
+      if (pets.length > 0) {
+        let p = pets[currentPet];
+        drawNeedBar(50, 80, "Hunger", p.hunger, color(255, 165, 0));
+        drawNeedBar(50, 105, "Happiness", p.happiness, color(255, 105, 180));
+        drawNeedBar(50, 130, "Cleanliness", p.cleanliness, color(100, 200, 255));
+        drawNeedBar(50, 155, "Energy", p.energy, color(50, 255, 150));
+      }
+      
+      // Instructions
+      fill(200);
+      textSize(13);
+      textAlign(LEFT);
+      text("Click on a pet to select it • Take care of your Roblox friends!", 50, 500);
+    }
+    
+    function drawRobloxPet(p, isSelected) {
+      push();
+      translate(p.x, p.y);
+      
+      // Selection glow
+      if (isSelected) {
+        noFill();
+        stroke(255, 215, 0);
+        strokeWeight(4);
+        rect(-35, -45, 70, 90, 8);
+      }
+      
+      // Roblox blocky body
+      fill(p.color[0], p.color[1], p.color[2]);
+      stroke(30);
+      strokeWeight(3);
+      rect(-22, -10, 44, 50, 6); // body
+      
+      // Head
+      fill(p.color[0], p.color[1], p.color[2]);
+      rect(-20, -38, 40, 32, 5);
+      
+      // Eyes (classic Roblox)
+      fill(255);
+      rect(-12, -30, 10, 12, 2);
+      rect(4, -30, 10, 12, 2);
+      fill(0);
+      rect(-9, -27, 5, 7);
+      rect(7, -27, 5, 7);
+      
+      // Smile
+      noFill();
+      stroke(30);
+      arc(0, -18, 14, 8, 0, PI);
+      
+      // Ears or accessories based on type
+      if (p.type === "cat") {
+        fill(p.color[0], p.color[1], p.color[2]);
+        triangle(-18, -38, -8, -55, 0, -38);
+        triangle(18, -38, 8, -55, 0, -38);
+      } else if (p.type === "dog") {
+        // floppy ears
+        fill(200, 150, 100);
+        ellipse(-22, -25, 14, 22);
+        ellipse(22, -25, 14, 22);
+      }
+      
+      // Name tag
+      fill(255);
+      textSize(11);
+      textAlign(CENTER);
+      text(p.name, 0, 55);
+      
+      pop();
+    }
+    
+    function drawRobloxCar(p) {
+      let carY = p.y + 65;
+      let carX = p.x - 30;
+      
+      // Car body (blocky Roblox car)
+      fill(50, 150, 255);
+      stroke(20);
+      strokeWeight(2);
+      rect(carX, carY, 60, 28, 4);
+      
+      // Windows
+      fill(200, 230, 255);
+      rect(carX + 8, carY + 5, 20, 14, 2);
+      rect(carX + 32, carY + 5, 18, 14, 2);
+      
+      // Wheels
+      fill(40);
+      circle(carX + 12, carY + 30, 14);
+      circle(carX + 48, carY + 30, 14);
+      fill(220);
+      circle(carX + 12, carY + 30, 6);
+      circle(carX + 48, carY + 30, 6);
+      
+      // "ROBLOX" text on car
+      fill(255);
+      textSize(8);
+      text("RBX", carX + 22, carY + 20);
+    }
+    
+    function drawNeedBar(x, y, label, value, col) {
+      fill(40);
+      rect(x, y, 160, 18, 4);
+      fill(col);
+      rect(x, y, map(value, 0, 100, 0, 160), 18, 4);
+      fill(255);
+      textSize(12);
+      textAlign(LEFT);
+      text(label + ": " + floor(value) + "%", x + 5, y + 13);
+    }
+    
+    function drawMessages() {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        let m = messages[i];
+        fill(255, 255, 255, m.life * 4);
+        textSize(14);
+        textAlign(CENTER);
+        text(m.text, width/2, 200 - (messages.length - i) * 22);
+        m.life--;
+        if (m.life <= 0) messages.splice(i, 1);
+      }
+    }
+    
+    function addMessage(text) {
+      messages.push({ text: text, life: 60 });
+    }
+    
+    function updateUI() {
+      document.getElementById("robux").innerText = robux;
+      document.getElementById("petCount").innerText = pets.length;
+      
+      if (pets.length > 0) {
+        let avgHap = 0;
+        for (let p of pets) avgHap += p.happiness;
+        avgHap = floor(avgHap / pets.length);
+        document.getElementById("happiness").innerText = avgHap;
+      }
+    }
+    
+    function adoptPet() {
+      if (robux < 50) {
+        addMessage("Not enough Robux! Play more to earn 💰");
+        return;
+      }
+      
+      robux -= 50;
+      
+      let names = ["Blocky", "Pixel", "Spark", "Zoom", "Crayon", "Ninja", "Rainbow", "Turbo"];
+      let types = ["cat", "dog", "bunny", "fox"];
+      
+      let newPet = {
+        name: names[floor(random(names.length))] + floor(random(10,99)),
+        type: random(types),
+        x: random(200, 700),
+        y: random(260, 310),
+        hunger: random(60, 85),
+        happiness: random(75, 95),
+        cleanliness: random(65, 90),
+        energy: random(70, 95),
+        hasCar: true,
+        color: [random(100,255), random(80,200), random(150,255)]
+      };
+      
+      pets.push(newPet);
+      currentPet = pets.length - 1;
+      
+      addMessage(newPet.name + " joined the family! 🥳");
+      updateUI();
+    }
+    
+    function feedPet() {
+      if (pets.length === 0) return;
+      let p = pets[currentPet];
+      p.hunger = min(100, p.hunger + 25);
+      p.happiness = min(100, p.happiness + 8);
+      robux += 5;
+      addMessage(p.name + " loved the snacks! 🍔");
+      updateUI();
+    }
+    
+    function playWithPet() {
+      if (pets.length === 0) return;
+      let p = pets[currentPet];
+      p.happiness = min(100, p.happiness + 20);
+      p.energy = max(10, p.energy - 15);
+      robux += 10;
+      addMessage("You and " + p.name + " had so much fun! 🎉");
+      updateUI();
+    }
+    
+    function driveCar() {
+      if (pets.length === 0) return;
+      let p = pets[currentPet];
+      if (!p.hasCar) {
+        addMessage(p.name + " needs a car first!");
+        return;
+      }
+      p.happiness = min(100, p.happiness + 15);
+      p.energy = max(5, p.energy - 10);
+      robux += 15;
+      
+      // Make the car drive across screen
+      p.x = (p.x + 180) % (width - 100) + 50;
+      addMessage(p.name + " is cruising in their Roblox car! 🚗💨");
+      updateUI();
+    }
+    
+    function cleanPet() {
+      if (pets.length === 0) return;
+      let p = pets[currentPet];
+      p.cleanliness = min(100, p.cleanliness + 30);
+      p.happiness = min(100, p.happiness + 10);
+      robux += 8;
+      addMessage(p.name + " is sparkling clean now! ✨");
+      updateUI();
+    }
+    
+    function adminAbuse() {
+      adminMode = true;
+      addMessage("👑 ADMIN ABUSE ACTIVATED! Everyone gets cars + max happiness!");
+      
+      for (let p of pets) {
+        p.hasCar = true;
+        p.happiness = 100;
+        p.hunger = 100;
+        p.cleanliness = 100;
+        p.energy = 100;
+        p.x = random(150, width - 150);
+      }
+      
+      robux += 100;
+      
+      // Fun effect: make all pets dance
+      setTimeout(() => {
+        adminMode = false;
+        addMessage("Admin fun over... but everyone is still happy!");
+        updateUI();
+      }, 4500);
+      
+      updateUI();
+    }
+    
+    function mousePressed() {
+      // Select pet by clicking near them
+      for (let i = 0; i < pets.length; i++) {
+        let p = pets[i];
+        if (dist(mouseX, mouseY, p.x, p.y) < 50) {
+          currentPet = i;
+          addMessage("Now playing with " + p.name + "!");
+          return;
+        }
+      }
+    }
+    
+    function keyPressed() {
+      if (key === ' ' && pets.length > 0) {
+        driveCar();
+      }
+      if (key.toLowerCase() === 'a') {
+        adminAbuse();
+      }
+    }
+  </script>
+</body>
+</html>

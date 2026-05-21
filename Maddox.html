@@ -13,65 +13,76 @@
             background: #0a0a0a;
             color: #00ff00;
             font-family: 'Press Start 2P', system-ui;
-            overflow: hidden;
+            overflow-x: hidden;
         }
         
         #game-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
         }
         
         #header {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         #title {
-            font-size: 28px;
-            text-shadow: 0 0 10px #00ff00;
+            font-size: 26px;
+            text-shadow: 0 0 12px #00ff00;
             margin: 0;
         }
         
         #subtitle {
-            font-size: 14px;
+            font-size: 13px;
             color: #ffaa00;
         }
         
         #main-area {
             display: flex;
-            gap: 20px;
-            max-width: 1200px;
+            gap: 18px;
+            max-width: 1280px;
             width: 100%;
+            flex-wrap: wrap;
         }
         
         #canvas-container {
             border: 4px solid #00ff00;
-            box-shadow: 0 0 20px #00ff00;
+            box-shadow: 0 0 25px #00ff00;
         }
         
         #ui-panel {
-            width: 320px;
+            width: 310px;
             background: #111;
             border: 4px solid #00ff00;
-            padding: 15px;
+            padding: 14px;
             box-shadow: 0 0 20px #00ff00;
+            flex-shrink: 0;
+        }
+        
+        #inventory-panel {
+            width: 310px;
+            background: #111;
+            border: 4px solid #ffaa00;
+            padding: 14px;
+            box-shadow: 0 0 20px #ffaa00;
+            flex-shrink: 0;
         }
         
         .stat {
-            margin: 8px 0;
-            font-size: 14px;
+            margin: 6px 0;
+            font-size: 13px;
         }
         
         button {
             background: #003300;
             color: #00ff00;
             border: 3px solid #00ff00;
-            padding: 10px 15px;
+            padding: 9px 12px;
             font-family: 'Press Start 2P', system-ui;
-            font-size: 12px;
-            margin: 5px 2px;
+            font-size: 11px;
+            margin: 4px 2px;
             cursor: pointer;
             transition: all 0.1s;
         }
@@ -86,19 +97,32 @@
             transform: scale(0.95);
         }
         
+        .weapon-btn {
+            background: #002200;
+            border-color: #ffaa00;
+            color: #ffaa00;
+            font-size: 10px;
+            padding: 6px 8px;
+        }
+        
+        .weapon-btn:hover {
+            background: #ffaa00;
+            color: #002200;
+        }
+        
         #log {
-            height: 180px;
+            height: 165px;
             overflow-y: auto;
             background: #000;
             border: 3px solid #00ff00;
-            padding: 10px;
-            font-size: 11px;
-            margin-top: 15px;
-            line-height: 1.4;
+            padding: 8px;
+            font-size: 10px;
+            margin-top: 12px;
+            line-height: 1.35;
         }
         
         .log-entry {
-            margin: 4px 0;
+            margin: 3px 0;
         }
         
         .boss {
@@ -106,25 +130,47 @@
             font-weight: bold;
         }
         
+        .equip {
+            background: #330000;
+            border-color: #ffaa00;
+            color: #ffaa00;
+        }
+        
         #name-input {
             background: #000;
             border: 3px solid #00ff00;
             color: #00ff00;
-            padding: 8px;
+            padding: 7px;
             width: 100%;
             font-family: 'Press Start 2P', system-ui;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         .biome {
             font-size: 11px;
             color: #ffaa00;
-            margin-top: 5px;
+            margin: 8px 0;
+        }
+        
+        .inventory-item {
+            background: #1a1a1a;
+            border: 2px solid #ffaa00;
+            padding: 6px 8px;
+            margin: 5px 0;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .equipped {
+            border-color: #00ff00;
+            background: #002200;
         }
         
         .gorilla-info {
-            font-size: 12px;
-            margin: 10px 0;
+            font-size: 11px;
+            margin: 8px 0;
         }
     </style>
 </head>
@@ -139,11 +185,11 @@
             <!-- Game Canvas -->
             <div id="canvas-container"></div>
             
-            <!-- UI Panel -->
+            <!-- Main UI -->
             <div id="ui-panel">
-                <div style="margin-bottom: 15px;">
+                <div style="margin-bottom: 10px;">
                     <input id="name-input" type="text" placeholder="Gorilla Name" value="Maddox Wade">
-                    <button onclick="changeName()" style="width: 100%; margin-top: 8px;">CHANGE NAME</button>
+                    <button onclick="changeName()" style="width: 100%; margin-top: 6px;">CHANGE NAME</button>
                 </div>
                 
                 <div class="gorilla-info">
@@ -157,24 +203,15 @@
                     <strong>COINS:</strong> <span id="coins">500</span>
                 </div>
                 <div class="stat">
-                    <strong>WEAPON:</strong> <span id="weapon">None</span>
+                    <strong>EQUIPPED:</strong> <span id="equipped">Fists</span>
                 </div>
                 <div class="stat">
-                    <strong>ITEMS:</strong> <span id="items">Stick</span>
-                </div>
-                <div class="stat">
-                    <strong>MONSTERS KILLED:</strong> <span id="kills">0</span>
+                    <strong>KILLS:</strong> <span id="kills">0</span>
                 </div>
                 
-                <div style="margin-top: 15px;">
+                <div style="margin-top: 12px;">
                     <button onclick="startTutorial()">TUTORIAL</button>
-                    <button onclick="buyStick()">BUY STICK (100)</button>
-                    <button onclick="buyHookshot()">BUY HOOKSHOT (250)</button>
-                </div>
-                
-                <div style="margin-top: 10px;">
-                    <button onclick="exploreBiome()">EXPLORE BIOME</button>
-                    <button onclick="fightMonster()">FIGHT MONSTER</button>
+                    <button onclick="goAdventuring()">GO ADVENTURING</button>
                     <button onclick="fightBoss()">FIGHT GREAT ORG</button>
                 </div>
                 
@@ -182,33 +219,54 @@
                 
                 <div id="log"></div>
             </div>
+            
+            <!-- Inventory Panel -->
+            <div id="inventory-panel">
+                <h4 style="margin: 0 0 10px 0; color: #ffaa00; text-align: center;">INVENTORY</h4>
+                <div id="inventory-list">
+                    <!-- Populated by JS -->
+                </div>
+                
+                <div style="margin-top: 15px; border-top: 2px solid #ffaa00; padding-top: 10px;">
+                    <button onclick="buyWeapon('stick')" class="weapon-btn" style="width: 100%;">BUY STICK (100)</button>
+                    <button onclick="buyWeapon('bat')" class="weapon-btn" style="width: 100%;">BUY BAT (180)</button>
+                    <button onclick="buyWeapon('pipe')" class="weapon-btn" style="width: 100%;">BUY PIPE (280)</button>
+                    <button onclick="buyWeapon('boxing_glove')" class="weapon-btn" style="width: 100%;">BUY BOXING GLOVE (420)</button>
+                    <button onclick="buyHookshot()" class="weapon-btn" style="width: 100%; margin-top: 8px;">BUY HOOKSHOT (250)</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // ==================== GAME STATE ====================
         let coins = 500;
         let kills = 0;
-        let hasStick = false;
         let hasHookshot = false;
         let currentBiome = "Forest";
         let playerName = "Maddox Wade";
         let bodyColor = "#4a2c0a";
         let gameState = "idle";
         let monstersInBiome = 0;
-        
-        let biomes = ["Forest", "Swamp", "Volcano", "Ice Peaks", "Acid Wastes"];
         let biomeIndex = 0;
         
-        let monsters = [
-            { name: "Slime Rat", hp: 30, damage: 5 },
-            { name: "Rock Boar", hp: 50, damage: 8 },
-            { name: "Acid Spider", hp: 40, damage: 10 },
-            { name: "Shadow Wolf", hp: 60, damage: 12 }
-        ];
+        let biomes = ["Forest", "Swamp", "Volcano", "Ice Peaks", "Acid Wastes"];
+        
+        // Weapons
+        let weapons = {
+            stick: { name: "Stick", damage: 14, price: 100, owned: false },
+            bat: { name: "Bat", damage: 22, price: 180, owned: false },
+            pipe: { name: "Pipe", damage: 31, price: 280, owned: false },
+            boxing_glove: { name: "Boxing Glove", damage: 27, price: 420, owned: false }
+        };
+        
+        let inventory = [];
+        let equippedWeapon = null; // {id, name, damage}
         
         let currentMonster = null;
-        let bossHP = 300;
+        let bossHP = 420;
         
+        // ==================== LOGGING ====================
         function log(message, type = "normal") {
             const logDiv = document.getElementById("log");
             const entry = document.createElement("div");
@@ -220,6 +278,9 @@
             } else if (type === "death") {
                 entry.style.color = "#ff4444";
                 entry.innerHTML = "💀 " + message;
+            } else if (type === "loot") {
+                entry.style.color = "#ffaa00";
+                entry.innerHTML = "✦ " + message;
             } else {
                 entry.innerHTML = "• " + message;
             }
@@ -227,17 +288,17 @@
             logDiv.appendChild(entry);
             logDiv.scrollTop = logDiv.scrollHeight;
             
-            // Simulate other players chatting
-            if (Math.random() < 0.3) {
+            // Random player chat
+            if (Math.random() < 0.25) {
                 setTimeout(() => {
-                    const otherPlayers = ["ZaireTheFire", "LiamAir", "ElstonGunn", "GadgetGorilla42"];
+                    const otherPlayers = ["ZaireTheFire", "LiamAir", "ElstonGunn", "GadgetGorilla42", "AcidKing"];
                     const randomPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
                     const chats = [
-                        "Let's gooo!",
-                        "I just killed 3!",
-                        "Watch out for the acid!",
-                        "Hookshot here is OP",
-                        "Anyone got extra coins?"
+                        "This biome is brutal...",
+                        "Just got wrecked by a spider",
+                        "Hookshot saved me",
+                        "Boxing glove is meta",
+                        "The Org hits like a truck"
                     ];
                     const chatMsg = chats[Math.floor(Math.random() * chats.length)];
                     const chatEntry = document.createElement("div");
@@ -246,19 +307,18 @@
                     chatEntry.innerHTML = `[${randomPlayer}]: ${chatMsg}`;
                     logDiv.appendChild(chatEntry);
                     logDiv.scrollTop = logDiv.scrollHeight;
-                }, 800);
+                }, 700);
             }
         }
         
         function updateUI() {
             document.getElementById("coins").textContent = coins;
             document.getElementById("kills").textContent = kills;
-            document.getElementById("weapon").textContent = hasStick ? "Stick" : "Fists";
-            document.getElementById("items").textContent = hasHookshot ? "Stick + Hookshot" : (hasStick ? "Stick" : "None");
             document.getElementById("biome-display").textContent = `Current Biome: ${currentBiome}`;
-            
-            // Update name
+            document.getElementById("equipped").textContent = equippedWeapon ? equippedWeapon.name : "Fists";
             document.getElementById("name-input").value = playerName;
+            
+            renderInventory();
         }
         
         function changeName() {
@@ -274,201 +334,342 @@
             bodyColor = document.getElementById("body-color").value;
         }
         
+        // ==================== INVENTORY ====================
+        function renderInventory() {
+            const container = document.getElementById("inventory-list");
+            container.innerHTML = "";
+            
+            // Show equipped weapon
+            if (equippedWeapon) {
+                const equippedDiv = document.createElement("div");
+                equippedDiv.className = "inventory-item equipped";
+                equippedDiv.innerHTML = `
+                    <span>⚔️ ${equippedWeapon.name} (${equippedWeapon.damage} DMG)</span>
+                    <button onclick="unequipWeapon()" style="font-size:9px; padding:2px 6px;">UNEQUIP</button>
+                `;
+                container.appendChild(equippedDiv);
+            } else {
+                const fistsDiv = document.createElement("div");
+                fistsDiv.className = "inventory-item";
+                fistsDiv.innerHTML = `<span>👊 Fists (8 DMG)</span>`;
+                container.appendChild(fistsDiv);
+            }
+            
+            // Show owned weapons
+            inventory.forEach(weaponId => {
+                if (equippedWeapon && equippedWeapon.id === weaponId) return; // already shown above
+                
+                const w = weapons[weaponId];
+                if (!w) return;
+                
+                const div = document.createElement("div");
+                div.className = "inventory-item";
+                div.innerHTML = `
+                    <span>${w.name} (${w.damage} DMG)</span>
+                    <button onclick="equipWeapon('${weaponId}')" class="equip" style="font-size:9px; padding:2px 6px;">EQUIP</button>
+                `;
+                container.appendChild(div);
+            });
+            
+            if (inventory.length === 0 && !equippedWeapon) {
+                const empty = document.createElement("div");
+                empty.style.fontSize = "10px";
+                empty.style.color = "#666";
+                empty.innerHTML = "No weapons yet. Buy some!";
+                container.appendChild(empty);
+            }
+        }
+        
+        function equipWeapon(weaponId) {
+            const w = weapons[weaponId];
+            if (!w || !w.owned) return;
+            
+            equippedWeapon = {
+                id: weaponId,
+                name: w.name,
+                damage: w.damage
+            };
+            
+            log(`Equipped ${w.name}!`);
+            updateUI();
+        }
+        
+        function unequipWeapon() {
+            if (equippedWeapon) {
+                log(`Unequipped ${equippedWeapon.name}`);
+                equippedWeapon = null;
+                updateUI();
+            }
+        }
+        
+        // ==================== WEAPONS & SHOP ====================
+        function buyWeapon(type) {
+            const w = weapons[type];
+            if (!w) return;
+            
+            if (w.owned) {
+                log(`You already own the ${w.name}!`);
+                return;
+            }
+            
+            if (coins < w.price) {
+                log("Not enough coins!");
+                return;
+            }
+            
+            coins -= w.price;
+            w.owned = true;
+            inventory.push(type);
+            
+            log(`Purchased ${w.name}!`, "loot");
+            
+            // Auto-equip if nothing equipped
+            if (!equippedWeapon) {
+                equipWeapon(type);
+            }
+            
+            updateUI();
+        }
+        
+        function buyHookshot() {
+            if (hasHookshot) {
+                log("You already have the Hookshot!");
+                return;
+            }
+            if (coins < 250) {
+                log("Not enough coins!");
+                return;
+            }
+            coins -= 250;
+            hasHookshot = true;
+            log("Hookshot acquired! You can now reach new biomes.", "loot");
+            updateUI();
+        }
+        
+        // ==================== TUTORIAL ====================
         function startTutorial() {
             if (gameState !== "idle") return;
             
-            log("=== TUTORIAL START ===");
-            log("You are Maddox Wade, a legless gorilla with green eyes!");
-            log("Click FIGHT MONSTER to battle in the current biome.");
-            log("Kill monsters to earn coins and unlock the Great Org.");
-            log("Use HOOKSHOT to travel to new biomes.");
-            log("When ready, fight the GREAT ORG!");
-            log("=== TUTORIAL COMPLETE ===");
-            log("You received 500 coins to start!");
+            log("=== TUTORIAL ===");
+            log("You are a legless gorilla with green eyes.");
+            log("Buy weapons from the INVENTORY panel.");
+            log("Equip weapons before fighting.");
+            log("Click GO ADVENTURING to explore and find monsters.");
+            log("Deeper biomes = harder monsters + better loot.");
+            log("Kill 12+ monsters then fight the GREAT ORG.");
+            log("=== GOOD LUCK ===");
             
             gameState = "tutorial_done";
         }
         
-        function buyStick() {
-            if (coins >= 100 && !hasStick) {
-                coins -= 100;
-                hasStick = true;
-                log("Purchased a sturdy stick! +5 damage");
-                updateUI();
-            } else if (hasStick) {
-                log("You already have a stick!");
-            } else {
-                log("Not enough coins!");
-            }
-        }
-        
-        function buyHookshot() {
-            if (coins >= 250 && !hasHookshot) {
-                coins -= 250;
-                hasHookshot = true;
-                log("Hookshot acquired! You can now reach new biomes.");
-                updateUI();
-            } else if (hasHookshot) {
-                log("You already have the hookshot!");
-            } else {
-                log("Not enough coins!");
-            }
-        }
-        
-        function exploreBiome() {
-            if (!hasHookshot) {
-                log("You need a Hookshot to explore new biomes!");
+        // ==================== EXPLORATION & COMBAT ====================
+        function goAdventuring() {
+            if (gameState === "fighting" || gameState === "boss_fight") {
+                log("You're already in combat!");
                 return;
             }
             
-            biomeIndex = (biomeIndex + 1) % biomes.length;
-            currentBiome = biomes[biomeIndex];
-            monstersInBiome = 0;
+            gameState = "adventuring";
+            monstersInBiome++;
             
-            log(`Traveled to the ${currentBiome} biome!`, "normal");
+            // Chance to find monster increases with exploration
+            const encounterChance = Math.min(0.35 + (monstersInBiome * 0.12), 0.85);
+            
+            if (Math.random() < encounterChance || monstersInBiome >= 3) {
+                // Found a monster!
+                startMonsterEncounter();
+            } else {
+                log(`You explore deeper into the ${currentBiome}...`);
+                setTimeout(() => {
+                    if (gameState === "adventuring") {
+                        log("Nothing yet. Keep exploring or adventure again.");
+                        gameState = "idle";
+                    }
+                }, 900);
+            }
+            
             updateUI();
         }
         
-        function fightMonster() {
-            if (gameState === "fighting") {
-                log("You're already in a fight!");
-                return;
-            }
-            
+        function startMonsterEncounter() {
             gameState = "fighting";
             
-            // Pick random monster based on biome
-            let monsterPool = monsters;
-            if (currentBiome === "Swamp") monsterPool = [monsters[2], monsters[3]];
-            if (currentBiome === "Volcano") monsterPool = [monsters[1], monsters[3]];
-            if (currentBiome === "Ice Peaks") monsterPool = [monsters[1], monsters[3]];
-            if (currentBiome === "Acid Wastes") monsterPool = [monsters[2]];
-            
+            let monsterPool = getMonstersForBiome();
             currentMonster = {...monsterPool[Math.floor(Math.random() * monsterPool.length)]};
             currentMonster.maxHP = currentMonster.hp;
             
-            log(`A wild ${currentMonster.name} appears in the ${currentBiome}!`);
-            log(`Press FIGHT again to attack!`);
+            log(`A wild ${currentMonster.name} appears!`);
             
-            // Start fight loop
+            if (!equippedWeapon) {
+                log("You're fighting with your fists!");
+            } else {
+                log(`Using your ${equippedWeapon.name}.`);
+            }
+            
             setTimeout(() => {
                 if (gameState === "fighting") {
-                    log(`[${currentMonster.name} HP: ${currentMonster.hp}]`, "normal");
+                    log(`[${currentMonster.name} HP: ${currentMonster.hp}]`);
                 }
-            }, 300);
+            }, 400);
+        }
+        
+        function getMonstersForBiome() {
+            if (currentBiome === "Forest") {
+                return [
+                    { name: "Slime Rat", hp: 38, damage: 6 },
+                    { name: "Thorn Boar", hp: 52, damage: 9 }
+                ];
+            } else if (currentBiome === "Swamp") {
+                return [
+                    { name: "Acid Spider", hp: 45, damage: 11 },
+                    { name: "Mud Gator", hp: 68, damage: 13 }
+                ];
+            } else if (currentBiome === "Volcano") {
+                return [
+                    { name: "Lava Boar", hp: 75, damage: 15 },
+                    { name: "Ember Wolf", hp: 60, damage: 17 }
+                ];
+            } else if (currentBiome === "Ice Peaks") {
+                return [
+                    { name: "Frost Boar", hp: 82, damage: 14 },
+                    { name: "Ice Serpent", hp: 55, damage: 19 }
+                ];
+            } else if (currentBiome === "Acid Wastes") {
+                return [
+                    { name: "Toxic Crawler", hp: 70, damage: 18 },
+                    { name: "Corrosive Slime", hp: 95, damage: 12 }
+                ];
+            }
+            return [{ name: "Wild Rat", hp: 35, damage: 6 }];
         }
         
         function performAttack() {
             if (!currentMonster || gameState !== "fighting") return;
             
-            let damage = hasStick ? 15 : 8;
+            let damage = 8; // fists
             
-            // Biome bonuses
-            if (currentBiome === "Swamp" && hasHookshot) damage += 5;
-            if (currentBiome === "Acid Wastes") damage += 8;
+            if (equippedWeapon) {
+                damage = equippedWeapon.damage;
+                
+                // Weapon-specific bonuses
+                if (equippedWeapon.id === "boxing_glove" && currentBiome === "Swamp") damage += 6;
+                if (equippedWeapon.id === "pipe" && currentBiome === "Volcano") damage += 7;
+                if (equippedWeapon.id === "bat" && currentBiome === "Ice Peaks") damage += 8;
+            }
+            
+            // Biome difficulty scaling
+            if (currentBiome === "Acid Wastes") damage = Math.floor(damage * 0.85);
             
             currentMonster.hp -= damage;
             log(`You hit the ${currentMonster.name} for ${damage} damage!`);
             
             if (currentMonster.hp <= 0) {
-                // Victory
+                // Victory!
                 kills++;
-                let reward = Math.floor(Math.random() * 40) + 35;
-                coins += reward;
+                let reward = Math.floor(Math.random() * 55) + 48;
+                if (currentBiome === "Acid Wastes") reward += 30;
                 
-                log(`You defeated the ${currentMonster.name}! +${reward} coins`);
-                log(`Monsters killed: ${kills}`);
+                coins += reward;
+                log(`Defeated ${currentMonster.name}! +${reward} coins`, "loot");
                 
                 gameState = "idle";
                 currentMonster = null;
                 
-                // Check for boss unlock
-                if (kills >= 8 && !hasHookshot) {
-                    log("The Great Org is stirring... Get a Hookshot!");
+                // Unlock new biome occasionally
+                if (hasHookshot && Math.random() < 0.45 && biomeIndex < biomes.length - 1) {
+                    biomeIndex++;
+                    currentBiome = biomes[biomeIndex];
+                    monstersInBiome = 0;
+                    log(`New biome unlocked: ${currentBiome}!`, "loot");
                 }
+                
                 if (kills >= 12) {
-                    log("You're strong enough to challenge the GREAT ORG!", "boss");
+                    log("You're ready to challenge the GREAT ORG!", "boss");
                 }
                 
                 updateUI();
             } else {
                 // Monster counterattack
                 let monsterDamage = currentMonster.damage;
-                if (currentBiome === "Acid Wastes") monsterDamage += 4;
+                if (currentBiome === "Acid Wastes") monsterDamage += 5;
                 
                 log(`The ${currentMonster.name} hits you for ${monsterDamage} damage!`);
                 
-                // Simple death chance
-                if (Math.random() < 0.15 && kills > 3) {
+                // Death chance
+                if (Math.random() < 0.18 && kills > 4) {
                     log("You died in battle...", "death");
-                    coins = Math.max(0, Math.floor(coins * 0.6));
-                    log("You lost some coins on death.");
+                    coins = Math.max(0, Math.floor(coins * 0.55));
                     gameState = "idle";
                     currentMonster = null;
                     updateUI();
                     return;
                 }
                 
-                // Continue fight
                 setTimeout(() => {
                     if (gameState === "fighting" && currentMonster) {
                         log(`[${currentMonster.name} HP: ${currentMonster.hp}]`);
                     }
-                }, 600);
+                }, 650);
             }
         }
         
+        // ==================== BOSS FIGHT ====================
         function fightBoss() {
-            if (kills < 8) {
-                log("You need to kill at least 8 monsters before challenging the Great Org!");
+            if (kills < 10) {
+                log("You need at least 10 monster kills to face the Great Org!");
                 return;
             }
             
             if (gameState === "boss_fight") {
-                // Attack the boss
-                let damage = hasStick ? 22 : 12;
-                if (hasHookshot) damage += 10;
+                // Attack boss
+                let damage = equippedWeapon ? equippedWeapon.damage + 8 : 14;
+                
+                if (equippedWeapon) {
+                    if (equippedWeapon.id === "pipe") damage += 12;
+                    if (equippedWeapon.id === "boxing_glove") damage += 9;
+                }
                 
                 bossHP -= damage;
                 log(`You strike the Great Org for ${damage} damage!`, "boss");
                 
                 if (bossHP <= 0) {
                     log("🎉 YOU DEFEATED THE GREAT ORG! 🎉", "boss");
-                    log("The Acid Wastes are saved. You are a legend!", "boss");
-                    coins += 500;
-                    kills += 5;
+                    log("The wastelands are free. You are a legend of Animal Company!", "boss");
+                    coins += 650;
+                    kills += 8;
                     gameState = "idle";
-                    bossHP = 300;
+                    bossHP = 420;
                     updateUI();
                     return;
                 }
                 
-                // Boss attacks
-                const bossDamage = 18;
-                log(`The Great Org spits ACID at you for ${bossDamage} damage!`, "boss");
+                // Boss counter
+                const bossDamage = 24;
+                log(`The Great Org spits ACID for ${bossDamage} damage!`, "boss");
                 
-                if (Math.random() < 0.25) {
-                    log("You died to the Great Org's acid...", "death");
-                    coins = Math.max(0, Math.floor(coins * 0.4));
+                if (Math.random() < 0.28) {
+                    log("You were melted by the Great Org's acid...", "death");
+                    coins = Math.max(0, Math.floor(coins * 0.35));
                     gameState = "idle";
-                    bossHP = 300;
+                    bossHP = 420;
                     updateUI();
+                    return;
                 }
                 
                 log(`Great Org HP: ${bossHP}`, "boss");
                 
             } else {
                 gameState = "boss_fight";
-                bossHP = 300;
+                bossHP = 420;
                 log("=== FINAL BOSS: THE GREAT ORG ===", "boss");
-                log("A massive, disgusting Shrek-like creature towers over you!");
-                log("It spits acid and defends itself violently.");
-                log("Press FIGHT BOSS repeatedly to attack!");
+                log("A massive, disgusting Shrek-like creature towers before you.");
+                log("It spits acid and violently defends itself.");
+                log("Make sure you have a strong weapon equipped!");
                 log(`Great Org HP: ${bossHP}`, "boss");
             }
         }
         
-        // p5.js sketch for the gorilla
+        // ==================== p5.js DRAWING ====================
         let gorillaX, gorillaY;
         let armAngle = 0;
         
@@ -477,48 +678,43 @@
             canvas.parent("canvas-container");
             
             gorillaX = width / 2;
-            gorillaY = height / 2 + 40;
+            gorillaY = height / 2 + 45;
             
-            // Initial log message
             setTimeout(() => {
                 const logDiv = document.getElementById("log");
                 logDiv.innerHTML = "";
                 log("Welcome to Animal Company!");
-                log("You are a powerful gorilla on a mission.");
-                log("Press TUTORIAL to begin your adventure.");
+                log("Buy weapons → Equip them → Go Adventuring!");
+                log("Deeper biomes are much harder.");
                 updateUI();
-            }, 500);
+            }, 400);
         }
         
         function draw() {
             background(15, 25, 15);
             
-            // Draw biome background
             drawBiomeBackground();
-            
-            // Draw the gorilla (no legs)
             drawGorilla();
             
-            // Draw current monster if fighting
             if (currentMonster && gameState === "fighting") {
                 drawMonster();
             }
             
-            // Draw Great Org if boss fight
             if (gameState === "boss_fight") {
                 drawGreatOrg();
             }
             
-            // Instructions
-            fill(0, 255, 0, 180);
+            // Status text
+            fill(0, 255, 0, 160);
             textSize(11);
             textAlign(CENTER);
+            
             if (gameState === "idle") {
-                text("Click buttons on the right to play!", width/2, height - 30);
+                text("Buy weapons • Equip • Go Adventuring", width/2, height - 28);
             } else if (gameState === "fighting") {
-                text("Keep clicking FIGHT MONSTER to attack!", width/2, height - 30);
+                text("Click canvas or press F to attack!", width/2, height - 28);
             } else if (gameState === "boss_fight") {
-                text("Keep clicking FIGHT BOSS to attack the Great Org!", width/2, height - 30);
+                text("Keep attacking the Great Org!", width/2, height - 28);
             }
         }
         
@@ -526,7 +722,6 @@
             if (currentBiome === "Forest") {
                 fill(20, 80, 30);
                 rect(0, height - 120, width, 120);
-                // Trees
                 for (let i = 0; i < 5; i++) {
                     fill(10, 50, 20);
                     rect(40 + i * 95, height - 180, 25, 80);
@@ -565,7 +760,7 @@
             push();
             translate(gorillaX, gorillaY);
             
-            // Body (no legs - floating gorilla style)
+            // Body
             fill(bodyColor);
             stroke(30);
             strokeWeight(3);
@@ -575,8 +770,6 @@
             fill(0, 255, 80);
             ellipse(-35, -20, 28, 28);
             ellipse(35, -20, 28, 28);
-            
-            // Eye shine
             fill(255);
             ellipse(-32, -23, 10, 10);
             ellipse(38, -23, 10, 10);
@@ -587,19 +780,16 @@
             line(-48, -35, -22, -38);
             line(22, -38, 48, -35);
             
-            // Arms (animated)
+            // Arms
             stroke(bodyColor);
             strokeWeight(18);
-            
             armAngle = sin(frameCount * 0.08) * 0.4;
             
-            // Left arm
             push();
             rotate(-0.8 + armAngle);
             line(-50, 10, -95, 55);
             pop();
             
-            // Right arm
             push();
             rotate(0.8 - armAngle);
             line(50, 10, 95, 55);
@@ -611,7 +801,7 @@
             fill(0, 255, 0);
             rect(-15, 20, 30, 8);
             
-            // Name tag
+            // Name
             fill(0, 255, 0);
             textSize(14);
             textAlign(CENTER);
@@ -628,18 +818,18 @@
             stroke(30);
             strokeWeight(3);
             
-            if (currentMonster.name === "Slime Rat") {
+            if (currentMonster.name.includes("Rat") || currentMonster.name.includes("Crawler")) {
                 ellipse(0, 0, 70, 50);
                 fill(40, 90, 30);
                 ellipse(-15, -5, 20, 15);
                 ellipse(15, -5, 20, 15);
-            } else if (currentMonster.name === "Rock Boar") {
+            } else if (currentMonster.name.includes("Boar")) {
                 fill(100, 80, 60);
                 ellipse(0, 0, 90, 60);
                 fill(60);
                 rect(-40, -15, 20, 30);
                 rect(20, -15, 20, 30);
-            } else if (currentMonster.name === "Acid Spider") {
+            } else if (currentMonster.name.includes("Spider")) {
                 fill(30, 100, 40);
                 ellipse(0, 0, 60, 50);
                 fill(0, 255, 100);
@@ -666,27 +856,22 @@
             push();
             translate(width * 0.7, height * 0.42);
             
-            // Big ugly Shrek-like body
             fill(60, 100, 40);
             stroke(30);
             strokeWeight(4);
             ellipse(0, 20, 160, 140);
             
-            // Big head
             fill(70, 110, 45);
             ellipse(0, -60, 110, 100);
             
-            // Ugly ears
             fill(50, 90, 30);
             ellipse(-55, -90, 35, 50);
             ellipse(55, -90, 35, 50);
             
-            // Acid eyes
             fill(0, 255, 80);
             ellipse(-25, -65, 30, 25);
             ellipse(25, -65, 30, 25);
             
-            // Acid drool
             fill(0, 255, 100, 180);
             ellipse(-15, -30, 12, 35);
             ellipse(20, -25, 10, 28);
@@ -695,24 +880,22 @@
             fill(0);
             rect(-70, -130, 140, 16);
             fill(255, 50, 50);
-            rect(-68, -128, map(bossHP, 0, 300, 0, 136), 12);
+            rect(-68, -128, map(bossHP, 0, 420, 0, 136), 12);
             
             pop();
         }
         
-        // Handle clicking on canvas to attack
+        // ==================== INPUT ====================
         function mousePressed() {
             if (gameState === "fighting" && currentMonster) {
                 performAttack();
             } else if (gameState === "boss_fight") {
-                // Attack boss via mouse too
                 if (mouseX > width * 0.4) {
                     fightBoss();
                 }
             }
         }
         
-        // Keyboard support
         function keyPressed() {
             if (key === 'f' || key === 'F') {
                 if (gameState === "fighting") {
@@ -720,24 +903,30 @@
                 } else if (gameState === "boss_fight") {
                     fightBoss();
                 } else {
-                    fightMonster();
+                    goAdventuring();
                 }
             }
             if (key === 'e' || key === 'E') {
-                exploreBiome();
+                if (hasHookshot && biomeIndex < biomes.length - 1) {
+                    biomeIndex++;
+                    currentBiome = biomes[biomeIndex];
+                    monstersInBiome = 0;
+                    log(`Traveled to ${currentBiome}!`);
+                    updateUI();
+                } else {
+                    log("Need Hookshot or already at last biome.");
+                }
             }
         }
         
-        // Auto update UI periodically
-        setInterval(updateUI, 2000);
-        
-        // Easter egg: press 'g' to change body color randomly
         function keyReleased() {
             if (key === 'g' || key === 'G') {
                 bodyColor = '#' + Math.floor(Math.random()*16777215).toString(16);
                 document.getElementById("body-color").value = bodyColor;
             }
         }
+        
+        setInterval(updateUI, 2000);
     </script>
 </body>
 </html>

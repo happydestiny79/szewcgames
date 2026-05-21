@@ -6,15 +6,15 @@
 <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
 <style>
   body { margin:0; background:#0a1f0a; color:#fff; font-family:Arial; }
-  canvas { display:block; margin:20px auto; border:6px solid #2a5a2a; border-radius:12px; }
-  .controls { text-align:center; margin-top:10px; }
+  canvas { display:block; margin:15px auto; border:6px solid #2a5a2a; border-radius:12px; }
+  .controls { text-align:center; margin-top:8px; }
   button { 
     background:#2a5a2a; color:#fff; border:2px solid #4a7a4a; 
-    padding:10px 18px; margin:4px; border-radius:8px; font-size:15px; cursor:pointer;
+    padding:8px 14px; margin:3px; border-radius:8px; font-size:14px; cursor:pointer;
   }
   button:hover { background:#3a6a3a; }
-  .stat { display:inline-block; margin:0 15px; width:140px; text-align:left; }
-  .bar { background:#222; height:18px; border:2px solid #4a7a4a; border-radius:4px; overflow:hidden; }
+  .stat { display:inline-block; margin:0 12px; width:130px; text-align:left; }
+  .bar { background:#222; height:16px; border:2px solid #4a7a4a; border-radius:4px; overflow:hidden; }
   .fill { height:100%; transition:width 0.3s; }
 </style>
 </head>
@@ -26,13 +26,18 @@
   <button onclick="feed()">🍃 Feed</button>
   <button onclick="giveWater()">💧 Water</button>
   <button onclick="putToSleep()">🛏️ Sleep</button>
-  <button onclick="letFly()">🕊️ Let Fly (short)</button>
-  <button onclick="roam()">🌲 Roam / Explore</button>
-  <button onclick="releaseOwl()">🌲 Release to Forest (Win)</button>
+  <button onclick="petHoot()">🖐️ Pet</button>
+  <button onclick="playWithHoot()">🎾 Play</button>
+  <button onclick="singToHoot()">🎵 Sing</button>
+  <button onclick="groomHoot()">🪶 Groom</button>
+  <button onclick="tellStory()">📖 Story</button>
+  <button onclick="letFly()">🕊️ Fly</button>
+  <button onclick="roam()">🌲 Roam</button>
+  <button onclick="releaseOwl()">🌲 Release</button>
   <button onclick="restartGame()">🔄 Restart</button>
 </div>
 
-<div style="text-align:center; margin:15px 0;">
+<div style="text-align:center; margin:12px 0;">
   <div class="stat"><b>Hunger</b><div class="bar"><div id="hungerBar" class="fill" style="width:70%; background:#ffaa44"></div></div></div>
   <div class="stat"><b>Thirst</b><div class="bar"><div id="thirstBar" class="fill" style="width:70%; background:#44aaff"></div></div></div>
   <div class="stat"><b>Energy</b><div class="bar"><div id="energyBar" class="fill" style="width:80%; background:#aaff44"></div></div></div>
@@ -40,35 +45,35 @@
   <div class="stat"><b>Care Level</b><div class="bar"><div id="careBar" class="fill" style="width:10%; background:#aaffaa"></div></div></div>
 </div>
 
-<p style="text-align:center; font-size:14px; color:#88aa88">
-  Keyboard: <b>F</b> Feed • <b>W</b> Water • <b>S</b> Sleep • <b>Space</b> Fly • <b>R</b> Roam • <b>ESC</b> Release
-  <br>Scene: <b>1</b> House • <b>2</b> Forest • Click owl to interact
+<p style="text-align:center; font-size:13px; color:#88aa88">
+  Keys: <b>F</b> Feed • <b>W</b> Water • <b>S</b> Sleep • <b>P</b> Pet • <b>L</b> Play • <b>G</b> Groom • <b>T</b> Story • <b>Space</b> Fly • <b>R</b> Roam • <b>ESC</b> Release • <b>C</b> Change Colors
 </p>
 
 <script>
 let hoot = {
-  x: 450, y: 320, size: 70,
+  x: 450, y: 320, size: 68,
   vx: 0, vy: 0,
   flying: false, flyingTime: 0,
-  colorScheme: 0, // 0=orange/brown, 1=pink/purple, 2=blue/black
-  mood: "happy"
+  colorScheme: 0,
+  mood: "happy",
+  sleeping: false
 };
 
-let hunger = 70, thirst = 70, energy = 85, happiness = 75, careLevel = 10;
-let scene = "house"; // "house" or "forest"
+let hunger = 75, thirst = 75, energy = 88, happiness = 78, careLevel = 12;
+let scene = "house";
 let lastDecay = Date.now();
 let gameOver = false;
 let win = false;
 let villain = null;
-let waterAnim = 0;
 let particles = [];
 let trees = [];
-let houseObjects = [];
+let eatingAnim = 0;
+let drinkingAnim = 0;
+let sleepingAnim = 0;
 
 function setup() {
   createCanvas(950, 620);
   
-  // Forest trees
   for (let i = 0; i < 9; i++) {
     trees.push({
       x: 60 + i * 105,
@@ -78,121 +83,91 @@ function setup() {
     });
   }
   
-  // House interior objects
-  houseObjects = [
-    { type: "bed", x: 120, y: 420 },
-    { type: "painting", x: 680, y: 180 },
-    { type: "table", x: 780, y: 430 },
-    { type: "carpet", x: 350, y: 480 }
-  ];
-  
   hoot.x = width/2;
   hoot.y = 340;
 }
 
 function draw() {
-  if (gameOver) {
-    drawGameOver();
-    return;
-  }
-  if (win) {
-    drawWinScreen();
-    return;
-  }
+  if (gameOver) { drawGameOver(); return; }
+  if (win) { drawWinScreen(); return; }
   
-  // Decay stats every ~800ms (10% faster than normal)
-  if (Date.now() - lastDecay > 800) {
-    hunger = max(0, hunger - 1.8);
-    thirst = max(0, thirst - 1.8);
-    energy = max(0, energy - 0.9);
-    happiness = max(0, happiness - 0.7);
+  // Much slower decay (minutes of life)
+  if (Date.now() - lastDecay > 4800) {
+    hunger = max(0, hunger - 0.65);
+    thirst = max(0, thirst - 0.65);
+    energy = max(0, energy - 0.35);
+    happiness = max(0, happiness - 0.3);
     lastDecay = Date.now();
     
-    // Hoot really wants to fly
-    if (random() < 0.35) happiness = max(0, happiness - 1.2);
-    
+    if (random() < 0.15) happiness = max(0, happiness - 0.5);
     updateBars();
     checkGameState();
   }
   
-  // Background
   if (scene === "forest") {
     drawForest();
   } else {
     drawHouse();
   }
   
-  // Update owl physics
   updateOwl();
-  
-  // Draw owl
-  drawHoot(hoot.x, hoot.y, hoot.size, hoot.colorScheme, hoot.mood, hoot.flying);
-  
-  // Particles (leaves, sparkles, feathers)
+  drawHoot(hoot.x, hoot.y, hoot.size, hoot.colorScheme, hoot.mood, hoot.flying, hoot.sleeping);
   updateParticles();
   
-  // Villain if neglected
-  if (villain) {
-    drawVillain();
+  if (villain) drawVillain();
+  
+  // Eating animation (food going to beak)
+  if (eatingAnim > 0) {
+    eatingAnim--;
+    let beakX = hoot.x;
+    let beakY = hoot.y - hoot.size * 0.18;
+    fill(255, 200, 80);
+    for (let i = 0; i < 4; i++) {
+      let prog = (18 - eatingAnim) / 18;
+      ellipse(beakX + random(-12,12) * (1-prog), beakY - 25 + prog * 30, 7, 7);
+    }
   }
   
-  // Water drinking animation - droplets going into beak
-  if (waterAnim > 0) {
-    waterAnim--;
+  // Drinking animation (water drops into beak)
+  if (drinkingAnim > 0) {
+    drinkingAnim--;
     let beakX = hoot.x;
     let beakY = hoot.y - hoot.size * 0.15;
     for (let i = 0; i < 5; i++) {
-      let progress = (22 - waterAnim) / 22;
-      let dx = random(-8, 8) * (1 - progress);
-      let dy = -hoot.size * 0.4 * progress;
-      fill(80, 180, 255, 200);
-      ellipse(beakX + dx, beakY + dy, 6, 8);
+      let prog = (22 - drinkingAnim) / 22;
+      fill(80, 180, 255, 220);
+      ellipse(beakX + random(-7,7) * (1-prog), beakY - 18 + prog * 25, 5, 7);
     }
-    // Little splash at beak
-    if (waterAnim < 8) {
-      fill(100, 200, 255, 150);
-      ellipse(beakX, beakY, 14, 9);
+    if (drinkingAnim < 6) {
+      fill(100, 210, 255, 160);
+      ellipse(beakX, beakY, 13, 8);
     }
   }
   
-  // UI text
   fill(255);
-  textSize(18);
+  textSize(17);
   textAlign(LEFT);
-  text("Scene: " + (scene === "forest" ? "🌲 Forest" : "🏠 House"), 30, 40);
-  text("Hoot's Mood: " + hoot.mood.toUpperCase(), 30, 65);
+  text("Scene: " + (scene === "forest" ? "🌲 Forest" : "🏠 House"), 25, 35);
+  text("Hoot's Mood: " + hoot.mood.toUpperCase(), 25, 58);
   
   if (careLevel > 90) {
     fill(255, 255, 150);
-    text("Ready to release! Press ESC or click Release", width/2 - 200, 40);
+    text("Ready to release! Press ESC", width/2 - 140, 35);
   }
-  
-  // Instructions
-  fill(180);
-  textSize(13);
-  textAlign(CENTER);
-  text("Take care of Hoot with love. Don't let him fly away forever!", width/2, height - 25);
 }
 
 function drawForest() {
-  // Sky
   background(25, 55, 35);
-  // Gradient sky
   for (let i = 0; i < 12; i++) {
     fill(35 + i*4, 75 + i*5, 55 + i*3, 180);
     rect(0, i * 35, width, 40);
   }
-  
-  // Sunlight rays
   fill(255, 220, 120, 25);
   for (let i = 0; i < 5; i++) {
     triangle(200 + i*120, 0, 320 + i*80, 380, 120 + i*90, 0);
   }
-  
-  // Grass
   fill(35, 95, 45);
   rect(0, 380, width, 250);
-  // Grass blades
   for (let i = 0; i < 60; i++) {
     stroke(45, 120, 55);
     strokeWeight(2);
@@ -200,13 +175,9 @@ function drawForest() {
   }
   noStroke();
   
-  // Trees
   for (let t of trees) {
-    // Trunk
     fill(70, 45, 25);
     rect(t.x - 18, t.y - t.h + 60, 36, t.h - 50);
-    
-    // Foliage
     if (t.type === 0) {
       fill(20, 85, 35);
       ellipse(t.x, t.y - t.h + 30, 95, 110);
@@ -221,25 +192,19 @@ function drawForest() {
       ellipse(t.x, t.y - t.h + 40, 120, 95);
     }
   }
-  
-  // Forest floor details
   fill(60, 110, 50, 150);
   rect(0, 400, width, 30);
 }
 
 function drawHouse() {
   background(55, 40, 30);
-  
-  // Walls
   fill(180, 150, 120);
   rect(40, 80, width-80, 380);
   
-  // Wooden floor
   fill(120, 85, 55);
   rect(40, 460, width-80, 160);
   for (let i = 0; i < 18; i++) {
     stroke(90, 60, 35);
-    strokeWeight(1);
     line(50 + i*50, 460, 50 + i*50, 620);
   }
   noStroke();
@@ -247,144 +212,130 @@ function drawHouse() {
   // Colorful carpet
   fill(200, 60, 120);
   rect(280, 470, 420, 130);
-  fill(60, 180, 220);
-  rect(300, 485, 80, 50);
-  fill(255, 200, 50);
-  rect(420, 510, 60, 70);
-  fill(120, 220, 80);
-  rect(510, 490, 90, 40);
-  fill(180, 80, 200);
-  rect(620, 505, 55, 65);
+  fill(60, 180, 220); rect(300, 485, 80, 50);
+  fill(255, 200, 50); rect(420, 510, 60, 70);
+  fill(120, 220, 80); rect(510, 490, 90, 40);
+  fill(180, 80, 200); rect(620, 505, 55, 65);
   
   // Bed
   fill(140, 90, 160);
   rect(90, 420, 200, 120);
   fill(220, 180, 230);
-  rect(95, 425, 190, 55); // blanket
+  rect(95, 425, 190, 55);
   
-  // Painting of Hoot on wall
+  // Painting of Hoot
   fill(240, 220, 180);
   rect(650, 140, 180, 140);
   fill(60);
   textSize(11);
   textAlign(CENTER);
   text("Hoot", 740, 155);
-  // Mini owl in painting
-  drawHootMini(740, 220, 22);
+  drawMiniOwl(740, 220, 22);
   
-  // Bedside table
+  // Bedside table + lamp
   fill(100, 70, 45);
   rect(750, 400, 90, 80);
   fill(220, 200, 160);
-  ellipse(795, 385, 25, 25); // lamp
-  
-  // Window showing forest
-  fill(120, 180, 255);
-  rect(80, 120, 160, 140);
-  fill(40, 90, 40);
-  rect(85, 125, 150, 130);
-  // Trees in window
-  for (let i = 0; i < 3; i++) {
-    fill(25, 75, 30);
-    ellipse(110 + i*50, 190, 45, 70);
-  }
+  ellipse(795, 385, 25, 25);
 }
 
-function drawHootMini(x, y, s) {
+function drawMiniOwl(x, y, s) {
   push();
   translate(x, y);
-  // Simple mini version
   fill(230, 150, 50);
   ellipse(0, 0, s*1.6, s*1.3);
   fill(255, 180, 60);
-  triangle(-s*0.35, -s*0.15, s*0.35, -s*0.15, 0, s*0.45); // beak
+  triangle(-s*0.35, -s*0.15, s*0.35, -s*0.15, 0, s*0.45);
   fill(0);
   ellipse(-s*0.45, -s*0.25, s*0.25, s*0.35);
   ellipse(s*0.45, -s*0.25, s*0.25, s*0.35);
   pop();
 }
 
-function drawHoot(x, y, size, scheme, mood, flying) {
+function drawHoot(x, y, size, scheme, mood, flying, sleeping) {
   push();
   translate(x, y);
   
   let bodyColor, wingColor, beakColor, eyeColor;
   
   if (scheme === 0) { // orange & brown
-    bodyColor = color(230, 145, 45);
-    wingColor = color(180, 100, 30);
-    beakColor = color(255, 200, 60);
-    eyeColor = color(30, 20, 10);
+    bodyColor = color(230, 145, 45); wingColor = color(180, 100, 30); beakColor = color(255, 200, 60); eyeColor = color(30, 20, 10);
   } else if (scheme === 1) { // pink & purple
-    bodyColor = color(255, 140, 200);
-    wingColor = color(160, 80, 180);
-    beakColor = color(255, 220, 230);
-    eyeColor = color(40, 10, 50);
-  } else { // blue & black
-    bodyColor = color(70, 130, 200);
-    wingColor = color(30, 40, 80);
-    beakColor = color(200, 220, 255);
-    eyeColor = color(10, 10, 30);
+    bodyColor = color(255, 140, 200); wingColor = color(160, 80, 180); beakColor = color(255, 220, 230); eyeColor = color(40, 10, 50);
+  } else if (scheme === 2) { // blue & black
+    bodyColor = color(70, 130, 200); wingColor = color(30, 40, 80); beakColor = color(200, 220, 255); eyeColor = color(10, 10, 30);
+  } else if (scheme === 3) { // red & blue
+    bodyColor = color(220, 60, 80); wingColor = color(50, 80, 160); beakColor = color(255, 200, 210); eyeColor = color(20, 10, 40);
+  } else if (scheme === 4) { // purple & yellow
+    bodyColor = color(160, 80, 200); wingColor = color(240, 200, 60); beakColor = color(255, 230, 180); eyeColor = color(30, 20, 50);
+  } else if (scheme === 5) { // yellow & orange
+    bodyColor = color(255, 210, 70); wingColor = color(230, 130, 40); beakColor = color(255, 240, 200); eyeColor = color(40, 25, 10);
+  } else { // green & blue
+    bodyColor = color(60, 180, 120); wingColor = color(40, 90, 160); beakColor = color(200, 255, 220); eyeColor = color(10, 30, 40);
   }
   
-  // Body - curved wide U shape
-  fill(bodyColor);
-  beginShape();
-  vertex(-size*0.45, -size*0.1);
-  bezierVertex(-size*0.6, size*0.5, size*0.6, size*0.5, size*0.45, -size*0.1);
-  endShape(CLOSE);
-  
-  // Head - curved down wide U
-  fill(bodyColor);
-  ellipse(0, -size*0.35, size*1.15, size*0.95);
-  
-  // Ears / tufts
-  fill(wingColor);
-  triangle(-size*0.35, -size*0.7, -size*0.15, -size*0.35, -size*0.55, -size*0.35);
-  triangle(size*0.35, -size*0.7, size*0.15, -size*0.35, size*0.55, -size*0.35);
-  
-  // Wings
-  fill(wingColor);
-  if (flying) {
-    // Wings up
-    push();
-    rotate(-0.6);
-    ellipse(-size*0.55, -size*0.1, size*0.35, size*0.9);
-    pop();
-    push();
-    rotate(0.6);
-    ellipse(size*0.55, -size*0.1, size*0.35, size*0.9);
-    pop();
+  if (sleeping && scene === "house") {
+    // Sleeping in bed - tucked in with blanket
+    fill(bodyColor);
+    ellipse(180, 470, size*0.9, size*0.7); // body under blanket
+    fill(220, 180, 230);
+    rect(145, 455, size*1.1, 35); // blanket
+    fill(bodyColor);
+    ellipse(180, 445, size*0.85, size*0.65); // head on pillow
+    fill(255, 200, 60);
+    triangle(170, 440, 190, 440, 180, 455); // beak
+    fill(255);
+    ellipse(168, 432, 12, 14);
+    ellipse(192, 432, 12, 14);
+    fill(30);
+    ellipse(168, 433, 6, 7);
+    ellipse(192, 433, 6, 7);
+    // Z's
+    fill(255, 255, 200);
+    textSize(16);
+    text("z", 210, 430);
+    text("Z", 225, 415);
   } else {
-    // Wings folded
-    ellipse(-size*0.6, size*0.15, size*0.28, size*0.75);
-    ellipse(size*0.6, size*0.15, size*0.28, size*0.75);
+    // Normal owl drawing
+    fill(bodyColor);
+    beginShape();
+    vertex(-size*0.45, -size*0.1);
+    bezierVertex(-size*0.6, size*0.5, size*0.6, size*0.5, size*0.45, -size*0.1);
+    endShape(CLOSE);
+    
+    fill(bodyColor);
+    ellipse(0, -size*0.35, size*1.15, size*0.95);
+    
+    fill(wingColor);
+    triangle(-size*0.35, -size*0.7, -size*0.15, -size*0.35, -size*0.55, -size*0.35);
+    triangle(size*0.35, -size*0.7, size*0.15, -size*0.35, size*0.55, -size*0.35);
+    
+    fill(wingColor);
+    if (flying) {
+      push(); rotate(-0.6); ellipse(-size*0.55, -size*0.1, size*0.35, size*0.9); pop();
+      push(); rotate(0.6); ellipse(size*0.55, -size*0.1, size*0.35, size*0.9); pop();
+    } else {
+      ellipse(-size*0.6, size*0.15, size*0.28, size*0.75);
+      ellipse(size*0.6, size*0.15, size*0.28, size*0.75);
+    }
+    
+    fill(beakColor);
+    triangle(-size*0.18, -size*0.25, size*0.18, -size*0.25, 0, size*0.18);
+    
+    fill(255);
+    ellipse(-size*0.32, -size*0.42, size*0.32, size*0.38);
+    ellipse(size*0.32, -size*0.42, size*0.32, size*0.38);
+    
+    fill(eyeColor);
+    let eyeOffset = (mood === "sad") ? size*0.05 : 0;
+    ellipse(-size*0.32, -size*0.42 + eyeOffset, size*0.18, size*0.22);
+    ellipse(size*0.32, -size*0.42 + eyeOffset, size*0.18, size*0.22);
+    
+    // Two feet
+    fill(255, 180, 80);
+    ellipse(-size*0.28, size*0.65, size*0.32, size*0.28);
+    ellipse(size*0.28, size*0.65, size*0.32, size*0.28);
   }
-  
-  // Beak - upside down triangle
-  fill(beakColor);
-  triangle(-size*0.18, -size*0.25, size*0.18, -size*0.25, 0, size*0.18);
-  
-  // Eyes
-  fill(255);
-  ellipse(-size*0.32, -size*0.42, size*0.32, size*0.38);
-  ellipse(size*0.32, -size*0.42, size*0.32, size*0.38);
-  
-  fill(eyeColor);
-  let eyeOffset = (mood === "sad") ? size*0.05 : 0;
-  ellipse(-size*0.32, -size*0.42 + eyeOffset, size*0.18, size*0.22);
-  ellipse(size*0.32, -size*0.42 + eyeOffset, size*0.18, size*0.22);
-  
-  // Feet - two feet
-  fill(255, 180, 80);
-  ellipse(-size*0.28, size*0.65, size*0.32, size*0.28);
-  ellipse(size*0.28, size*0.65, size*0.32, size*0.28);
-  
-  // Feathers / fluff
-  fill(255, 255, 255, 90);
-  ellipse(-size*0.1, size*0.1, size*0.25, size*0.2);
-  ellipse(size*0.1, size*0.05, size*0.2, size*0.18);
-  
   pop();
 }
 
@@ -393,45 +344,32 @@ function updateOwl() {
     hoot.vx = sin(frameCount * 0.08) * 2.2;
     hoot.vy = -1.8 + cos(frameCount * 0.06) * 0.6;
     hoot.flyingTime--;
-    
     if (hoot.flyingTime <= 0) {
       hoot.flying = false;
       happiness = min(100, happiness + 12);
       careLevel = min(100, careLevel + 3);
       updateBars();
     }
+  } else if (hoot.sleeping) {
+    hoot.vx = 0;
+    hoot.vy = 0;
   } else {
-    // Gentle idle movement
     hoot.vx = sin(frameCount * 0.03) * 0.6;
     hoot.vy = cos(frameCount * 0.04) * 0.4;
-    
-    // Hoot wants to fly - occasional small hops
-    if (scene === "forest" && random() < 0.008) {
-      hoot.vy = -3;
-    }
+    if (scene === "forest" && random() < 0.008) hoot.vy = -3;
   }
   
   hoot.x += hoot.vx;
   hoot.y += hoot.vy;
   
-  // Boundaries
   let groundY = (scene === "forest") ? 390 : 430;
-  if (hoot.y > groundY) {
-    hoot.y = groundY;
-    hoot.vy = 0;
-  }
+  if (hoot.y > groundY) { hoot.y = groundY; hoot.vy = 0; }
   hoot.x = constrain(hoot.x, 80, width - 80);
   
-  // Mood update
-  if (hunger < 25 || thirst < 25) {
-    hoot.mood = "sad";
-  } else if (happiness > 70) {
-    hoot.mood = "happy";
-  } else {
-    hoot.mood = "neutral";
-  }
+  if (hunger < 25 || thirst < 25) hoot.mood = "sad";
+  else if (happiness > 70) hoot.mood = "happy";
+  else hoot.mood = "neutral";
   
-  // Check villain spawn
   if ((hunger < 15 || thirst < 15) && !villain && random() < 0.1) {
     villain = { x: random(100, width-100), y: 420, timer: 180 };
   }
@@ -444,10 +382,8 @@ function updateParticles() {
     p.y += p.vy;
     p.life--;
     p.vy += 0.1;
-    
     fill(p.col);
     ellipse(p.x, p.y, p.size, p.size);
-    
     if (p.life <= 0) particles.splice(i, 1);
   }
 }
@@ -469,46 +405,25 @@ function updateBars() {
   document.getElementById("energyBar").style.width = energy + "%";
   document.getElementById("happinessBar").style.width = happiness + "%";
   document.getElementById("careBar").style.width = careLevel + "%";
-  
-  // Color feedback
-  let bars = ["hungerBar", "thirstBar", "energyBar", "happinessBar"];
-  for (let b of bars) {
-    let el = document.getElementById(b);
-    if (parseFloat(el.style.width) < 25) el.style.background = "#ff4444";
-    else if (parseFloat(el.style.width) < 45) el.style.background = "#ffaa44";
-    else el.style.background = b.includes("hunger") ? "#ffaa44" : 
-                              b.includes("thirst") ? "#44aaff" : 
-                              b.includes("energy") ? "#aaff44" : "#ff44aa";
-  }
 }
 
 function checkGameState() {
-  if (hunger <= 0 || thirst <= 0 || energy <= 0) {
-    gameOver = true;
-  }
-  
-  // Villain kills Hoot if very neglected
-  if (villain && villain.timer <= 0 && (hunger < 10 || thirst < 10)) {
-    gameOver = true;
-  }
-  
+  if (hunger <= 0 || thirst <= 0 || energy <= 0) gameOver = true;
   if (villain) {
     villain.timer--;
-    if (villain.timer % 4 === 0) {
-      villain.x += random(-3, 3);
-    }
+    if (villain.timer % 4 === 0) villain.x += random(-3, 3);
+    if (villain.timer <= 0 && (hunger < 10 || thirst < 10)) gameOver = true;
   }
 }
 
 function drawVillain() {
-  if (!villain) return;
   fill(40, 20, 10, 220);
   ellipse(villain.x, villain.y - 20, 55, 40);
   fill(60, 30, 15);
-  ellipse(villain.x - 18, villain.y - 25, 18, 22); // ears
+  ellipse(villain.x - 18, villain.y - 25, 18, 22);
   ellipse(villain.x + 18, villain.y - 25, 18, 22);
   fill(200, 50, 30);
-  ellipse(villain.x, villain.y - 18, 12, 8); // evil eyes
+  ellipse(villain.x, villain.y - 18, 12, 8);
 }
 
 function drawGameOver() {
@@ -540,12 +455,14 @@ function drawWinScreen() {
   text("Press R to play again", width/2, 400);
 }
 
+// === ACTIONS ===
+
 function feed() {
   if (gameOver || win) return;
   hunger = min(100, hunger + 18);
   happiness = min(100, happiness + 6);
   careLevel = min(100, careLevel + 4);
-  addFeather(hoot.x, hoot.y - 30);
+  eatingAnim = 18;
   updateBars();
 }
 
@@ -554,7 +471,7 @@ function giveWater() {
   thirst = min(100, thirst + 20);
   happiness = min(100, happiness + 5);
   careLevel = min(100, careLevel + 3);
-  waterAnim = 22; // trigger water drinking animation (droplets into beak)
+  drinkingAnim = 22;
   updateBars();
 }
 
@@ -562,11 +479,65 @@ function putToSleep() {
   if (gameOver || win) return;
   if (scene !== "house") {
     scene = "house";
-    hoot.x = 300;
-    hoot.y = 380;
+    hoot.x = 180;
+    hoot.y = 470;
   }
-  energy = min(100, energy + 22);
-  happiness = min(100, happiness + 4);
+  hoot.sleeping = true;
+  energy = min(100, energy + 24);
+  happiness = min(100, happiness + 5);
+  careLevel = min(100, careLevel + 5);
+  setTimeout(() => { hoot.sleeping = false; }, 4200);
+  updateBars();
+}
+
+function petHoot() {
+  if (gameOver || win) return;
+  happiness = min(100, happiness + 14);
+  careLevel = min(100, careLevel + 4);
+  for (let i = 0; i < 6; i++) addFeather(hoot.x + random(-20,20), hoot.y - 10);
+  updateBars();
+}
+
+function playWithHoot() {
+  if (gameOver || win) return;
+  happiness = min(100, happiness + 16);
+  energy = max(0, energy - 4);
+  careLevel = min(100, careLevel + 5);
+  hoot.flying = true;
+  hoot.flyingTime = 70;
+  updateBars();
+}
+
+function singToHoot() {
+  if (gameOver || win) return;
+  happiness = min(100, happiness + 13);
+  careLevel = min(100, careLevel + 4);
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      x: hoot.x + random(-25,25),
+      y: hoot.y - 40 + random(-10,10),
+      vx: random(-0.8,0.8),
+      vy: random(-1.2,-0.3),
+      size: random(5,9),
+      life: 55,
+      col: color(255, random(220,255), random(180,240), 180)
+    });
+  }
+  updateBars();
+}
+
+function groomHoot() {
+  if (gameOver || win) return;
+  happiness = min(100, happiness + 11);
+  careLevel = min(100, careLevel + 6);
+  for (let i = 0; i < 10; i++) addFeather(hoot.x, hoot.y);
+  updateBars();
+}
+
+function tellStory() {
+  if (gameOver || win) return;
+  happiness = min(100, happiness + 12);
+  energy = min(100, energy + 8);
   careLevel = min(100, careLevel + 5);
   updateBars();
 }
@@ -577,9 +548,7 @@ function letFly() {
   hoot.flyingTime = 95;
   happiness = min(100, happiness + 14);
   careLevel = min(100, careLevel + 6);
-  if (scene === "forest") {
-    hoot.y = min(hoot.y - 80, 220);
-  }
+  if (scene === "forest") hoot.y = min(hoot.y - 80, 220);
   updateBars();
 }
 
@@ -590,7 +559,7 @@ function roam() {
   hoot.y = (scene === "forest") ? 340 : 380;
   happiness = min(100, happiness + 3);
   careLevel = min(100, careLevel + 2);
-  villain = null; // safe in house
+  villain = null;
   updateBars();
 }
 
@@ -613,14 +582,13 @@ function releaseOwl() {
       });
     }
   } else {
-    // Not ready
     happiness -= 8;
     alert("Hoot isn't ready yet. Keep caring for him! (Need 75+ Care Level)");
   }
 }
 
 function restartGame() {
-  hunger = 70; thirst = 70; energy = 85; happiness = 75; careLevel = 10;
+  hunger = 75; thirst = 75; energy = 88; happiness = 78; careLevel = 12;
   scene = "house";
   gameOver = false;
   win = false;
@@ -628,8 +596,10 @@ function restartGame() {
   hoot.x = width/2;
   hoot.y = 340;
   hoot.flying = false;
-  hoot.flyingTime = 0;
+  hoot.sleeping = false;
   particles = [];
+  eatingAnim = 0;
+  drinkingAnim = 0;
   updateBars();
 }
 
@@ -637,23 +607,22 @@ function keyPressed() {
   if (key === 'f' || key === 'F') feed();
   if (key === 'w' || key === 'W') giveWater();
   if (key === 's' || key === 'S') putToSleep();
+  if (key === 'p' || key === 'P') petHoot();
+  if (key === 'l' || key === 'L') playWithHoot();
+  if (key === 'g' || key === 'G') groomHoot();
+  if (key === 't' || key === 'T') tellStory();
   if (key === ' ') letFly();
   if (key === 'r' || key === 'R') roam();
   if (keyCode === ESCAPE) releaseOwl();
+  if (key === 'c' || key === 'C') {
+    hoot.colorScheme = (hoot.colorScheme + 1) % 7;
+  }
   if (key === '1') { scene = "house"; hoot.x = 300; hoot.y = 380; }
   if (key === '2') { scene = "forest"; hoot.x = random(200,750); hoot.y = 320; }
-  if (key === 'c' || key === 'C') {
-    hoot.colorScheme = (hoot.colorScheme + 1) % 3;
-  }
 }
 
 function mousePressed() {
-  if (gameOver || win) {
-    restartGame();
-    return;
-  }
-  
-  // Click on owl to interact
+  if (gameOver || win) { restartGame(); return; }
   let d = dist(mouseX, mouseY, hoot.x, hoot.y);
   if (d < hoot.size * 0.9) {
     happiness = min(100, happiness + 9);
@@ -662,13 +631,8 @@ function mousePressed() {
     if (random() < 0.4) letFly();
     updateBars();
   } else {
-    // Click anywhere to roam / change scene
     roam();
   }
-}
-
-function windowResized() {
-  // Keep fixed size for now
 }
 </script>
 </body>

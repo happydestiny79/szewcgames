@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Levi's Game - Rory vs Liam</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a1a;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+        }
+        h1 {
+            margin: 0;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px #000;
+        }
+        .story {
+            font-size: 14px;
+            margin-top: 5px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🏙️ RORY vs LIAM 🏦</h1>
+        <div class="story">Levi's Game • Good Guy Rory Saves the City!</div>
+    </div>
+    <script>
+        let roryX = 150;
+        let roryY = 380;
+        let liamX = 650;
+        let liamY = 380;
+        let liamHealth = 3;
+        let gameState = "chase"; // chase, fight, win
+        let punchTimer = 0;
+        let moneyBags = [];
+        let buildings = [];
+        let stars = [];
+        let score = 0;
+        
+        function setup() {
+            createCanvas(800, 600);
+            
+            // Create city buildings
+            for (let i = 0; i < 8; i++) {
+                buildings.push({
+                    x: i * 110,
+                    height: random(150, 350),
+                    width: 80,
+                    color: color(random(40, 80), random(40, 80), random(60, 100))
+                });
+            }
+            
+            // Night stars
+            for (let i = 0; i < 50; i++) {
+                stars.push({
+                    x: random(width),
+                    y: random(200),
+                    size: random(1, 3)
+                });
+            }
+        }
+        
+        function draw() {
+            background(10, 10, 40); // Night sky
+            
+            // Draw stars
+            fill(255, 255, 200);
+            noStroke();
+            for (let star of stars) {
+                ellipse(star.x, star.y, star.size, star.size);
+            }
+            
+            // Draw city buildings
+            for (let b of buildings) {
+                fill(b.color);
+                rect(b.x, 400 - b.height, b.width, b.height);
+                
+                // Windows
+                fill(255, 255, 150, 180);
+                for (let wy = 420 - b.height; wy < 390; wy += 25) {
+                    for (let wx = b.x + 10; wx < b.x + b.width - 10; wx += 20) {
+                        if (random() > 0.3) rect(wx, wy, 10, 15);
+                    }
+                }
+            }
+            
+            // Bank building (special)
+            fill(60, 60, 90);
+            rect(580, 200, 140, 200);
+            fill(255, 215, 0);
+            textSize(20);
+            textAlign(CENTER);
+            text("BANK", 650, 240);
+            
+            // Ground
+            fill(40, 40, 60);
+            rect(0, 400, width, 200);
+            
+            // Draw Rory (Good Guy - Strong Hero)
+            drawRory();
+            
+            // Draw Liam (Bad Guy - Bank Robber)
+            drawLiam();
+            
+            // Draw money bags if stolen
+            for (let bag of moneyBags) {
+                fill(139, 90, 43);
+                ellipse(bag.x, bag.y, 25, 20);
+                fill(255, 215, 0);
+                textSize(12);
+                text("$", bag.x, bag.y + 4);
+            }
+            
+            // UI
+            fill(255);
+            textSize(24);
+            textAlign(LEFT);
+            text("RORY", 30, 50);
+            textSize(16);
+            text("The Hero", 30, 70);
+            
+            textAlign(RIGHT);
+            textSize(24);
+            text("LIAM", width - 30, 50);
+            textSize(16);
+            text("The Robber", width - 30, 70);
+            
+            // Health bar for Liam
+            fill(255, 0, 0);
+            rect(width - 150, 80, 120, 15);
+            fill(0, 255, 0);
+            rect(width - 150, 80, liamHealth * 40, 15);
+            
+            // Instructions
+            fill(255, 255, 0);
+            textSize(14);
+            textAlign(CENTER);
+            if (gameState === "chase") {
+                text("Use ARROW KEYS to chase Liam!  Get close and press SPACE to punch!", width/2, 580);
+            } else if (gameState === "fight") {
+                text("PUNCH! Press SPACE to hit the robber!", width/2, 580);
+            } else if (gameState === "win") {
+                text("🎉 THE WORLD IS SAFE! Thank you Rory! You are the BEST! 🎉", width/2, 580);
+            }
+            
+            // Game logic
+            if (gameState === "chase" || gameState === "fight") {
+                handleMovement();
+                checkCollision();
+            }
+            
+            if (punchTimer > 0) punchTimer--;
+        }
+        
+        function drawRory() {
+            // Rory - Big strong good guy
+            let isPunching = punchTimer > 0;
+            
+            // Body (strong build)
+            fill(30, 100, 200); // Blue hero suit
+            rect(roryX - 20, roryY - 60, 40, 70); // Torso
+            
+            // Head
+            fill(255, 220, 185); // Skin
+            ellipse(roryX, roryY - 75, 35, 35);
+            
+            // Hero mask/eyes
+            fill(255, 215, 0);
+            ellipse(roryX - 8, roryY - 78, 8, 6);
+            ellipse(roryX + 8, roryY - 78, 8, 6);
+            
+            // Arms
+            fill(30, 100, 200);
+            if (isPunching) {
+                rect(roryX + 15, roryY - 50, 35, 15); // Punching arm
+            } else {
+                rect(roryX + 18, roryY - 45, 18, 35); // Normal arm
+            }
+            rect(roryX - 35, roryY - 45, 18, 35); // Left arm
+            
+            // Legs (strong)
+            fill(20, 60, 150);
+            rect(roryX - 15, roryY + 10, 12, 40);
+            rect(roryX + 5, roryY + 10, 12, 40);
+            
+            // Cape
+            fill(200, 30, 30);
+            triangle(roryX - 25, roryY - 50, roryX, roryY + 20, roryX + 25, roryY - 50);
+        }
+        
+        function drawLiam() {
+            // Liam - Robber
+            fill(50, 50, 50); // Dark clothes
+            rect(liamX - 18, liamY - 55, 36, 60);
+            
+            // Head
+            fill(255, 220, 185);
+            ellipse(liamX, liamY - 68, 30, 30);
+            
+            // Evil eyes / mask
+            fill(255, 0, 0);
+            ellipse(liamX - 7, liamY - 70, 6, 5);
+            ellipse(liamX + 7, liamY - 70, 6, 5);
+            
+            // Arms (one holding money bag)
+            fill(40, 40, 40);
+            rect(liamX - 30, liamY - 40, 15, 30);
+            rect(liamX + 15, liamY - 50, 20, 15); // Holding bag
+            
+            // Legs
+            fill(30, 30, 30);
+            rect(liamX - 12, liamY + 5, 10, 35);
+            rect(liamX + 3, liamY + 5, 10, 35);
+            
+            // Money bag on back
+            fill(139, 90, 43);
+            ellipse(liamX + 25, liamY - 35, 22, 18);
+            fill(255, 215, 0);
+            textSize(10);
+            text("$", liamX + 25, liamY - 32);
+            
+            // Scared expression when low health
+            if (liamHealth <= 1) {
+                fill(255);
+                textSize(12);
+                text("!", liamX, liamY - 85);
+            }
+        }
+        
+        function handleMovement() {
+            let speed = 4;
+            
+            if (keyIsDown(LEFT_ARROW)) {
+                roryX -= speed;
+            }
+            if (keyIsDown(RIGHT_ARROW)) {
+                roryX += speed;
+            }
+            
+            // Keep Rory on screen
+            roryX = constrain(roryX, 50, 750);
+            
+            // Liam tries to run away a little when close
+            if (gameState === "chase" && abs(roryX - liamX) < 200) {
+                liamX -= 1.5;
+                liamX = constrain(liamX, 400, 750);
+            }
+        }
+        
+        function checkCollision() {
+            let distance = abs(roryX - liamX);
+            
+            if (distance < 60 && gameState === "chase") {
+                gameState = "fight";
+            }
+            
+            if (distance > 100 && gameState === "fight") {
+                gameState = "chase";
+            }
+        }
+        
+        function keyPressed() {
+            if (key === ' ' || keyCode === 32) {
+                if (gameState === "fight" && punchTimer === 0) {
+                    // PUNCH!
+                    punchTimer = 15;
+                    
+                    let distance = abs(roryX - liamX);
+                    if (distance < 70) {
+                        liamHealth--;
+                        score += 100;
+                        
+                        // Knock back
+                        liamX += 40;
+                        
+                        // Drop money when hit
+                        if (random() > 0.5) {
+                            moneyBags.push({
+                                x: liamX + random(-20, 20),
+                                y: liamY - 20
+                            });
+                        }
+                        
+                        if (liamHealth <= 0) {
+                            gameState = "win";
+                            // Final money drop
+                            for (let i = 0; i < 8; i++) {
+                                moneyBags.push({
+                                    x: liamX + random(-40, 40),
+                                    y: liamY - 30 + random(-20, 20)
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                if (gameState === "win") {
+                    // Restart game
+                    resetGame();
+                }
+            }
+            
+            if (key === 'r' || key === 'R') {
+                resetGame();
+            }
+        }
+        
+        function resetGame() {
+            roryX = 150;
+            liamX = 650;
+            liamHealth = 3;
+            gameState = "chase";
+            punchTimer = 0;
+            moneyBags = [];
+            score = 0;
+        }
+        
+        function mousePressed() {
+            if (gameState === "win") {
+                resetGame();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -6,124 +6,95 @@
 <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
 <style>
   body { margin:0; background:#0a0a1f; color:#fff; font-family: 'Arial', sans-serif; }
-  canvas { display:block; margin:20px auto; border:4px solid #4a90e2; border-radius:8px; }
-  .info { text-align:center; max-width:900px; margin:0 auto; padding:10px; }
-  input, button { font-size:18px; padding:8px; margin:5px; }
-  .character-select { display:flex; justify-content:center; gap:40px; margin:20px 0; }
-  .char-option { cursor:pointer; padding:15px; border:3px solid #333; border-radius:10px; transition:0.3s; }
-  .char-option:hover, .char-option.selected { border-color:#4a90e2; background:#1a2a4a; }
+  canvas { display:block; margin:10px auto; border:4px solid #4a90e2; border-radius:8px; }
+  .info { text-align:center; max-width:900px; margin:0 auto; padding:5px; }
 </style>
 </head>
 <body>
 <div class="info">
-  <h1>AJ Anime Creation</h1>
-  <p>Create your anime avatar • Level up from 1 to 100 • Unlock puzzle pieces &amp; legend abilities • Practice with Caleb the AI Guide</p>
-  <div id="name-input">
-    <input type="text" id="playerName" placeholder="Enter your anime name" value="AJ">
-    <button onclick="startGame()">Start Adventure</button>
-  </div>
-  
-  <div id="char-select" style="display:none;">
-    <h3>Choose Your Avatar</h3>
-    <div class="character-select">
-      <div class="char-option" id="boy-option" onclick="selectCharacter('boy')">
-        <h4>Boy Avatar</h4>
-        <p>White Jacket • Black Jeans</p>
-        <small>Agile • Speed powers</small>
-      </div>
-      <div class="char-option" id="girl-option" onclick="selectCharacter('girl')">
-        <h4>Girl Avatar</h4>
-        <p>Blue Pants • White Shirt • Black Hair</p>
-        <small>Graceful • Energy powers</small>
-      </div>
-    </div>
-  </div>
+  <h1 style="margin:5px">AJ Anime Creation</h1>
+  <p style="margin:3px">Level 1 → 100 • Collect Puzzle Pieces • Unlock Legend Powers</p>
 </div>
 
 <script>
+// ==================== GAME VARIABLES ====================
 let playerName = "AJ";
-let characterType = "boy";
 let level = 1;
 let puzzlePieces = 0;
 let legendPieces = 0;
 let xp = 0;
 let gameState = "start";
-let player, guide, enemies = [], pieces = [], powerEffects = [];
+let player, guide, enemies = [], pieces = [], projectiles = [], powerEffects = [];
 let practiceMode = true;
 let canLeavePractice = false;
 let keys = {};
 let specialAbilities = [];
 let competitionWins = 0;
 
+// ==================== SETUP ====================
 function setup() {
-  createCanvas(1050, 580);
+  createCanvas(1050, 560);
   textAlign(CENTER, CENTER);
   
   player = {
-    x: 200,
-    y: 420,
+    x: 180,
+    y: 400,
     size: 48,
     vy: 0,
     onGround: true,
-    speed: 4,
-    ability: null
+    speed: 5
   };
   
   guide = {
-    x: 650,
-    y: 400,
-    size: 55,
-    message: "Welcome to Anime Creation! Press P to practice or SPACE to begin your journey."
+    x: 720,
+    y: 380,
+    message: "Welcome! Use the controls at the top. Press SPACE to start practice."
   };
-  
-  // Initial buildings / anime city background
-  for (let i = 0; i < 12; i++) {
-    // Will draw in draw loop
-  }
 }
 
+// ==================== MAIN DRAW LOOP ====================
 function draw() {
-  background(10, 10, 35);
+  background(8, 8, 30);
   
-  // Anime night city background
-  fill(20, 25, 60);
-  rect(0, 0, width, 320);
+  // Anime night city skyline
+  fill(18, 22, 55);
+  rect(0, 0, width, 300);
   
   // Stars
-  fill(255, 255, 200, 180);
-  for (let i = 0; i < 60; i++) {
-    let sx = (i * 37 + frameCount * 0.1) % width;
-    let sy = (i * 23) % 280;
-    ellipse(sx, sy, 2, 2);
+  fill(255, 255, 210, 170);
+  for (let i = 0; i < 65; i++) {
+    ellipse((i * 29 + frameCount * 0.07) % width, (i * 17) % 260, 2, 2);
   }
   
-  // Neon buildings
-  fill(25, 30, 55);
-  for (let i = 0; i < 14; i++) {
-    let bx = (i * 78) % width;
-    let bh = 120 + (i % 5) * 40;
-    rect(bx, 320 - bh, 70, bh);
-    // Neon windows
-    fill(255, 100, 200, 120);
-    for (let wy = 0; wy < bh - 20; wy += 22) {
-      for (let wx = 8; wx < 60; wx += 18) {
-        rect(bx + wx, 320 - bh + wy, 8, 8);
+  // Buildings with neon
+  fill(22, 26, 52);
+  for (let i = 0; i < 15; i++) {
+    let bx = (i * 72) % width;
+    let bh = 95 + (i % 7) * 32;
+    rect(bx, 300 - bh, 65, bh);
+    fill(255, 80, 180, 90);
+    for (let wy = 8; wy < bh - 12; wy += 18) {
+      for (let wx = 8; wx < 55; wx += 16) {
+        rect(bx + wx, 300 - bh + wy, 6, 6);
       }
     }
-    fill(25, 30, 55);
+    fill(22, 26, 52);
   }
   
   // Ground
-  fill(30, 35, 50);
-  rect(0, 480, width, 100);
-  // Neon lines
-  stroke(0, 255, 200);
+  fill(25, 28, 45);
+  rect(0, 460, width, 100);
+  stroke(0, 255, 200, 180);
   strokeWeight(2);
-  for (let i = 0; i < width; i += 60) {
-    line(i, 485, i + 40, 485);
+  for (let i = 0; i < width; i += 50) {
+    line(i, 465, i + 35, 465);
   }
   noStroke();
   
+  // Control guide banner at the TOP only
+  drawControlGuide();
+  
+  // Game states
   if (gameState === "start") {
     drawStartScreen();
   } else if (gameState === "practice") {
@@ -138,276 +109,420 @@ function draw() {
   
   // HUD
   drawHUD();
+  updatePlayer();
+  updateProjectiles();
 }
 
+// ==================== CONTROL GUIDE (TOP ONLY) ====================
+function drawControlGuide() {
+  fill(0, 0, 0, 200);
+  rect(0, 0, width, 38);
+  
+  fill(255, 230, 120);
+  textSize(15);
+  textAlign(CENTER, CENTER);
+  text("W = Left    |    S = Right    |    SPACE = Jump    |    A = Shoot    |    E = Special Ability", width/2, 19);
+}
+
+// ==================== START SCREEN ====================
 function drawStartScreen() {
   fill(255);
-  textSize(42);
+  textSize(38);
   text("ANIME CREATION", width/2, 120);
-  textSize(22);
-  text("Level 1 → Level 100", width/2, 170);
+  textSize(20);
+  text("Level 1 → Level 100", width/2, 165);
   
-  textSize(18);
-  text("Name your avatar: " + playerName, width/2, 220);
-  text("Press ENTER to continue", width/2, 260);
+  textSize(17);
+  text("Press ENTER to begin", width/2, 230);
   
-  textSize(14);
-  fill(180, 220, 255);
-  text("WASD / Arrows = Move   SPACE = Jump   E = Special Ability   P = Practice Mode", width/2, 320);
-  text("Collect Puzzle Pieces • Unlock Legend Powers at Lv50 • Full Freedom at Lv100", width/2, 350);
+  fill(180, 210, 255);
+  textSize(13);
+  text("Collect ★ Puzzle Pieces  •  Unlock Legend Powers at Lv 50  •  Full Freedom at Lv 100", width/2, 290);
 }
 
+// ==================== PRACTICE MODE ====================
 function drawPractice() {
-  // Guide character (Caleb - AI Guide)
-  fill(80, 180, 255);
-  ellipse(guide.x, guide.y - 30, 50, 50); // Head
-  fill(40, 120, 200);
-  rect(guide.x - 18, guide.y, 36, 50); // Body (guide robe)
+  // Caleb the AI Guide
+  fill(70, 170, 255);
+  ellipse(guide.x, guide.y - 28, 48, 48);
+  fill(35, 110, 190);
+  rect(guide.x - 16, guide.y - 5, 32, 45);
   fill(255);
-  textSize(14);
-  text("Caleb", guide.x, guide.y + 70);
+  textSize(13);
+  text("Caleb (AI Guide)", guide.x, guide.y + 55);
   
-  // Guide speech
+  // Guide message
   fill(255, 255, 200);
-  textSize(16);
-  text(guide.message, width/2, 180);
+  textSize(15);
+  text(guide.message, width/2, 95);
   
-  // Player in practice
-  drawPlayer();
+  // Player character
+  drawHero();
   
-  textSize(14);
-  fill(200);
-  text("Practice Mode - Learn controls & unlock first puzzle piece", width/2, 520);
-  text("Press SPACE to collect first piece • Press L to leave practice and start levels", width/2, 545);
-  
-  // Practice enemies / dummies
+  // Training dummies
   for (let i = 0; i < 3; i++) {
-    let ex = 300 + i * 180;
-    fill(200, 80, 120);
-    ellipse(ex, 430, 30, 30);
-    textSize(11);
+    let ex = 280 + i * 200;
+    fill(220, 90, 130);
+    ellipse(ex, 410, 26, 26);
+    textSize(10);
     fill(255);
-    text("Anime Trainee", ex, 470);
+    text("Trainee", ex, 445);
   }
+  
+  textSize(13);
+  fill(200, 255, 220);
+  text("Practice Mode — Press SPACE to collect puzzle piece • Press L to start real levels", width/2, 520);
 }
 
-function drawPlayer() {
+// ==================== HERO DRAW (Yellow hair, black headband, black jacket, orange pants) ====================
+function drawHero() {
   push();
   translate(player.x, player.y);
   
-  if (characterType === "boy") {
-    // Boy: white jacket, black jeans
-    fill(245, 245, 250); // White jacket
-    rect(-18, -25, 36, 38);
-    fill(30, 30, 35); // Black jeans
-    rect(-16, 13, 14, 28);
-    rect(2, 13, 14, 28);
-    fill(255, 210, 180); // Head
-    ellipse(0, -35, 26, 26);
-    fill(60); // Hair
-    arc(0, -38, 26, 18, PI, TWO_PI);
-  } else {
-    // Girl: blue pants, white shirt, black hair
-    fill(255, 255, 255); // White shirt
-    rect(-16, -22, 32, 32);
-    fill(50, 90, 200); // Blue pants
-    rect(-15, 10, 12, 30);
-    rect(3, 10, 12, 30);
-    fill(255, 210, 180); // Head
-    ellipse(0, -32, 24, 24);
-    fill(20, 20, 25); // Black hair
-    arc(0, -35, 26, 20, PI, TWO_PI);
-    // Hair strands
-    fill(20, 20, 25);
-    rect(-12, -30, 6, 18);
-    rect(6, -30, 6, 18);
-  }
+  // Orange pants
+  fill(255, 140, 40);
+  rect(-15, 8, 13, 32);
+  rect(2, 8, 13, 32);
+  
+  // Black jacket
+  fill(30, 30, 35);
+  rect(-17, -22, 34, 32);
+  
+  // Jacket highlight
+  fill(55, 55, 60);
+  rect(-17, -22, 10, 32);
+  
+  // Head
+  fill(255, 215, 180);
+  ellipse(0, -32, 24, 24);
+  
+  // Yellow hair
+  fill(255, 220, 60);
+  arc(0, -34, 26, 20, PI, TWO_PI);
+  
+  // Black headband
+  fill(20, 20, 25);
+  rect(-13, -42, 26, 7);
   
   pop();
 }
 
-function drawGame() {
-  drawPlayer();
+// ==================== VILLAIN DRAW (Yellow hair, black headband, orange & black) ====================
+function drawVillain(v) {
+  push();
+  translate(v.x, v.y);
   
-  // Enemies (anime people)
+  // Orange and black outfit
+  fill(255, 130, 30);
+  rect(-12, 5, 24, 30);
+  fill(25, 25, 30);
+  rect(-12, 5, 10, 30);
+  
+  // Head
+  fill(255, 215, 180);
+  ellipse(0, -25, 22, 22);
+  
+  // Yellow hair
+  fill(255, 215, 50);
+  arc(0, -27, 24, 18, PI, TWO_PI);
+  
+  // Black headband
+  fill(15, 15, 20);
+  rect(-11, -35, 22, 6);
+  
+  pop();
+}
+
+// ==================== GAMEPLAY ====================
+function drawGame() {
+  drawHero();
+  
+  // Villains attack player
   for (let e of enemies) {
-    fill(255, 100, 150);
-    ellipse(e.x, e.y, 28, 28);
-    fill(255);
-    textSize(10);
-    text("Lv" + e.lvl, e.x, e.y + 35);
+    drawVillain(e);
     
-    // Move enemies
-    e.x += e.speed * (e.dir || 1);
-    if (e.x > width - 50 || e.x < 50) e.dir *= -1;
+    // Simple AI attack - move toward player
+    if (e.x < player.x - 30) e.x += e.speed;
+    else if (e.x > player.x + 30) e.x -= e.speed;
+    
+    // Damage on contact
+    if (dist(e.x, e.y, player.x, player.y) < 38) {
+      player.x += (player.x - e.x) * 0.8;
+    }
   }
   
   // Puzzle pieces
   for (let p of pieces) {
     if (!p.collected) {
-      fill(255, 220, 80);
-      ellipse(p.x, p.y, 18, 18);
-      fill(255, 100, 50);
-      textSize(12);
+      fill(255, 215, 60);
+      ellipse(p.x, p.y, 17, 17);
+      fill(255, 80, 40);
+      textSize(11);
       text("★", p.x, p.y);
     }
   }
   
+  // Projectiles
+  for (let proj of projectiles) {
+    fill(100, 255, 255);
+    ellipse(proj.x, proj.y, 8, 8);
+    fill(200, 255, 255);
+    ellipse(proj.x, proj.y, 4, 4);
+  }
+  
   // Power effects
   for (let fx of powerEffects) {
-    fill(100, 255, 200, fx.alpha);
+    fill(120, 255, 200, fx.alpha);
     ellipse(fx.x, fx.y, fx.size, fx.size);
-    fx.alpha -= 12;
-    fx.size += 1.5;
+    fx.alpha -= 15;
+    fx.size += 2;
   }
-  powerEffects = powerEffects.filter(f => f.alpha > 0);
-  
-  // Simple platform / obstacles
-  fill(70, 80, 110);
-  rect(450, 380, 120, 20);
-  rect(720, 340, 90, 20);
-  
-  // Instructions
-  fill(200);
-  textSize(13);
-  text("Collect ★ Puzzle Pieces • Defeat anime challengers • Unlock powers", width/2, 560);
+  powerEffects = powerEffects.filter(f => f.alpha > 10);
 }
 
+// ==================== FREE MODE (Lv 100) ====================
+function drawFreeMode() {
+  drawHero();
+  
+  fill(100, 255, 200);
+  textSize(18);
+  text("★ FREEDOM MODE - Level 100 ★", width/2, 85);
+  textSize(13);
+  fill(220);
+  text("All abilities unlocked. Create your own anime story!", width/2, 110);
+  
+  // Freedom sparkles
+  for (let i = 0; i < 10; i++) {
+    fill(random(180, 255), random(220, 255), 100, 160);
+    ellipse(random(width), random(200, 420), random(5, 9), random(5, 9));
+  }
+}
+
+// ==================== LEVEL UP SCREEN ====================
 function drawLevelUp() {
-  fill(255, 220, 100);
-  textSize(36);
-  text("LEVEL UP!", width/2, 200);
-  textSize(24);
-  text("Level " + level, width/2, 260);
+  fill(255, 210, 80);
+  textSize(34);
+  text("LEVEL UP!", width/2, 180);
+  textSize(22);
+  text("Level " + level, width/2, 230);
   
   if (level >= 50) {
-    fill(255, 180, 50);
-    text("LEGEND PIECES UNLOCKED!", width/2, 320);
+    fill(255, 170, 50);
+    text("LEGEND PIECES UNLOCKED!", width/2, 290);
   }
   
-  textSize(16);
-  fill(220);
-  text("Press SPACE to continue", width/2, 400);
+  textSize(15);
+  fill(230);
+  text("Press SPACE to continue", width/2, 360);
 }
 
-function drawFreeMode() {
-  drawPlayer();
-  fill(100, 255, 180);
-  textSize(20);
-  text("FREEDOM MODE - Level 100", width/2, 150);
-  textSize(14);
-  text("Do whatever you want! All abilities unlocked. Create your own anime story.", width/2, 190);
-  
-  // Lots of sparkles and freedom
-  for (let i = 0; i < 8; i++) {
-    fill(random(200, 255), random(150, 255), 80, 180);
-    ellipse(random(width), random(400), 8, 8);
-  }
-}
-
+// ==================== HUD ====================
 function drawHUD() {
-  fill(0, 0, 0, 160);
-  rect(20, 20, 280, 90);
+  fill(0, 0, 0, 170);
+  rect(15, 48, 260, 78);
   
   fill(255);
-  textSize(16);
   textAlign(LEFT, TOP);
-  text(playerName + "  |  Lv " + level, 35, 30);
-  text("Puzzle Pieces: " + puzzlePieces, 35, 52);
-  text("Legend Pieces: " + legendPieces + " / 10", 35, 72);
+  textSize(15);
+  text(playerName + "   |   Lv " + level, 28, 55);
+  text("Puzzle Pieces: " + puzzlePieces, 28, 75);
+  text("Legend Pieces: " + legendPieces + " / 10", 28, 95);
   
   // XP bar
-  fill(60);
-  rect(35, 92, 250, 10);
-  fill(80, 220, 120);
-  rect(35, 92, min(xp / 2, 250), 10);
+  fill(50);
+  rect(28, 115, 230, 8);
+  fill(90, 230, 130);
+  rect(28, 115, min(xp / 1.8, 230), 8);
   
   textAlign(CENTER, CENTER);
+}
+
+// ==================== PLAYER UPDATE & CONTROLS ====================
+function updatePlayer() {
+  if (gameState !== "play" && gameState !== "practice" && gameState !== "free") return;
   
-  if (practiceMode) {
-    fill(100, 255, 200);
-    textSize(12);
-    text("PRACTICE MODE - Press L to start real levels", width/2, 40);
+  // NEW CONTROLS: W = Left, S = Right, SPACE = Jump, A = Shoot
+  if (keys[87]) player.x -= player.speed;        // W = Left
+  if (keys[83]) player.x += player.speed;        // S = Right
+  
+  // Jump
+  if (keys[32] && player.onGround) {
+    player.vy = -13;
+    player.onGround = false;
+  }
+  
+  // Shoot with A
+  if (keys[65]) {
+    shoot();
+    keys[65] = false; // prevent auto-fire
+  }
+  
+  // Special ability
+  if (keys[69]) {
+    useSpecialAbility();
+    keys[69] = false;
+  }
+  
+  // Gravity
+  player.vy += 0.85;
+  player.y += player.vy;
+  
+  if (player.y > 400) {
+    player.y = 400;
+    player.vy = 0;
+    player.onGround = true;
+  }
+  
+  // Boundaries
+  if (player.x < 35) player.x = 35;
+  if (player.x > width - 35) player.x = width - 35;
+  
+  // Collect puzzle pieces
+  for (let p of pieces) {
+    if (!p.collected && dist(player.x, player.y, p.x, p.y) < 32) {
+      p.collected = true;
+      puzzlePieces++;
+      xp += 18;
+      
+      if (xp > level * 32 && level < 100) {
+        level++;
+        xp = 0;
+        if (level === 50) legendPieces = 5;
+        if (level >= 100) {
+          gameState = "free";
+          legendPieces = 10;
+        }
+        gameState = "levelup";
+      }
+    }
+  }
+  
+  // Check enemy contact damage
+  for (let e of enemies) {
+    if (dist(player.x, player.y, e.x, e.y) < 36) {
+      player.x += (player.x - e.x) * 0.6;
+    }
   }
 }
 
-function selectCharacter(type) {
-  characterType = type;
-  document.getElementById('boy-option').classList.remove('selected');
-  document.getElementById('girl-option').classList.remove('selected');
-  document.getElementById(type + '-option').classList.add('selected');
+// ==================== SHOOT ====================
+function shoot() {
+  projectiles.push({
+    x: player.x + 30,
+    y: player.y - 25,
+    speed: 9
+  });
 }
 
-function startGame() {
-  let nameField = document.getElementById('playerName');
-  if (nameField.value) playerName = nameField.value;
-  
-  document.getElementById('name-input').style.display = 'none';
-  document.getElementById('char-select').style.display = 'block';
-  
-  // Default to boy if not chosen
-  if (!characterType) characterType = "boy";
+// ==================== UPDATE PROJECTILES ====================
+function updateProjectiles() {
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    let proj = projectiles[i];
+    proj.x += proj.speed;
+    
+    // Hit enemies
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      if (dist(proj.x, proj.y, enemies[j].x, enemies[j].y) < 25) {
+        enemies.splice(j, 1);
+        projectiles.splice(i, 1);
+        xp += 8;
+        powerEffects.push({x: proj.x, y: proj.y, size: 22, alpha: 255});
+        break;
+      }
+    }
+    
+    // Remove offscreen
+    if (proj.x > width + 20) projectiles.splice(i, 1);
+  }
 }
 
+// ==================== SPECIAL ABILITY ====================
+function useSpecialAbility() {
+  powerEffects.push({x: player.x + 50, y: player.y - 20, size: 28, alpha: 255});
+  
+  // Damage nearby villains
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (dist(player.x, player.y, enemies[i].x, enemies[i].y) < 130) {
+      enemies.splice(i, 1);
+    }
+  }
+  
+  if (level > 40) {
+    for (let i = 0; i < 3; i++) {
+      powerEffects.push({x: player.x + random(30, 90), y: player.y - random(20, 50), size: 18, alpha: 220});
+    }
+  }
+}
+
+// ==================== SPAWN ENEMIES (Villains) ====================
+function spawnLevelEnemies() {
+  enemies = [];
+  let count = min(3 + floor(level / 7), 10);
+  for (let i = 0; i < count; i++) {
+    enemies.push({
+      x: random(380, width - 60),
+      y: 400,
+      speed: 1.6 + level * 0.025
+    });
+  }
+  
+  // Spawn puzzle pieces
+  pieces = [];
+  for (let i = 0; i < 5; i++) {
+    pieces.push({
+      x: random(80, width - 80),
+      y: random(260, 390),
+      collected: false
+    });
+  }
+}
+
+// ==================== KEY HANDLING ====================
 function keyPressed() {
   keys[keyCode] = true;
   
   if (gameState === "start") {
     if (keyCode === ENTER) {
-      document.getElementById('name-input').style.display = 'none';
-      document.getElementById('char-select').style.display = 'block';
-      gameState = "charselect";
-    }
-  } else if (gameState === "charselect") {
-    if (keyCode === ENTER) {
       gameState = "practice";
       practiceMode = true;
-      guide.message = "Great choice! Move with WASD or Arrows. Press SPACE to jump and collect your first puzzle piece.";
-    }
-  } else if (gameState === "practice") {
-    if (keyCode === 32) { // SPACE
-      // Collect first piece
-      puzzlePieces = 1;
-      xp += 20;
-      guide.message = "Excellent! You unlocked your first ability. Press L anytime to leave practice.";
+      guide.message = "Great! Move with W/S, SPACE to jump, A to shoot. Collect your first piece!";
       canLeavePractice = true;
-      powerEffects.push({x: player.x, y: player.y - 40, size: 30, alpha: 200});
     }
-    if (keyCode === 76 && canLeavePractice) { // L key
+  } 
+  else if (gameState === "practice") {
+    if (keyCode === 32) { // SPACE
+      puzzlePieces = 1;
+      xp += 22;
+      guide.message = "Excellent! Press L to leave practice and begin real levels.";
+      canLeavePractice = true;
+      powerEffects.push({x: player.x + 30, y: player.y - 30, size: 35, alpha: 230});
+    }
+    if (keyCode === 76 && canLeavePractice) { // L
       practiceMode = false;
       gameState = "play";
       spawnLevelEnemies();
       guide.message = "";
     }
-  } else if (gameState === "play") {
-    if (keyCode === 32 && player.onGround) { // Jump
-      player.vy = -12;
-      player.onGround = false;
-    }
-    if (keyCode === 69) { // E - special ability
-      useSpecialAbility();
-    }
-    if (keyCode === 80) { // P - toggle practice
+  } 
+  else if (gameState === "play") {
+    if (keyCode === 80) { // P = back to practice
       gameState = "practice";
       practiceMode = true;
     }
-  } else if (gameState === "levelup") {
+  } 
+  else if (gameState === "levelup") {
     if (keyCode === 32) {
       gameState = "play";
       spawnLevelEnemies();
     }
-  } else if (gameState === "free") {
+  } 
+  else if (gameState === "free") {
     if (keyCode === 32 && player.onGround) {
       player.vy = -14;
       player.onGround = false;
     }
+    if (keyCode === 65) shoot();
     if (keyCode === 69) useSpecialAbility();
-  }
-  
-  // W to walk forward (extra control)
-  if (keyCode === 87) { // W key
-    player.x += 25;
-    if (player.x > width - 30) player.x = width - 30;
   }
   
   return false;
@@ -417,210 +532,19 @@ function keyReleased() {
   keys[keyCode] = false;
 }
 
-function useSpecialAbility() {
-  if (level < 10) {
-    // Basic energy blast
-    powerEffects.push({x: player.x + 60, y: player.y - 20, size: 25, alpha: 255});
-    // Damage nearby enemies
-    for (let e of enemies) {
-      if (abs(e.x - player.x) < 120) {
-        e.x += 60;
-      }
-    }
-  } else if (level < 50) {
-    // Mid level power
-    for (let i = 0; i < 5; i++) {
-      powerEffects.push({x: player.x + random(40, 90), y: player.y - random(10, 50), size: 18, alpha: 220});
-    }
-  } else {
-    // Legend power
-    for (let i = 0; i < 12; i++) {
-      powerEffects.push({x: random(player.x - 80, player.x + 120), y: random(player.y - 80, player.y + 20), size: random(15, 35), alpha: 255});
-    }
-    // Clear some enemies
-    enemies = enemies.slice(2);
-  }
-  
-  // AI generated flavor
-  if (level > 30 && specialAbilities.length < 3) {
-    specialAbilities.push("AI Anime Burst");
-  }
-}
-
-function spawnLevelEnemies() {
-  enemies = [];
-  let count = min(3 + floor(level / 8), 9);
-  for (let i = 0; i < count; i++) {
-    enemies.push({
-      x: random(400, width - 80),
-      y: 430,
-      size: 28,
-      speed: 1.5 + level * 0.03,
-      dir: random([-1, 1]),
-      lvl: level
-    });
-  }
-  
-  // Spawn puzzle pieces
-  pieces = [];
-  for (let i = 0; i < 4; i++) {
-    pieces.push({
-      x: random(100, width - 100),
-      y: random(280, 420),
-      collected: false
-    });
-  }
-}
-
+// ==================== MOUSE ====================
 function mousePressed() {
-  if (gameState === "play" || gameState === "free") {
-    // Click to collect nearby piece
+  if ((gameState === "play" || gameState === "free") && mouseY > 50) {
     for (let p of pieces) {
-      if (!p.collected && dist(mouseX, mouseY, p.x, p.y) < 30) {
+      if (!p.collected && dist(mouseX, mouseY, p.x, p.y) < 28) {
         p.collected = true;
         puzzlePieces++;
         xp += 15;
-        powerEffects.push({x: p.x, y: p.y, size: 40, alpha: 255});
-        
-        // Level up logic
-        if (xp > level * 35 && level < 100) {
-          level++;
-          xp = 0;
-          gameState = "levelup";
-          
-          if (level === 50) legendPieces = 5;
-          if (level >= 100) {
-            gameState = "free";
-            legendPieces = 10;
-          }
-          
-          // Unlock special ability
-          if (level % 10 === 0) {
-            specialAbilities.push("Power Unlock " + level);
-          }
-        }
+        powerEffects.push({x: p.x, y: p.y, size: 32, alpha: 255});
       }
     }
   }
 }
-
-function updatePlayer() {
-  if (gameState !== "play" && gameState !== "practice" && gameState !== "free") return;
-  
-  // Movement
-  if (keys[LEFT_ARROW] || keys[65]) player.x -= player.speed;
-  if (keys[RIGHT_ARROW] || keys[68]) player.x += player.speed;
-  
-  // W also moves forward as per spec
-  if (keys[87]) player.x += player.speed * 0.6;
-  
-  // Gravity
-  player.vy += 0.8;
-  player.y += player.vy;
-  
-  // Ground collision
-  if (player.y > 420) {
-    player.y = 420;
-    player.vy = 0;
-    player.onGround = true;
-  }
-  
-  // Boundaries
-  if (player.x < 40) player.x = 40;
-  if (player.x > width - 40) player.x = width - 40;
-  
-  // Collect pieces by touching
-  for (let p of pieces) {
-    if (!p.collected && dist(player.x, player.y, p.x, p.y) < 35) {
-      p.collected = true;
-      puzzlePieces++;
-      xp += 18;
-      
-      if (xp > level * 35 && level < 100) {
-        level++;
-        xp = 0;
-        if (level === 50) legendPieces = 5;
-        if (level >= 100) {
-          gameState = "free";
-          legendPieces = 10;
-        }
-      }
-    }
-  }
-  
-  // Defeat enemies by jumping on or touching with ability
-  for (let e of enemies) {
-    if (dist(player.x, player.y, e.x, e.y) < 45) {
-      if (player.vy > 2) {
-        // Stomp
-        player.vy = -8;
-        e.x = -100;
-      } else {
-        // Bump
-        player.x -= 15;
-      }
-    }
-  }
-  enemies = enemies.filter(e => e.x > -50);
-}
-
-function draw() {
-  // Re-draw everything (p5 calls draw continuously)
-  background(10, 10, 35);
-  
-  // Anime city
-  fill(20, 25, 60);
-  rect(0, 0, width, 320);
-  
-  fill(255, 255, 200, 160);
-  for (let i = 0; i < 55; i++) {
-    ellipse((i * 31 + frameCount * 0.08) % width, (i * 19) % 270, 2, 2);
-  }
-  
-  fill(25, 30, 55);
-  for (let i = 0; i < 14; i++) {
-    let bx = (i * 78) % width;
-    let bh = 110 + (i % 6) * 38;
-    rect(bx, 320 - bh, 68, bh);
-    fill(255, 90, 180, 110);
-    for (let wy = 10; wy < bh - 15; wy += 20) {
-      for (let wx = 10; wx < 55; wx += 17) {
-        rect(bx + wx, 320 - bh + wy, 7, 7);
-      }
-    }
-    fill(25, 30, 55);
-  }
-  
-  fill(30, 35, 50);
-  rect(0, 480, width, 100);
-  
-  stroke(0, 255, 180);
-  strokeWeight(2);
-  for (let i = 0; i < width; i += 55) line(i, 485, i + 35, 485);
-  noStroke();
-  
-  if (gameState === "start") {
-    drawStartScreen();
-  } else if (gameState === "practice" || gameState === "charselect") {
-    drawPractice();
-  } else if (gameState === "play") {
-    drawGame();
-  } else if (gameState === "levelup") {
-    drawLevelUp();
-  } else if (gameState === "free") {
-    drawFreeMode();
-  }
-  
-  drawHUD();
-  updatePlayer();
-}
-
-// Auto-spawn some pieces in practice
-setInterval(() => {
-  if (gameState === "practice" && pieces.length < 2) {
-    pieces.push({x: random(150, 900), y: random(320, 410), collected: false});
-  }
-}, 8000);
 </script>
 </body>
 </html>
