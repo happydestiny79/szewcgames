@@ -137,7 +137,6 @@
       });
     }
 
-    // Save feedback to localStorage
     function saveFeedback() {
       const game = document.getElementById('gameSelect').value;
       const liked = document.getElementById('liked').value.trim();
@@ -156,7 +155,6 @@
       }
 
       const feedback = {
-        id: Date.now(),
         game: game,
         liked: liked,
         improved: improved,
@@ -165,23 +163,17 @@
         timestamp: new Date().toISOString()
       };
 
-      // Get existing feedback
-      let allFeedback = JSON.parse(localStorage.getItem('gameFeedback') || '[]');
-      allFeedback.unshift(feedback); // newest first
-      localStorage.setItem('gameFeedback', JSON.stringify(allFeedback));
-
-      // Clear form
+      // Clear form immediately
       document.getElementById('liked').value = '';
       document.getElementById('improved').value = '';
       document.getElementById('ideas').value = '';
       document.getElementById('studentName').value = '';
 
-      // Refresh list
-      renderFeedbackList();
+      // Send to Google Sheets
+      sendToGoogleSheets(feedback);
       
-      // Success message
-      const btn = event.currentTarget;
-      alert("Feedback saved! Thank you!");
+      // Show success message
+      alert("Thank you! Your feedback has been sent.");
     }
 
     // Send feedback to Google Sheets
