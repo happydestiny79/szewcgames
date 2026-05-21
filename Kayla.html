@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayla - Roller Skate Chase</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        canvas {
+            border: 4px solid #ff69b4;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
+        }
+        h1 {
+            color: #ff69b4;
+            text-shadow: 0 0 10px #ff69b4;
+            margin-bottom: 10px;
+        }
+        .instructions {
+            margin-top: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 500px;
+        }
+        .stats {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛼 Kayla 🛼</h1>
+    <p style="margin: 5px 0 15px; color: #aaa;">Princess on Roller Skates • Chase the Villain!</p>
+    
+    <canvas id="game" width="800" height="400"></canvas>
+    
+    <div class="instructions">
+        <strong>SPACE / CLICK</strong> to Jump • Avoid obstacles • Catch the Villain!<br>
+        <span style="font-size: 13px; color: #ffcc00;">Geometry Dash style • Roller Skate Fun • Afternoon Chase</span>
+    </div>
+    
+    <div class="stats">
+        Distance: <span id="distance">0</span>m &nbsp;&nbsp; 
+        Villain Distance: <span id="villain">120</span>m
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Game variables
+        let player = { x: 150, y: 280, vy: 0, width: 40, height: 50, onGround: true };
+        let villain = { x: 650, y: 280, width: 35, height: 50, speed: 3.2 };
+        let obstacles = [];
+        let particles = [];
+        let distance = 0;
+        let gameSpeed = 4;
+        let gameOver = false;
+        let won = false;
+        let frame = 0;
+        
+        // Colors
+        const PINK = '#ff69b4';
+        const PURPLE = '#9b59b6';
+        const SKY = '#87CEEB';
+        const GROUND = '#2d3436';
+        
+        function drawBackground() {
+            // Sky gradient (afternoon)
+            const grad = ctx.createLinearGradient(0, 0, 0, 400);
+            grad.addColorStop(0, '#f39c12');
+            grad.addColorStop(0.4, '#87CEEB');
+            grad.addColorStop(1, '#2980b9');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 800, 400);
+            
+            // Sun
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            ctx.arc(650, 80, 35, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.beginPath();
+            ctx.ellipse(200 + Math.sin(frame/80)*20, 70, 60, 25, 0, 0, Math.PI * 2);
+            ctx.ellipse(240 + Math.sin(frame/80)*20, 70, 40, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(550, 110, 50, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ground
+            ctx.fillStyle = GROUND;
+            ctx.fillRect(0, 320, 800, 80);
+            
+            // Roller skate path lines
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const x = ((frame * 3 + i * 120) % 900) - 50;
+                ctx.beginPath();
+                ctx.moveTo(x, 340);
+                ctx.lineTo(x + 80, 340);
+                ctx.stroke();
+            }
+        }
+        
+        function drawPrincess(x, y) {
+            // Skirt
+            ctx.fillStyle = PINK;
+            ctx.fillRect(x + 8, y + 25, 24, 25);
+            
+            // Body
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(x + 12, y + 18, 16, 18);
+            
+            // Head
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.arc(x + 20, y + 12, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Tiara / crown
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillRect(x + 10, y, 20, 6);
+            ctx.fillRect(x + 14, y - 4, 4, 5);
+            ctx.fillRect(x + 22, y - 4, 4, 5);
+            
+            // Hair
+            ctx.fillStyle = '#8e44ad';
+            ctx.fillRect(x + 9, y + 5, 6, 10);
+            ctx.fillRect(x + 25, y + 5, 6, 10);
+            
+            // Roller skates (wheels)
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(x + 8, y + 48, 10, 6);
+            ctx.fillRect(x + 22, y + 48, 10, 6);
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(x + 9, y + 52, 4, 4);
+            ctx.fillRect(x + 23, y + 52, 4, 4);
+            
+            // Arms (skating pose)
+            ctx.strokeStyle = '#ffeaa7';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x + 12, y + 22);
+            ctx.lineTo(x - 5, y + 30);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + 28, y + 22);
+            ctx.lineTo(x + 42, y + 28);
+            ctx.stroke();
+        }
+        
+        function drawVillain(x, y) {
+            // Dark cloak
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(x + 5, y + 15, 25, 35);
+            
+            // Head
+            ctx.fillStyle = '#95a5a6';
+            ctx.beginPath();
+            ctx.arc(x + 17, y + 12, 11, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Evil hat
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(x + 6, y - 2, 22, 8);
+            
+            // Red eyes
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(x + 10, y + 8, 4, 4);
+            ctx.fillRect(x + 20, y + 8, 4, 4);
+            
+            // Roller skates
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(x + 6, y + 48, 9, 6);
+            ctx.fillRect(x + 20, y + 48, 9, 6);
+        }
+        
+        function drawObstacle(ob) {
+            if (ob.type === 'box') {
+                ctx.fillStyle = '#e67e22';
+                ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+                ctx.fillStyle = '#d35400';
+                ctx.fillRect(ob.x + 4, ob.y + 4, ob.w - 8, ob.h - 8);
+            } else if (ob.type === 'ramp') {
+                ctx.fillStyle = '#27ae60';
+                ctx.beginPath();
+                ctx.moveTo(ob.x, ob.y + ob.h);
+                ctx.lineTo(ob.x + ob.w, ob.y);
+                ctx.lineTo(ob.x + ob.w, ob.y + ob.h);
+                ctx.fill();
+            } else if (ob.type === 'button') {
+                ctx.fillStyle = '#f1c40f';
+                ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+                ctx.fillStyle = '#f39c12';
+                ctx.fillRect(ob.x + 5, ob.y + 5, ob.w - 10, ob.h - 10);
+            }
+        }
+        
+        function spawnObstacle() {
+            const types = ['box', 'ramp', 'button'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let w = 30, h = 40;
+            
+            if (type === 'ramp') h = 50;
+            if (type === 'button') { w = 25; h = 25; }
+            
+            obstacles.push({
+                x: 820,
+                y: 320 - h,
+                w: w,
+                h: h,
+                type: type,
+                hit: false
+            });
+        }
+        
+        function update() {
+            if (gameOver || won) return;
+            
+            frame++;
+            
+            // Player physics
+            player.vy += 0.8; // gravity
+            player.y += player.vy;
+            
+            if (player.y >= 280) {
+                player.y = 280;
+                player.vy = 0;
+                player.onGround = true;
+            }
+            
+            // Auto forward scroll effect (distance)
+            distance += gameSpeed * 0.1;
+            
+            // Villain movement (slightly ahead)
+            villain.x -= villain.speed;
+            if (villain.x < 200) villain.x = 200; // stays ahead until caught
+            
+            // Check catch win condition
+            if (player.x + player.width > villain.x - 10) {
+                won = true;
+                createWinParticles();
+            }
+            
+            // Move obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const ob = obstacles[i];
+                ob.x -= gameSpeed;
+                
+                // Collision
+                if (!ob.hit && 
+                    player.x < ob.x + ob.w && 
+                    player.x + player.width > ob.x &&
+                    player.y < ob.y + ob.h && 
+                    player.y + player.height > ob.y) {
+                    
+                    if (ob.type === 'button') {
+                        // Button hit = speed boost!
+                        gameSpeed = 7;
+                        ob.hit = true;
+                        createParticles(ob.x, ob.y);
+                    } else {
+                        // Hit obstacle = lose
+                        gameOver = true;
+                        createParticles(player.x + 20, player.y + 20);
+                    }
+                }
+                
+                if (ob.x < -50) obstacles.splice(i, 1);
+            }
+            
+            // Spawn obstacles
+            if (frame % 38 === 0) {
+                spawnObstacle();
+            }
+            
+            // Gradually increase speed
+            if (frame % 200 === 0 && gameSpeed < 6.5) {
+                gameSpeed += 0.2;
+                villain.speed += 0.1;
+            }
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].life--;
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+            
+            // Update UI
+            document.getElementById('distance').textContent = Math.floor(distance);
+            document.getElementById('villain').textContent = Math.max(0, Math.floor(120 - (distance * 0.6)));
+        }
+        
+        function createParticles(x, y) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 20 + Math.random() * 15,
+                    color: '#f1c40f'
+                });
+            }
+        }
+        
+        function createWinParticles() {
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: villain.x + 17,
+                    y: villain.y + 25,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 40 + Math.random() * 30,
+                    color: i % 2 === 0 ? '#ff69b4' : '#f1c40f'
+                });
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, 800, 400);
+            drawBackground();
+            
+            // Draw obstacles
+            obstacles.forEach(drawObstacle);
+            
+            // Draw player (Kayla)
+            drawPrincess(player.x, player.y);
+            
+            // Draw villain
+            drawVillain(villain.x, villain.y);
+            
+            // Draw particles
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 30;
+                ctx.fillRect(p.x, p.y, 4, 4);
+            });
+            ctx.globalAlpha = 1;
+            
+            // UI text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px Segoe UI';
+            ctx.fillText('Kayla', 20, 40);
+            ctx.font = '16px Segoe UI';
+            ctx.fillText('Chasing the Villain!', 20, 60);
+            
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 150, 800, 120);
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = 'bold 48px Segoe UI';
+                ctx.fillText('OOPS! Caught an obstacle', 140, 200);
+                ctx.font = '24px Segoe UI';
+                ctx.fillStyle = 'white';
+                ctx.fillText('Press SPACE to try again', 250, 240);
+            }
+            
+            if (won) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 140, 800, 140);
+                ctx.fillStyle = '#2ecc71';
+                ctx.font = 'bold 52px Segoe UI';
+                ctx.fillText('YOU CAUGHT THE VILLAIN!', 80, 195);
+                ctx.font = '22px Segoe UI';
+                ctx.fillStyle = '#f1c40f';
+                ctx.fillText('Kayla saves the afternoon! 🛼👑', 170, 235);
+                ctx.fillStyle = 'white';
+                ctx.fillText('Press SPACE to play again', 260, 265);
+            }
+        }
+        
+        function resetGame() {
+            player = { x: 150, y: 280, vy: 0, width: 40, height: 50, onGround: true };
+            villain = { x: 650, y: 280, width: 35, height: 50, speed: 3.2 };
+            obstacles = [];
+            particles = [];
+            distance = 0;
+            gameSpeed = 4;
+            gameOver = false;
+            won = false;
+            frame = 0;
+        }
+        
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        
+        // Controls
+        function jump() {
+            if (player.onGround && !gameOver && !won) {
+                player.vy = -14;
+                player.onGround = false;
+                // Jump particles
+                createParticles(player.x + 20, player.y + 45);
+            }
+            
+            if (gameOver || won) {
+                resetGame();
+            }
+        }
+        
+        document.addEventListener('keydown', e => {
+            if (e.key === ' ') {
+                e.preventDefault();
+                jump();
+            }
+        });
+        
+        canvas.addEventListener('mousedown', () => jump());
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        
+        // Initial obstacles
+        setTimeout(() => {
+            obstacles.push({ x: 400, y: 280, w: 30, h: 40, type: 'box', hit: false });
+            obstacles.push({ x: 520, y: 270, w: 50, h: 50, type: 'ramp', hit: false });
+        }, 800);
+        
+        // Start game
+        loop();
+        
+        // Easter egg: press G for Geometry Dash mode (faster)
+        document.addEventListener('keypress', e => {
+            if (e.key.toLowerCase() === 'g') {
+                gameSpeed = 6.5;
+                villain.speed = 4;
+            }
+        });
+    </script>
+</body>
+</html>

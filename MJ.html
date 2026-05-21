@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MJ • The Villain • 2070</title>
+  <title>MJ • The Strongest Hero • 2070</title>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
   <style>
     body { margin: 0; background: #0a0a1f; color: #fff; font-family: Arial, sans-serif; }
-    canvas { display: block; margin: 20px auto; border: 4px solid #ff00aa; box-shadow: 0 0 30px #ff00aa; }
+    canvas { display: block; margin: 20px auto; border: 4px solid #00ccff; box-shadow: 0 0 30px #00ccff; }
     .info { text-align: center; margin-top: 10px; }
-    .info h1 { color: #ff00aa; text-shadow: 0 0 10px #ff00aa; }
+    .info h1 { color: #00ccff; text-shadow: 0 0 10px #00ccff; }
   </style>
 </head>
 <body>
 <div class="info">
-  <h1>MJ • THE VILLAIN RISES</h1>
-  <p>2070 New York • Nick vs Kesha • Super Speed vs Flight</p>
+  <h1>MJ • THE STRONGEST HERO</h1>
+  <p>2070 New York • Play as MJ (Kesha) • Defeat the Villain Nick</p>
 </div>
 
 <script>
-let nick, kesha;
+let nick, mj;
 let nickHealth = 100;
-let keshaHealth = 100;
+let mjHealth = 100;
 let gameState = "start";
 let particles = [];
 let skyscrapers = [];
@@ -48,6 +48,7 @@ function setup() {
     });
   }
   
+  // Villain Nick - Super Speed
   nick = {
     x: 180,
     y: 320,
@@ -58,13 +59,15 @@ function setup() {
     trail: []
   };
   
-  kesha = {
+  // MJ - The Strongest Hero (human character, all white, flight)
+  mj = {
     x: 680,
     y: 200,
     size: 50,
     color: color(255, 255, 255),
     vy: 0,
-    attackTimer: 0
+    attackTimer: 0,
+    facing: -1
   };
 }
 
@@ -117,40 +120,40 @@ function draw() {
 
 function drawStartScreen() {
   fill(255);
-  textSize(48);
+  textSize(44);
   textAlign(CENTER);
-  text("MJ • THE VILLAIN", width/2, 130);
+  text("MJ • THE STRONGEST HERO", width/2, 120);
   
-  textSize(20);
-  fill(255, 100, 200);
-  text("Nick — Super Speed — All Black", width/2, 185);
+  textSize(18);
   fill(200, 220, 255);
-  text("Kesha Cole — Flight — All White", width/2, 215);
+  text("MJ — African Hero — All White — Can Fly", width/2, 175);
+  fill(255, 100, 100);
+  text("Nick — Betrayed Villain — All Black — Super Speed", width/2, 205);
   
   textSize(18);
   fill(255);
-  text("Press SPACE to START", width/2, 290);
+  text("Press SPACE to FIGHT AS MJ", width/2, 280);
   
   textSize(15);
   fill(180);
-  text("2070 Flooded New York • Defeat Kesha", width/2, 340);
+  text("2070 Flooded New York • Defeat the Villain", width/2, 330);
 }
 
 function drawFight() {
   drawNick();
-  drawKesha();
+  drawMJ();
   drawHealthBars();
   
   fill(200);
   textSize(14);
   textAlign(LEFT);
-  text("Arrow Keys: Move   |   SPACE: Super Dash Attack", 30, height - 25);
+  text("Arrow Keys: Move   |   SPACE: Energy Blast", 30, height - 25);
   
   handleInput();
-  updateKesha();
+  updateNick();
   
-  if (keshaHealth <= 0) gameState = "win";
-  if (nickHealth <= 0) gameState = "lose";
+  if (nickHealth <= 0) gameState = "win";
+  if (mjHealth <= 0) gameState = "lose";
 }
 
 function drawNick() {
@@ -163,46 +166,70 @@ function drawNick() {
     ellipse(nick.trail[i].x, nick.trail[i].y + 25, nick.size * 0.7);
   }
   
+  // More human-like body for Nick
   fill(nick.color);
-  ellipse(nick.x, nick.y, nick.size, nick.size * 1.1);
+  // Head
+  ellipse(nick.x, nick.y - 15, 32, 34);
+  // Body
+  rect(nick.x - 15, nick.y + 2, 30, 38);
+  // Legs
+  rect(nick.x - 12, nick.y + 38, 9, 18);
+  rect(nick.x + 3, nick.y + 38, 9, 18);
   
+  // Hood
   fill(0);
-  ellipse(nick.x, nick.y - 8, nick.size * 0.7, nick.size * 0.6);
+  ellipse(nick.x, nick.y - 18, 26, 22);
   
+  // Brown eyes
   fill(139, 69, 19);
-  ellipse(nick.x - 8, nick.y - 5, 8, 6);
-  ellipse(nick.x + 8, nick.y - 5, 8, 6);
+  ellipse(nick.x - 7, nick.y - 18, 6, 5);
+  ellipse(nick.x + 7, nick.y - 18, 6, 5);
   
+  // Speed lines
   if (abs(nick.vx || 0) > 4) {
     stroke(100, 150, 255, 150);
     strokeWeight(2);
-    line(nick.x - 40 * nick.facing, nick.y, nick.x - 20 * nick.facing, nick.y);
-    line(nick.x - 45 * nick.facing, nick.y + 10, nick.x - 25 * nick.facing, nick.y + 10);
+    line(nick.x - 40 * nick.facing, nick.y + 10, nick.x - 20 * nick.facing, nick.y + 10);
     noStroke();
   }
 }
 
-function drawKesha() {
-  kesha.y = 180 + sin(frameCount * 0.08) * 25;
+function drawMJ() {
+  // Floating effect
+  mj.y = 195 + sin(frameCount * 0.07) * 22;
   
-  fill(255, 255, 255, 40);
-  ellipse(kesha.x, kesha.y, kesha.size * 1.6, kesha.size * 1.6);
+  // White glowing aura
+  fill(200, 230, 255, 35);
+  ellipse(mj.x, mj.y, mj.size * 1.8, mj.size * 2.0);
   
-  fill(kesha.color);
-  ellipse(kesha.x, kesha.y, kesha.size, kesha.size * 1.1);
-  
-  fill(240);
-  ellipse(kesha.x, kesha.y - 8, kesha.size * 0.65, kesha.size * 0.55);
-  
-  fill(101, 67, 33);
-  ellipse(kesha.x - 7, kesha.y - 4, 7, 5);
-  ellipse(kesha.x + 7, kesha.y - 4, 7, 5);
-  
-  stroke(255, 255, 255, 180);
-  strokeWeight(3);
-  line(kesha.x - 25, kesha.y + 10, kesha.x - 45, kesha.y - 5);
-  line(kesha.x + 25, kesha.y + 10, kesha.x + 45, kesha.y - 5);
+  // Human-like body for MJ (African woman, all white outfit)
+  fill(mj.color);
+  // Head
+  ellipse(mj.x, mj.y - 18, 30, 32);
+  // Body / dress
+  rect(mj.x - 14, mj.y + 1, 28, 36);
+  // Arms (energy wings style)
+  stroke(255, 255, 255, 200);
+  strokeWeight(5);
+  line(mj.x - 14, mj.y + 8, mj.x - 32, mj.y - 2);
+  line(mj.x + 14, mj.y + 8, mj.x + 32, mj.y - 2);
   noStroke();
+  // Legs
+  fill(250);
+  rect(mj.x - 10, mj.y + 35, 8, 16);
+  rect(mj.x + 2, mj.y + 35, 8, 16);
+  
+  // White hood / hair
+  fill(245);
+  ellipse(mj.x, mj.y - 20, 26, 20);
+  // Brown eyes
+  fill(101, 67, 33);
+  ellipse(mj.x - 6, mj.y - 19, 6, 5);
+  ellipse(mj.x + 6, mj.y - 19, 6, 5);
+  
+  // Flying energy effect
+  fill(255, 255, 255, 120);
+  ellipse(mj.x, mj.y + 48, 36, 8);
 }
 
 function drawHealthBars() {
@@ -212,81 +239,84 @@ function drawHealthBars() {
   rect(30, 30, map(nickHealth, 0, 100, 0, 200), 22);
   fill(255);
   textSize(14);
-  text("NICK", 35, 46);
+  text("NICK (Villain)", 35, 46);
   
   fill(40);
   rect(width - 230, 30, 200, 22);
-  fill(255, 100, 200);
-  rect(width - 230, 30, map(keshaHealth, 0, 100, 0, 200), 22);
+  fill(100, 220, 255);
+  rect(width - 230, 30, map(mjHealth, 0, 100, 0, 200), 22);
   fill(255);
-  text("KESHA", width - 225, 46);
+  text("MJ (Hero)", width - 225, 46);
 }
 
 function handleInput() {
-  let speed = 4.5;
+  let speed = 4.2;
   
-  if (keyIsDown(LEFT_ARROW)) { nick.x -= speed; nick.facing = -1; }
-  if (keyIsDown(RIGHT_ARROW)) { nick.x += speed; nick.facing = 1; }
-  if (keyIsDown(UP_ARROW)) { nick.y -= speed * 0.7; }
-  if (keyIsDown(DOWN_ARROW)) { nick.y += speed * 0.7; }
+  if (keyIsDown(LEFT_ARROW)) { mj.x -= speed; mj.facing = -1; }
+  if (keyIsDown(RIGHT_ARROW)) { mj.x += speed; mj.facing = 1; }
+  if (keyIsDown(UP_ARROW)) { mj.y -= speed * 0.75; }
+  if (keyIsDown(DOWN_ARROW)) { mj.y += speed * 0.75; }
   
-  if (keyIsDown(32) && nick.dashCooldown <= 0) {
-    nick.x += 55 * nick.facing;
-    nick.dashCooldown = 18;
+  // Energy Blast (SPACE)
+  if (keyIsDown(32) && mj.attackTimer <= 0) {
+    mj.attackTimer = 22;
     
-    for (let i = 0; i < 8; i++) {
+    // Blast particles toward Nick
+    for (let i = 0; i < 10; i++) {
       particles.push({
-        x: nick.x - 30 * nick.facing,
-        y: nick.y + random(-15, 15),
-        vx: -8 * nick.facing,
-        vy: random(-2, 2),
-        life: 18,
-        color: color(100, 150, 255)
+        x: mj.x,
+        y: mj.y,
+        vx: (nick.x - mj.x) * 0.08 + random(-2, 2),
+        vy: (nick.y - mj.y) * 0.08 + random(-2, 2),
+        life: 22,
+        color: color(150, 220, 255)
       });
     }
     
-    if (dist(nick.x, nick.y, kesha.x, kesha.y) < 90) {
-      keshaHealth -= 12;
-      createHitParticles(kesha.x, kesha.y);
+    if (dist(mj.x, mj.y, nick.x, nick.y) < 130) {
+      nickHealth -= 11;
+      createHitParticles(nick.x, nick.y);
     }
   }
   
-  nick.dashCooldown = max(0, nick.dashCooldown - 1);
-  nick.x = constrain(nick.x, 50, width - 50);
-  nick.y = constrain(nick.y, 150, waterLevel - 30);
+  mj.attackTimer = max(0, mj.attackTimer - 1);
+  mj.x = constrain(mj.x, 50, width - 50);
+  mj.y = constrain(mj.y, 90, waterLevel - 40);
 }
 
-function updateKesha() {
-  kesha.attackTimer++;
+function updateNick() {
+  nick.attackTimer = (nick.attackTimer || 0) + 1;
   
-  let targetX = nick.x + (sin(frameCount * 0.03) * 80);
-  kesha.x = lerp(kesha.x, targetX, 0.025);
+  // Nick dashes toward MJ
+  let targetX = mj.x + (sin(frameCount * 0.04) * 60);
+  nick.x = lerp(nick.x, targetX, 0.03);
   
-  if (kesha.attackTimer % 45 === 0) {
-    kesha.vy = 6;
+  if (nick.attackTimer % 50 === 0) {
+    nick.vx = (mj.x > nick.x) ? 7 : -7;
   }
   
-  kesha.y += kesha.vy;
-  kesha.vy *= 0.92;
+  nick.x += nick.vx || 0;
+  nick.vx = (nick.vx || 0) * 0.88;
   
-  if (dist(nick.x, nick.y, kesha.x, kesha.y) < 55 && kesha.attackTimer % 20 === 0) {
-    nickHealth -= 8;
-    createHitParticles(nick.x, nick.y);
+  // Damage player on contact
+  if (dist(mj.x, mj.y, nick.x, nick.y) < 50 && nick.attackTimer % 18 === 0) {
+    mjHealth -= 7;
+    createHitParticles(mj.x, mj.y);
   }
   
-  kesha.x = constrain(kesha.x, 100, width - 100);
-  kesha.y = constrain(kesha.y, 80, 280);
+  nick.x = constrain(nick.x, 50, width - 50);
+  nick.y = constrain(nick.y, 200, waterLevel - 30);
 }
 
 function createHitParticles(x, y) {
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 14; i++) {
     particles.push({
       x: x,
       y: y,
-      vx: random(-4, 4),
-      vy: random(-4, 4),
-      life: random(15, 28),
-      color: color(255, random(100, 200), 50)
+      vx: random(-4.5, 4.5),
+      vy: random(-4.5, 4.5),
+      life: random(16, 30),
+      color: color(255, random(120, 220), 80)
     });
   }
 }
@@ -297,12 +327,12 @@ function updateParticles() {
     p.x += p.vx;
     p.y += p.vy;
     p.life--;
-    p.vx *= 0.96;
-    p.vy *= 0.96;
+    p.vx *= 0.95;
+    p.vy *= 0.95;
     
     fill(p.color);
     noStroke();
-    ellipse(p.x, p.y, map(p.life, 0, 25, 2, 8));
+    ellipse(p.x, p.y, map(p.life, 0, 28, 2, 9));
     
     if (p.life <= 0) particles.splice(i, 1);
   }
@@ -313,25 +343,25 @@ function drawEndScreen() {
   rect(0, 0, width, height);
   
   if (gameState === "win") {
-    fill(100, 255, 150);
-    textSize(48);
+    fill(100, 255, 180);
+    textSize(46);
     textAlign(CENTER);
-    text("KESHA DEFEATED", width/2, 180);
+    text("NICK DEFEATED", width/2, 170);
     textSize(22);
     fill(255);
-    text("The Villain Wins... for now", width/2, 230);
+    text("MJ remains the strongest hero", width/2, 220);
     textSize(18);
-    text("Press R to fight again", width/2, 300);
+    text("Press R to play again", width/2, 290);
   } else {
-    fill(255, 80, 80);
-    textSize(48);
+    fill(255, 90, 90);
+    textSize(46);
     textAlign(CENTER);
-    text("NICK WAS DEFEATED", width/2, 180);
+    text("MJ WAS DEFEATED", width/2, 170);
     textSize(22);
     fill(255);
-    text("Kesha remains the strongest", width/2, 230);
+    text("The Villain Wins...", width/2, 220);
     textSize(18);
-    text("Press R to try again", width/2, 300);
+    text("Press R to try again", width/2, 290);
   }
 }
 
@@ -339,15 +369,15 @@ function keyPressed() {
   if (gameState === "start" && key === ' ') {
     gameState = "fight";
     nickHealth = 100;
-    keshaHealth = 100;
+    mjHealth = 100;
   }
   
   if ((gameState === "win" || gameState === "lose") && (key === 'r' || key === 'R')) {
     gameState = "start";
+    mj.x = 680;
+    mj.y = 200;
     nick.x = 180;
     nick.y = 320;
-    kesha.x = 680;
-    kesha.y = 200;
     particles = [];
   }
 }

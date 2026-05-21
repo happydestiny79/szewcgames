@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏆 Prize Hunters • Bella &amp; Celin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+    body { font-family: 'Press Start 2P', system-ui, sans-serif; }
+    .game-container { image-rendering: pixelated; }
+    .park-bg { background: linear-gradient(to bottom, #87CEEB 0%, #90EE90 60%, #228B22 100%); }
+    .bunny-orange { color: #FF8C00; }
+    .bunny-black { color: #2F2F2F; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white">
+  <div class="max-w-4xl mx-auto p-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-4xl font-bold tracking-wider">PRIZE HUNTERS</h1>
+        <p class="text-emerald-400 text-sm mt-1">Bella vs Celin • Afternoon Park Race</p>
+      </div>
+      <div class="text-right">
+        <div class="text-xs text-zinc-400">5 LEVELS • NO HARDER</div>
+        <div class="text-xs text-amber-400">FREE • IMAGINATION POWERED</div>
+      </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <div class="game-container border-4 border-emerald-600 rounded-xl overflow-hidden shadow-2xl mb-4">
+      <div id="game"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-xl p-4">
+        <div class="text-emerald-400 text-xs mb-2">KEYBOARD CONTROLS</div>
+        <div class="space-y-1 text-sm">
+          <div><span class="font-bold text-amber-400">→ / D</span> — RUN FAST</div>
+          <div><span class="font-bold text-red-400">SPACE</span> — FIGHT (push!)</div>
+          <div><span class="font-bold text-sky-400">S</span> — STAY STILL (boost!)</div>
+          <div><span class="font-bold text-purple-400">R</span> — RESTART LEVEL</div>
+        </div>
+      </div>
+      
+      <div class="bg-zinc-900 border border-zinc-700 rounded-xl p-4">
+        <div class="text-emerald-400 text-xs mb-2">THE STORY</div>
+        <div class="text-xs leading-relaxed text-zinc-300">
+          Bella (orange bunny) &amp; Celin (black &amp; white) are racing through the sunny playground park 
+          for the mysterious PRIZE! Lots of people and friendly animals are cheering. 
+          Run fast, fight to slow your rival, or stay still near bushes for a secret speed boost!
+        </div>
+      </div>
+      
+      <div class="bg-zinc-900 border border-zinc-700 rounded-xl p-4">
+        <div class="text-emerald-400 text-xs mb-2">CHARACTERS</div>
+        <div class="flex gap-4 text-sm">
+          <div>
+            <div class="bunny-orange font-bold">BELLA</div>
+            <div class="text-xs">Orange • Super Fast</div>
+          </div>
+          <div>
+            <div class="bunny-black font-bold">CELIN</div>
+            <div class="text-xs">Black &amp; White • Super Fast</div>
+          </div>
+        </div>
+        <div class="mt-2 text-[10px] text-amber-400">Animals only • No insects • Lots of people cheering!</div>
+      </div>
+    </div>
+
+    <!-- Level Selector -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <div class="text-xs text-zinc-400 self-center mr-2">LEVELS (all same difficulty):</div>
+      <button onclick="selectLevel(1)" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 rounded-full transition">1 • Sunny Playground</button>
+      <button onclick="selectLevel(2)" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 rounded-full transition">2 • Big Oak Tree</button>
+      <button onclick="selectLevel(3)" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 rounded-full transition">3 • Duck Pond</button>
+      <button onclick="selectLevel(4)" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 rounded-full transition">4 • Slide Hill</button>
+      <button onclick="selectLevel(5)" class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 rounded-full transition">5 • Prize Meadow</button>
+    </div>
+
+    <div class="text-center text-xs text-zinc-500">
+      Made with ❤️ for Emily • Student Imagination Project • Use Godot + LibreSprite for the full version!
+    </div>
+  </div>
+
+  <script>
+    let currentLevel = 1;
+    let player, rival, prize, people = [], animals = [];
+    let gameState = "start"; // start, racing, win, lose
+    let distance = 0;
+    let maxDistance = 1200;
+    let playerSpeed = 0;
+    let rivalSpeed = 0;
+    let stamina = 100;
+    let fightCooldown = 0;
+    let levelNames = ["Sunny Playground", "Big Oak Tree", "Duck Pond", "Slide Hill", "Prize Meadow"];
+
+    function setup() {
+      let canvas = createCanvas(800, 480);
+      canvas.parent('game');
+      textFont('Press Start 2P');
+      initLevel(1);
+    }
+
+    function initLevel(level) {
+      currentLevel = level;
+      distance = 0;
+      playerSpeed = 0;
+      rivalSpeed = 2.5;
+      stamina = 100;
+      fightCooldown = 0;
+      gameState = "racing";
+      
+      // Player: Bella (orange)
+      player = {
+        x: 280,
+        y: 280,
+        color: '#FF8C00',
+        name: "Bella"
+      };
+      
+      // Rival: Celin (black & white)
+      rival = {
+        x: 520,
+        y: 280,
+        color: '#2F2F2F',
+        accent: '#FFFFFF',
+        name: "Celin"
+      };
+      
+      // Prize
+      prize = {
+        x: 650,
+        y: 220,
+        collected: false
+      };
+      
+      // Background people & animals
+      people = [];
+      animals = [];
+      for (let i = 0; i < 8; i++) {
+        people.push({
+          x: random(50, 750),
+          y: random(60, 160),
+          type: floor(random(3))
+        });
+      }
+      for (let i = 0; i < 5; i++) {
+        animals.push({
+          x: random(100, 700),
+          y: random(320, 420),
+          type: floor(random(3)) // 0=squirrel, 1=bird, 2=dog
+        });
+      }
+    }
+
+    function selectLevel(lvl) {
+      initLevel(lvl);
+    }
+
+    function draw() {
+      background(135, 206, 235); // sky
+      
+      // Grass
+      fill(34, 139, 34);
+      rect(0, 300, width, 180);
+      
+      // Path
+      fill(210, 180, 140);
+      rect(50, 260, 700, 80);
+      
+      // Playground elements
+      drawPlayground();
+      
+      // People cheering
+      for (let p of people) {
+        drawPerson(p.x, p.y, p.type);
+      }
+      
+      // Animals
+      for (let a of animals) {
+        drawAnimal(a.x, a.y, a.type);
+      }
+      
+      // Sun
+      fill(255, 220, 100);
+      circle(680, 80, 50);
+      
+      // Level banner
+      fill(0, 0, 0, 180);
+      rect(0, 0, width, 42);
+      fill(255);
+      textSize(14);
+      textAlign(CENTER);
+      text(`LEVEL ${currentLevel} • ${levelNames[currentLevel-1]}`, width/2, 28);
+      
+      if (gameState === "racing") {
+        // Move player
+        if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) { // D
+          playerSpeed = min(playerSpeed + 0.8, 7.5);
+          stamina = max(stamina - 0.3, 20);
+        } else if (keyIsDown(83)) { // S - stay still for boost
+          if (stamina < 100) stamina += 1.2;
+          playerSpeed *= 0.6;
+        } else {
+          playerSpeed *= 0.85;
+        }
+        
+        // Fight
+        if ((keyIsDown(32) || keyIsDown(32)) && fightCooldown <= 0) {
+          fightCooldown = 25;
+          if (abs(player.x - rival.x) < 120) {
+            rivalSpeed -= 3.5;
+            playerSpeed += 1.5;
+          }
+        }
+        
+        if (fightCooldown > 0) fightCooldown--;
+        
+        // Apply movement
+        player.x += playerSpeed;
+        rival.x += rivalSpeed;
+        
+        // Rival AI
+        rivalSpeed = min(rivalSpeed + 0.4, 6.2);
+        if (random() < 0.03 && abs(player.x - rival.x) < 90) {
+          rivalSpeed -= 1.8; // rival fights back sometimes
+        }
+        
+        // Clamp positions
+        player.x = constrain(player.x, 60, 620);
+        rival.x = constrain(rival.x, 60, 620);
+        
+        // Progress
+        distance = (player.x + rival.x) / 2 - 60;
+        
+        // Check win
+        if (player.x > 580 || rival.x > 580) {
+          gameState = (player.x > rival.x) ? "win" : "lose";
+        }
+        
+        // Draw bunnies
+        drawBunny(player.x, player.y, player.color, true);
+        drawBunny(rival.x, rival.y, rival.color, false, rival.accent);
+        
+        // Prize
+        if (!prize.collected) {
+          fill(255, 215, 0);
+          rect(prize.x, prize.y, 30, 30);
+          fill(255);
+          textSize(10);
+          text("🏆", prize.x + 5, prize.y + 22);
+        }
+        
+        // Stamina bar
+        fill(40);
+        rect(30, 440, 150, 12);
+        fill(50, 205, 50);
+        rect(30, 440, map(stamina, 0, 100, 0, 150), 12);
+        fill(255);
+        textSize(8);
+        text("STAMINA", 35, 450);
+        
+        // Distance
+        textAlign(LEFT);
+        textSize(11);
+        fill(255);
+        text(`DISTANCE: ${floor(distance)} / ${maxDistance}`, 200, 450);
+        
+      } else if (gameState === "win") {
+        fill(255, 215, 0);
+        textSize(28);
+        textAlign(CENTER);
+        text("🏆 YOU WIN! 🏆", width/2, 200);
+        textSize(14);
+        text("Bella got the prize first!", width/2, 240);
+        textSize(11);
+        fill(200);
+        text("Press R to race again", width/2, 290);
+        
+        // Confetti
+        for (let i = 0; i < 12; i++) {
+          fill(random(255), random(255), random(255));
+          circle(random(width), random(180), random(4, 8));
+        }
+      } else if (gameState === "lose") {
+        fill(200, 50, 50);
+        textSize(28);
+        textAlign(CENTER);
+        text("Celin got the prize...", width/2, 200);
+        textSize(14);
+        text("Try again! Stay still for boosts!", width/2, 240);
+        textSize(11);
+        fill(200);
+        text("Press R to race again", width/2, 290);
+      }
+      
+      // Instructions
+      if (gameState === "racing") {
+        fill(255, 255, 255, 180);
+        textSize(9);
+        textAlign(LEFT);
+        text("→ RUN  •  SPACE FIGHT  •  S STAY STILL FOR BOOST", 30, 470);
+      }
+    }
+    
+    function keyPressed() {
+      if (key === 'r' || key === 'R') {
+        initLevel(currentLevel);
+      }
+    }
+    
+    function drawBunny(x, y, col, isPlayer, accent) {
+      push();
+      translate(x, y);
+      
+      // Body
+      fill(col);
+      ellipse(0, 0, 38, 32);
+      
+      // Head
+      fill(col);
+      ellipse(18, -12, 26, 24);
+      
+      // Ears
+      fill(col);
+      ellipse(12, -28, 8, 22);
+      ellipse(24, -28, 8, 22);
+      
+      if (!isPlayer && accent) {
+        fill(accent);
+        ellipse(12, -28, 4, 14);
+        ellipse(24, -28, 4, 14);
+      }
+      
+      // Eye
+      fill(255);
+      ellipse(24, -14, 8, 8);
+      fill(0);
+      ellipse(26, -14, 4, 4);
+      
+      // Tail
+      fill(255, 255, 255, 200);
+      ellipse(-16, 2, 12, 10);
+      
+      // Legs
+      fill(col);
+      rect(-8, 12, 6, 14);
+      rect(6, 12, 6, 14);
+      
+      // Speed lines when fast
+      if ((isPlayer && playerSpeed > 5) || (!isPlayer && rivalSpeed > 4)) {
+        stroke(255, 255, 200, 150);
+        strokeWeight(2);
+        line(-30, -5, -50, -5);
+        line(-30, 3, -45, 3);
+        noStroke();
+      }
+      
+      pop();
+    }
+    
+    function drawPerson(x, y, type) {
+      push();
+      translate(x, y);
+      // Head
+      fill(255, 218, 185);
+      circle(0, 0, 14);
+      // Body
+      fill(random(['#E74C3C', '#3498DB', '#9B59B6', '#F39C12']));
+      rect(-6, 8, 12, 18);
+      // Arms
+      stroke(255, 218, 185);
+      strokeWeight(3);
+      line(-8, 10, -14, 18);
+      line(8, 10, 14, 18);
+      noStroke();
+      pop();
+    }
+    
+    function drawAnimal(x, y, type) {
+      push();
+      translate(x, y);
+      if (type === 0) { // squirrel
+        fill(139, 90, 43);
+        ellipse(0, 0, 16, 14);
+        ellipse(8, -4, 10, 10); // head
+        fill(255, 200, 150);
+        ellipse(10, -4, 5, 5);
+      } else if (type === 1) { // bird
+        fill(255, 165, 0);
+        ellipse(0, 0, 14, 10);
+        triangle(8, 0, 18, -2, 18, 2);
+      } else { // dog
+        fill(180, 120, 80);
+        ellipse(0, 0, 20, 14);
+        ellipse(10, -2, 10, 9);
+      }
+      pop();
+    }
+    
+    function drawPlayground() {
+      // Slide
+      fill(220, 80, 60);
+      rect(580, 200, 80, 12);
+      triangle(660, 200, 700, 240, 660, 240);
+      
+      // Swing set
+      stroke(100);
+      strokeWeight(3);
+      line(180, 180, 180, 240);
+      line(220, 180, 220, 240);
+      line(200, 180, 200, 210);
+      noStroke();
+      
+      // Trees
+      fill(34, 100, 34);
+      circle(120, 240, 50);
+      circle(150, 230, 45);
+      fill(101, 67, 33);
+      rect(130, 250, 18, 40);
+    }
+  </script>
+</body>
+</html>

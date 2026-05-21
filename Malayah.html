@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✨ Looking for the Wishing Star • Malayah</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+    body {
+      margin: 0;
+      background: #0a0f1e;
+      color: #fff;
+      font-family: 'Press Start 2P', system-ui, sans-serif;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      border: 8px solid #3a2f1f;
+      border-radius: 12px;
+      box-shadow: 0 0 40px rgba(255, 215, 100, 0.3);
+    }
+    .info {
+      text-align: center;
+      font-size: 14px;
+      color: #ffeb99;
+      margin-top: 10px;
+    }
+    .title {
+      text-align: center;
+      font-size: 28px;
+      margin: 15px 0 5px;
+      text-shadow: 0 0 10px #ffeb99;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="title">🌟 The Wishing Wishes 🌟</h1>
+  <p class="info">Malayah's Game • Arrow Keys to move • SPACE to fly &amp; use magic • E to talk to Star People</p>
+
+  <script>
+    let jane;
+    let witch;
+    let starPeople = [];
+    let flowers = [];
+    let trees = [];
+    let particles = [];
+    let cluesFound = 0;
+    let gameState = "start"; // start, play, fight, win, lose
+    let dialogue = "";
+    let dialogueTimer = 0;
+    let witchHealth = 3;
+    let score = 0;
+    let timeLeft = 120; // seconds
+    let lastTime = 0;
+
+    function setup() {
+      createCanvas(900, 650);
+      
+      // Jane - short hair, star shirt, pink skirt, star boots
+      jane = {
+        x: 150,
+        y: 320,
+        size: 38,
+        vx: 0,
+        vy: 0,
+        flying: false,
+        power: 0
+      };
+      
+      // Wicked Witch - mysterious dark design with glowing green eyes
+      witch = {
+        x: 720,
+        y: 280,
+        size: 44,
+        vx: 0,
+        vy: 0,
+        state: "searching", // searching, chasing, casting
+        mindReadTimer: 0
+      };
+      
+      // 5 Star People (get progressively harder to find - some hidden in flowers/trees)
+      starPeople = [
+        { x: 220, y: 180, found: false, clue: "The Wishing Star hides where the meadow sings at dusk...", color: "#ffeb99" },
+        { x: 650, y: 140, found: false, clue: "Only a pure heart can wake the star from its slumber...", color: "#a5f0ff" },
+        { x: 380, y: 480, found: false, clue: "The witch seeks it for darkness... you must reach it first!", color: "#ff99cc" },
+        { x: 780, y: 420, found: false, clue: "Time bends for those who believe... use your mind!", color: "#ccff99" },
+        { x: 120, y: 520, found: false, clue: "The final star person holds the last secret... look among the flowers.", color: "#ffcc66" }
+      ];
+      
+      // Decorative meadow elements
+      for (let i = 0; i < 35; i++) {
+        flowers.push({
+          x: random(30, width - 30),
+          y: random(80, height - 60),
+          color: random(["#ff99cc", "#ffeb99", "#a5f0ff", "#ccff99"])
+        });
+      }
+      
+      for (let i = 0; i < 7; i++) {
+        trees.push({
+          x: random(80, width - 80),
+          y: random(100, height - 100),
+          size: random(45, 75)
+        });
+      }
+      
+      // Gentle background particles (fireflies / magic dust)
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: random(width),
+          y: random(height),
+          vx: random(-0.4, 0.4),
+          vy: random(-0.4, 0.4),
+          size: random(2, 4),
+          alpha: random(120, 220)
+        });
+      }
+    }
+
+    function draw() {
+      // Mythical meadow background - soft twilight like Wizard of Oz
+      background(34, 48, 26);
+      
+      // Distant hills
+      fill(48, 68, 38);
+      ellipse(width/2, 220, 1100, 280);
+      fill(58, 82, 46);
+      ellipse(width/2 - 200, 200, 700, 220);
+      
+      // Sky gradient with stars
+      for (let i = 0; i < 80; i++) {
+        fill(255, 240, 180, random(80, 180));
+        ellipse((i * 31 + frameCount * 0.02) % width, (i * 19) % 160 + 10, 2, 2);
+      }
+      
+      // Draw trees
+      for (let t of trees) {
+        fill(30, 60, 30);
+        ellipse(t.x, t.y, t.size, t.size * 1.3);
+        fill(60, 40, 20);
+        rect(t.x - 8, t.y + 20, 16, 45);
+      }
+      
+      // Draw flowers
+      for (let f of flowers) {
+        fill(f.color);
+        ellipse(f.x, f.y, 12, 12);
+        fill("#fff9c4");
+        ellipse(f.x, f.y, 5, 5);
+      }
+      
+      // Wishing Star Altar (center of meadow)
+      fill(70, 55, 30);
+      rect(width/2 - 35, height/2 - 20, 70, 25);
+      fill(255, 215, 80);
+      ellipse(width/2, height/2 - 35, 28, 28); // glowing star base
+      
+      if (frameCount % 30 < 15) {
+        fill(255, 255, 200, 180);
+        ellipse(width/2, height/2 - 35, 38, 38);
+      }
+      
+      // Draw Star People (only if not found)
+      for (let i = 0; i < starPeople.length; i++) {
+        let sp = starPeople[i];
+        if (!sp.found) {
+          // Star person glow
+          fill(255, 235, 150, 80);
+          ellipse(sp.x, sp.y, 52, 52);
+          fill(sp.color);
+          ellipse(sp.x, sp.y, 22, 22);
+          // Star on head
+          fill(255);
+          textSize(14);
+          textAlign(CENTER);
+          text("★", sp.x, sp.y + 5);
+        }
+      }
+      
+      // Draw magic particles / fireflies
+      noStroke();
+      for (let p of particles) {
+        fill(255, 250, 200, p.alpha);
+        ellipse(p.x, p.y, p.size, p.size);
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        // Gentle wandering
+        if (random() < 0.05) p.vx = random(-0.5, 0.5);
+        if (random() < 0.05) p.vy = random(-0.5, 0.5);
+        
+        // Wrap around
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+      }
+      
+      // === JANE ===
+      drawJane();
+      
+      // === WICKED WITCH (surprise design: elegant but sinister with swirling green magic) ===
+      drawWitch();
+      
+      // Game logic
+      if (gameState === "play") {
+        handleMovement();
+        handleWitchAI();
+        checkCollisions();
+        checkWinCondition();
+        
+        // Timer
+        if (frameCount % 60 === 0) timeLeft--;
+        if (timeLeft <= 0) {
+          gameState = "lose";
+          dialogue = "The witch reached the star first...";
+        }
+        
+        // Show current clues
+        fill(255, 240, 180);
+        textSize(16);
+        textAlign(LEFT);
+        text("Star People found: " + cluesFound + "/5", 30, 50);
+        text("Time left: " + timeLeft + "s", 30, 75);
+        
+        // Show dialogue
+        if (dialogueTimer > 0) {
+          fill(255, 250, 220);
+          rect(width/2 - 220, height - 110, 440, 70, 12);
+          fill(40, 30, 20);
+          textSize(13);
+          textAlign(CENTER);
+          text(dialogue, width/2, height - 75);
+          dialogueTimer--;
+        }
+      }
+      
+      // UI overlays
+      if (gameState === "start") {
+        drawStartScreen();
+      } else if (gameState === "fight") {
+        drawFightScreen();
+      } else if (gameState === "win") {
+        drawWinScreen();
+      } else if (gameState === "lose") {
+        drawLoseScreen();
+      }
+    }
+    
+    function drawJane() {
+      let j = jane;
+      
+      // Shadow
+      fill(0, 0, 0, 60);
+      ellipse(j.x, j.y + 22, 26, 10);
+      
+      // Star boots (pink with stars)
+      fill(255, 105, 180);
+      rect(j.x - 10, j.y + 12, 9, 16, 3);
+      rect(j.x + 1, j.y + 12, 9, 16, 3);
+      
+      // Pink skirt
+      fill(255, 150, 200);
+      rect(j.x - 13, j.y - 2, 26, 18, 4);
+      
+      // Star shirt (yellow with big star)
+      fill(255, 215, 80);
+      rect(j.x - 10, j.y - 18, 20, 18);
+      fill(255, 100, 50);
+      textSize(13);
+      textAlign(CENTER);
+      text("★", j.x, j.y - 5);
+      
+      // Short hair (brown bob)
+      fill(101, 67, 33);
+      ellipse(j.x, j.y - 26, 24, 22);
+      fill(70, 45, 20);
+      ellipse(j.x - 8, j.y - 24, 10, 14);
+      ellipse(j.x + 8, j.y - 24, 10, 14);
+      
+      // Face
+      fill(255, 220, 185);
+      ellipse(j.x, j.y - 26, 16, 16);
+      
+      // Eyes
+      fill(60, 40, 20);
+      ellipse(j.x - 4, j.y - 28, 3, 3);
+      ellipse(j.x + 4, j.y - 28, 3, 3);
+      
+      // Flying effect / magic aura
+      if (j.flying || j.power > 0) {
+        fill(150, 220, 255, 120);
+        ellipse(j.x, j.y - 8, 50, 50);
+        j.power = max(0, j.power - 1);
+      }
+    }
+    
+    function drawWitch() {
+      let w = witch;
+      
+      // Shadow
+      fill(0, 0, 0, 50);
+      ellipse(w.x, w.y + 28, 30, 12);
+      
+      // Dark flowing cloak
+      fill(35, 20, 45);
+      triangle(w.x - 18, w.y + 25, w.x, w.y - 22, w.x + 18, w.y + 25);
+      
+      // Witch hat (tall and pointy with green band)
+      fill(25, 15, 35);
+      triangle(w.x, w.y - 55, w.x - 22, w.y - 18, w.x + 22, w.y - 18);
+      fill(40, 180, 90);
+      rect(w.x - 20, w.y - 22, 40, 8);
+      
+      // Face (pale green-tinted)
+      fill(180, 210, 170);
+      ellipse(w.x, w.y - 12, 18, 20);
+      
+      // Glowing evil green eyes (surprise element!)
+      fill(0, 255, 120);
+      ellipse(w.x - 5, w.y - 14, 5, 5);
+      ellipse(w.x + 5, w.y - 14, 5, 5);
+      fill(0, 100, 40);
+      ellipse(w.x - 5, w.y - 14, 2, 2);
+      ellipse(w.x + 5, w.y - 14, 2, 2);
+      
+      // Mind reading aura (green swirls)
+      if (w.state === "chasing") {
+        stroke(80, 255, 140, 160);
+        strokeWeight(2);
+        noFill();
+        ellipse(w.x, w.y - 5, 55 + sin(frameCount * 0.2) * 8, 55 + cos(frameCount * 0.15) * 8);
+        noStroke();
+      }
+      
+      // Broom / magic staff
+      stroke(120, 80, 40);
+      strokeWeight(4);
+      line(w.x + 18, w.y - 5, w.x + 38, w.y + 18);
+      noStroke();
+    }
+    
+    function handleMovement() {
+      let j = jane;
+      let speed = j.flying ? 5.5 : 3.8;
+      
+      j.vx = 0;
+      j.vy = 0;
+      
+      if (keyIsDown(LEFT_ARROW)) j.vx = -speed;
+      if (keyIsDown(RIGHT_ARROW)) j.vx = speed;
+      if (keyIsDown(UP_ARROW)) j.vy = -speed;
+      if (keyIsDown(DOWN_ARROW)) j.vy = speed;
+      
+      // Flying with SPACE
+      if (keyIsDown(32)) { // SPACE
+        j.flying = true;
+        j.power = 25;
+        j.vy -= 1.5; // extra lift
+      } else {
+        j.flying = false;
+      }
+      
+      j.x += j.vx;
+      j.y += j.vy;
+      
+      // Keep Jane in bounds
+      j.x = constrain(j.x, 25, width - 25);
+      j.y = constrain(j.y, 70, height - 50);
+    }
+    
+    function handleWitchAI() {
+      let w = witch;
+      let j = jane;
+      
+      // Witch slowly moves toward the altar but gets distracted by Jane
+      let targetX = width / 2;
+      let targetY = height / 2 - 20;
+      
+      // If Jane has many clues, witch starts chasing her (mind reading)
+      if (cluesFound >= 3) {
+        w.state = "chasing";
+        targetX = j.x;
+        targetY = j.y;
+        w.mindReadTimer++;
+      } else {
+        w.state = "searching";
+      }
+      
+      let dx = targetX - w.x;
+      let dy = targetY - w.y;
+      let dist = sqrt(dx*dx + dy*dy);
+      
+      if (dist > 8) {
+        w.x += (dx / dist) * 2.1;
+        w.y += (dy / dist) * 2.1;
+      }
+      
+      // Witch occasionally casts mind-reading illusion (fake path particles)
+      if (w.mindReadTimer > 40 && random() < 0.3) {
+        particles.push({
+          x: w.x + random(-30, 30),
+          y: w.y + random(-30, 30),
+          vx: random(-1.5, 1.5),
+          vy: random(-1.5, 1.5),
+          size: random(5, 9),
+          alpha: 140
+        });
+        w.mindReadTimer = 0;
+      }
+      
+      // Keep witch in bounds
+      w.x = constrain(w.x, 40, width - 40);
+      w.y = constrain(w.y, 80, height - 60);
+    }
+    
+    function checkCollisions() {
+      let j = jane;
+      
+      // Check star people
+      for (let sp of starPeople) {
+        if (!sp.found && dist(j.x, j.y, sp.x, sp.y) < 38) {
+          sp.found = true;
+          cluesFound++;
+          dialogue = sp.clue;
+          dialogueTimer = 160;
+          score += 100;
+          
+          // Magical particles burst
+          for (let i = 0; i < 18; i++) {
+            particles.push({
+              x: sp.x,
+              y: sp.y,
+              vx: random(-3, 3),
+              vy: random(-3, 3),
+              size: random(3, 6),
+              alpha: 230
+            });
+          }
+        }
+      }
+      
+      // Check witch collision → fight!
+      if (dist(j.x, j.y, witch.x, witch.y) < 42) {
+        if (gameState !== "fight") {
+          gameState = "fight";
+          witchHealth = 3;
+          dialogue = "The Wicked Witch challenges you!";
+          dialogueTimer = 90;
+        }
+      }
+      
+      // Check if Jane reaches the altar with all clues
+      if (cluesFound >= 5 && dist(j.x, j.y, width/2, height/2 - 35) < 45) {
+        gameState = "win";
+      }
+    }
+    
+    function checkWinCondition() {
+      // If witch gets too close to altar with low clues
+      if (dist(witch.x, witch.y, width/2, height/2) < 55 && cluesFound < 3) {
+        gameState = "lose";
+        dialogue = "The witch made her dark wish first...";
+      }
+    }
+    
+    function keyPressed() {
+      if (gameState === "start" && (key === ' ' || keyCode === ENTER)) {
+        gameState = "play";
+        timeLeft = 120;
+        cluesFound = 0;
+        starPeople.forEach(sp => sp.found = false);
+        jane.x = 150;
+        jane.y = 320;
+        witch.x = 720;
+        witch.y = 280;
+        witchHealth = 3;
+      }
+      
+      // Talk to star people with E
+      if (gameState === "play" && key.toLowerCase() === 'e') {
+        for (let sp of starPeople) {
+          if (!sp.found && dist(jane.x, jane.y, sp.x, sp.y) < 55) {
+            sp.found = true;
+            cluesFound++;
+            dialogue = sp.clue;
+            dialogueTimer = 180;
+            score += 120;
+            break;
+          }
+        }
+      }
+      
+      // During fight, SPACE to use mind power
+      if (gameState === "fight" && key === ' ') {
+        witchHealth--;
+        dialogue = "Jane uses her mind powers!";
+        dialogueTimer = 50;
+        
+        // Push witch back with magic
+        let pushX = (witch.x - jane.x) * 1.8;
+        let pushY = (witch.y - jane.y) * 1.8;
+        witch.x += pushX;
+        witch.y += pushY;
+        
+        if (witchHealth <= 0) {
+          gameState = "play";
+          dialogue = "Jane won the fight! The witch retreats...";
+          dialogueTimer = 120;
+          // Reward player
+          jane.power = 60;
+        }
+      }
+    }
+    
+    function drawStartScreen() {
+      fill(0, 0, 0, 180);
+      rect(0, 0, width, height);
+      
+      fill(255, 235, 150);
+      textSize(32);
+      textAlign(CENTER);
+      text("Looking for the Wishing Star", width/2, height/2 - 80);
+      
+      textSize(16);
+      fill(200, 220, 255);
+      text("Help Jane find the 5 Star People", width/2, height/2 - 20);
+      text("before the Wicked Witch makes her dark wish!", width/2, height/2 + 5);
+      
+      textSize(14);
+      fill(255, 200, 120);
+      text("Arrow Keys = Move    SPACE = Fly & Magic    E = Talk", width/2, height/2 + 60);
+      
+      textSize(18);
+      fill(255, 255, 200);
+      text("Press SPACE or ENTER to Begin", width/2, height/2 + 120);
+    }
+    
+    function drawFightScreen() {
+      fill(30, 10, 20, 200);
+      rect(0, 0, width, height);
+      
+      fill(255, 80, 120);
+      textSize(28);
+      textAlign(CENTER);
+      text("✨ MAGICAL DUEL ✨", width/2, 120);
+      
+      fill(255);
+      textSize(18);
+      text("Jane vs The Wicked Witch", width/2, 170);
+      
+      // Health bars
+      fill(80, 255, 120);
+      rect(200, 230, 180, 24);
+      fill(255, 60, 80);
+      rect(200, 230, witchHealth * 60, 24);
+      
+      fill(255);
+      textSize(14);
+      text("Witch Health: " + witchHealth + " / 3", width/2, 265);
+      
+      text("Press SPACE to blast her with your mind powers!", width/2, 340);
+      text("(She reads minds... stay sharp!)", width/2, 370);
+    }
+    
+    function drawWinScreen() {
+      fill(0, 0, 0, 160);
+      rect(0, 0, width, height);
+      
+      fill(255, 220, 80);
+      textSize(36);
+      textAlign(CENTER);
+      text("✨ YOU DID IT! ✨", width/2, height/2 - 60);
+      
+      fill(200, 255, 200);
+      textSize(18);
+      text("Jane reaches the Wishing Star first!", width/2, height/2);
+      
+      textSize(15);
+      fill(255, 235, 180);
+      text("What do you wish for, Malayah?", width/2, height/2 + 50);
+      text("The meadow glows with magic...", width/2, height/2 + 80);
+      
+      textSize(14);
+      text("Press R to restart", width/2, height/2 + 140);
+      
+      if (keyIsDown(82)) { // R key
+        resetGame();
+      }
+    }
+    
+    function drawLoseScreen() {
+      fill(30, 10, 10, 180);
+      rect(0, 0, width, height);
+      
+      fill(180, 80, 80);
+      textSize(32);
+      textAlign(CENTER);
+      text("The Witch Got There First...", width/2, height/2 - 40);
+      
+      fill(255, 200, 200);
+      textSize(16);
+      text(dialogue, width/2, height/2 + 20);
+      
+      textSize(14);
+      text("Press R to try again", width/2, height/2 + 90);
+      
+      if (keyIsDown(82)) {
+        resetGame();
+      }
+    }
+    
+    function resetGame() {
+      gameState = "start";
+      cluesFound = 0;
+      timeLeft = 120;
+      witchHealth = 3;
+      starPeople.forEach(sp => sp.found = false);
+      jane.x = 150;
+      jane.y = 320;
+      witch.x = 720;
+      witch.y = 280;
+      dialogue = "";
+    }
+    
+    // Touch support for mobile (bonus)
+    function touchStarted() {
+      if (gameState === "play") {
+        // Simple tap to fly
+        jane.flying = true;
+        jane.power = 30;
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>

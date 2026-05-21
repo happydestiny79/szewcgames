@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ava the Witch Kidnapper - Throw People Field</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <style>
+    body { margin:0; background:#0a2f1e; color:#ddd; font-family:monospace; }
+    canvas { display:block; margin:20px auto; border:4px solid #4a7043; }
+    .info { text-align:center; max-width:700px; margin:0 auto; }
+    .controls { background:#112211; padding:10px; margin:10px auto; max-width:600px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <h1>🧙‍♀️ Ava the Witch Kidnapper</h1>
+    <p><strong>Like Minecraft but more realistic • Roblox throwing fights • Monsters spawn</strong></p>
+    <p>Field with old buildings • Throw &amp; punch everything • Collect 100 coins</p>
+  </div>
+  
+  <div class="controls">
+    <strong>Controls:</strong> Arrow keys / WASD = move &nbsp;|&nbsp; SPACE = punch/throw &nbsp;|&nbsp; Click = fling toward mouse<br>
+    <strong>Goal:</strong> Survive monster waves, throw enemies, collect coins. Fights intensify every 2 minutes!
+  </div>
+
+  <script>
+    let player;
+    let monsters = [];
+    let coins = [];
+    let buildings = [];
+    let score = 0;
+    let time = 0;
+    let fightTimer = 120; // 2 minutes in seconds
+
+    function setup() {
+      createCanvas(800, 600);
+      
+      player = {
+        x: width/2,
+        y: height/2,
+        size: 28,
+        vx: 0,
+        vy: 0,
+        health: 100
+      };
+      
+      // Old field buildings
+      buildings = [
+        {x: 120, y: 180, w: 90, h: 70},
+        {x: 550, y: 220, w: 110, h: 60},
+        {x: 300, y: 420, w: 80, h: 90},
+        {x: 650, y: 450, w: 70, h: 50}
+      ];
+      
+      // Initial coins
+      for (let i = 0; i < 8; i++) {
+        coins.push({
+          x: random(80, width-80),
+          y: random(80, height-80),
+          size: 14
+        });
+      }
+      
+      // Starting monsters
+      for (let i = 0; i < 4; i++) {
+        spawnMonster();
+      }
+    }
+    
+    function draw() {
+      background(34, 85, 51); // Field green
+      
+      // Simple dirt paths
+      fill(101, 78, 55);
+      rect(0, height/2 - 40, width, 80);
+      
+      // Draw buildings
+      fill(120, 90, 70);
+      for (let b of buildings) {
+        rect(b.x, b.y, b.w, b.h);
+        // Roof
+        fill(80, 60, 40);
+        triangle(b.x-10, b.y, b.x + b.w/2, b.y - 30, b.x + b.w + 10, b.y);
+        fill(120, 90, 70);
+      }
+      
+      // Draw coins
+      fill(255, 215, 0);
+      for (let c of coins) {
+        circle(c.x, c.y, c.size);
+        fill(255, 180, 0);
+        circle(c.x-2, c.y-2, c.size*0.5);
+        fill(255, 215, 0);
+      }
+      
+      // Draw monsters
+      for (let m of monsters) {
+        fill(80, 40, 40);
+        circle(m.x, m.y, m.size);
+        fill(200, 50, 50);
+        circle(m.x, m.y - 5, 8); // eyes
+      }
+      
+      // Draw player (Ava - witch)
+      fill(60, 30, 90);
+      circle(player.x, player.y, player.size);
+      fill(255, 200, 150);
+      circle(player.x, player.y - 4, 18); // head
+      fill(30, 10, 50);
+      triangle(player.x - 18, player.y - 12, player.x, player.y - 30, player.x + 18, player.y - 12); // hat
+      
+      // Throw indicator
+      if (mouseIsPressed) {
+        stroke(255, 255, 0);
+        strokeWeight(3);
+        line(player.x, player.y, mouseX, mouseY);
+        strokeWeight(1);
+      }
+      
+      // UI
+      fill(255);
+      textSize(20);
+      text(`Coins: ${score}/100`, 20, 30);
+      text(`Health: ${player.health}`, 20, 55);
+      text(`Next big fight: ${floor(fightTimer)}s`, width - 220, 30);
+      
+      // Update
+      updatePlayer();
+      updateMonsters();
+      checkCollisions();
+      
+      time++;
+      if (time % 60 === 0) fightTimer--;
+      
+      // Monster waves
+      if (random() < 0.02 && monsters.length < 7) spawnMonster();
+      
+      // Periodic big fight (every ~2 min simulated)
+      if (fightTimer <= 0) {
+        fightTimer = 120;
+        for (let i = 0; i < 3; i++) spawnMonster();
+        textSize(32);
+        fill(255, 100, 100);
+        text("BIG FIGHT!", width/2 - 80, height/2);
+      }
+    }
+    
+    function updatePlayer() {
+      let speed = 4;
+      if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) player.x -= speed;
+      if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) player.x += speed;
+      if (keyIsDown(UP_ARROW) || keyIsDown(87)) player.y -= speed;
+      if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) player.y += speed;
+      
+      // Keep on screen
+      player.x = constrain(player.x, 30, width-30);
+      player.y = constrain(player.y, 30, height-30);
+    }
+    
+    function updateMonsters() {
+      for (let m of monsters) {
+        // Simple AI - move toward player
+        let dx = player.x - m.x;
+        let dy = player.y - m.y;
+        let dist = sqrt(dx*dx + dy*dy);
+        if (dist > 5) {
+          m.x += (dx / dist) * m.speed;
+          m.y += (dy / dist) * m.speed;
+        }
+      }
+    }
+    
+    function checkCollisions() {
+      // Player vs coins
+      for (let i = coins.length - 1; i >= 0; i--) {
+        let c = coins[i];
+        if (dist(player.x, player.y, c.x, c.y) < player.size/2 + c.size/2) {
+          coins.splice(i, 1);
+          score++;
+          // Respawn coin
+          coins.push({
+            x: random(80, width-80),
+            y: random(80, height-80),
+            size: 14
+          });
+        }
+      }
+      
+      // Player vs monsters (punch/throw)
+      for (let i = monsters.length - 1; i >= 0; i--) {
+        let m = monsters[i];
+        if (dist(player.x, player.y, m.x, m.y) < player.size/2 + m.size/2) {
+          if (keyIsDown(32) || mouseIsPressed) { // SPACE or click = throw
+            // Fling the monster
+            let angle = atan2(mouseY - player.y, mouseX - player.x);
+            m.x += cos(angle) * 35;
+            m.y += sin(angle) * 35;
+            m.health = (m.health || 30) - 15;
+            
+            if (m.health <= 0) {
+              monsters.splice(i, 1);
+              score += 3;
+            }
+          } else {
+            // Take damage
+            player.health -= 0.5;
+          }
+        }
+      }
+      
+      // Monster vs buildings (bounce)
+      for (let m of monsters) {
+        for (let b of buildings) {
+          if (m.x > b.x && m.x < b.x + b.w && m.y > b.y && m.y < b.y + b.h) {
+            m.x -= 8;
+            m.y -= 8;
+          }
+        }
+      }
+      
+      if (player.health <= 0) {
+        textSize(48);
+        fill(255, 0, 0);
+        text("GAME OVER", width/2 - 140, height/2);
+        noLoop();
+      }
+      
+      if (score >= 100) {
+        textSize(36);
+        fill(0, 255, 150);
+        text("YOU WIN! 100 COINS", width/2 - 160, height/2);
+        noLoop();
+      }
+    }
+    
+    function spawnMonster() {
+      monsters.push({
+        x: random(50, width-50),
+        y: random(50, height-50),
+        size: 26,
+        speed: random(1.2, 2.1),
+        health: 30
+      });
+    }
+    
+    function mousePressed() {
+      // Fling toward mouse
+      for (let m of monsters) {
+        if (dist(player.x, player.y, m.x, m.y) < 80) {
+          let angle = atan2(mouseY - player.y, mouseX - player.x);
+          m.x += cos(angle) * 40;
+          m.y += sin(angle) * 40;
+          m.health = (m.health || 30) - 20;
+        }
+      }
+    }
+    
+    function keyPressed() {
+      if (key === 'r' || key === 'R') {
+        // Restart
+        monsters = [];
+        coins = [];
+        score = 0;
+        player.health = 100;
+        fightTimer = 120;
+        setup();
+        loop();
+      }
+    }
+  </script>
+</body>
+</html>

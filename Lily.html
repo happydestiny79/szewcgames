@@ -22,11 +22,11 @@ let gameState = "start";
 let score = 0;
 let fightTime = 0;
 let buildings = [];
+let specialTimer = 0;
 
 function setup() {
   createCanvas(1050, 620);
   
-  // Two futuristic skyscrapers
   buildings = [
     { x: 80, w: 380, h: 420, color: [40, 50, 80] },
     { x: 580, w: 380, h: 420, color: [50, 45, 75] }
@@ -57,44 +57,34 @@ function setup() {
 function draw() {
   background(8, 12, 28);
   
-  // Futuristic night sky with stars and neon glow
   fill(15, 20, 45);
   rect(0, 0, width, 200);
   
-  // Stars
   fill(255, 255, 220);
   for (let i = 0; i < 60; i++) {
     ellipse((i * 31) % width, (i * 13) % 190, 2, 2);
   }
   
-  // Neon city glow in distance
   fill(30, 60, 120, 60);
   rect(0, 150, width, 60);
   
-  // Draw skyscrapers
   for (let b of buildings) {
     fill(b.color[0], b.color[1], b.color[2]);
     rect(b.x, 200, b.w, b.h);
     
-    // Futuristic windows / panels
     fill(120, 200, 255, 140);
     for (let wy = 20; wy < b.h - 20; wy += 28) {
       for (let wx = 18; wx < b.w - 18; wx += 32) {
         rect(b.x + wx, 200 + wy, 14, 16);
       }
     }
-    
-    // Roof edge highlight
     fill(80, 100, 160);
     rect(b.x - 4, 195, b.w + 8, 12);
   }
   
-  // Rooftop platforms
   fill(55, 65, 95);
   rect(80, 195, 380, 18);
   rect(580, 195, 380, 18);
-  
-  // Gap between buildings
   fill(10, 14, 30);
   rect(460, 195, 120, 18);
   
@@ -115,7 +105,7 @@ function draw() {
     
     textSize(15);
     fill(200);
-    text("Controls:  W = Move   SPACE = Sword / Hold for Special   SHIFT = Jetpack Jump   Mouse = Aim Lasers", width/2, 480);
+    text("Controls:  W = Move   SPACE = Sword / Hold for Special   SHIFT = Jetpack Jump   Mouse = Aim", width/2, 480);
     
   } else if (gameState === "play") {
     drawGame();
@@ -143,13 +133,10 @@ function draw() {
 function drawGame() {
   fightTime++;
   
-  // Draw Roofly (brown dog with red cape, blue A, sword, jetpack)
   drawRoofly();
-  
-  // Draw Dr. Von (Waluigi-like, red suit, upside-down V hat)
   drawDrVon();
   
-  // Update and draw lasers
+  // Lasers
   for (let i = lasers.length - 1; i >= 0; i--) {
     let l = lasers[i];
     l.x += l.vx;
@@ -157,17 +144,15 @@ function drawGame() {
     fill(100, 220, 255);
     ellipse(l.x, l.y, 8, 8);
     
-    // Hit Dr. Von
     if (dist(l.x, l.y, drVon.x, drVon.y) < 45) {
-      bossHealth -= 1.2;
+      bossHealth -= 1.3;
       particles.push({x: l.x, y: l.y, life: 12, col: [100,220,255]});
       lasers.splice(i, 1);
     }
-    
     if (l.x < 0 || l.x > width) lasers.splice(i, 1);
   }
   
-  // Floating swords controlled by fingers
+  // Floating swords
   for (let i = swords.length - 1; i >= 0; i--) {
     let s = swords[i];
     s.x += s.vx;
@@ -175,7 +160,6 @@ function drawGame() {
     s.vx *= 0.96;
     s.vy *= 0.96;
     
-    // Draw sword
     push();
     translate(s.x, s.y);
     rotate(s.angle);
@@ -185,12 +169,12 @@ function drawGame() {
     rect(-3, -28, 6, 12);
     pop();
     
-    // Hit boss
     if (dist(s.x, s.y, drVon.x, drVon.y) < 50) {
-      bossHealth -= 2.5;
+      bossHealth -= 2.8;
       particles.push({x: s.x, y: s.y, life: 18, col: [255,220,80]});
       swords.splice(i, 1);
     }
+    if (s.x < 0 || s.x > width || s.y > 220) swords.splice(i, 1);
   }
   
   // Particles
@@ -202,63 +186,83 @@ function drawGame() {
     if (p.life <= 0) particles.splice(i, 1);
   }
   
-  // Dr. Von AI behavior
-  if (frameCount % 45 === 0 && drVon.onGround) {
-    drVon.vx = random(-3, 3);
+  // === MULTIPLYING SWORDS SYSTEM (Hold SPACE) ===
+  if (keyIsDown(32) && gameState === "play") {
+    specialTimer++;
+    // Rapid sword multiplication while holding
+    if (specialTimer % 5 === 0) {
+      for (let i = 0; i < 2; i++) {
+        swords.push({
+          x: roofly.x + random(-18, 30) * roofly.facing,
+          y: roofly.y - 18 + random(-12, 12),
+          vx: random(-4.5, 4.5) * roofly.facing,
+          vy: random(-3, 2),
+          angle: random(-1.4, 1.4)
+        });
+      }
+    }
+    // Extra eye lasers during special
+    if (specialTimer % 3 === 0) {
+      lasers.push({
+        x: roofly.x + 30 * roofly.facing,
+        y: roofly.y - 22,
+        vx: 12 * roofly.facing,
+        vy: random(-1.5, 1.5)
+      });
+    }
+  } else {
+    specialTimer = 0;
   }
   
-  // Dr. Von moves and attacks (gets stronger over time)
+  // Dr. Von AI
+  if (frameCount % 45 === 0 && drVon.onGround) {
+    drVon.vx = random(-3.2, 3.2);
+  }
+  
   drVon.x += drVon.vx;
-  drVon.vy += 0.8;
+  drVon.vy += 0.85;
   drVon.onGround = false;
   
-  // Keep on roof
   if (drVon.y > 185) {
     drVon.y = 185;
     drVon.vy = 0;
     drVon.onGround = true;
   }
   
-  // Clamp to building roofs
   if (drVon.x < 120) drVon.x = 120;
   if (drVon.x > 920) drVon.x = 920;
   
-  // Dr. Von attacks - stronger as fight progresses
-  let attackPower = min(1 + fightTime / 800, 3.5);
-  if (frameCount % 70 === 0 && random() < 0.7) {
-    // Ground smash punch
-    for (let i = 0; i < 6; i++) {
+  // Stronger attacks over time
+  let attackPower = min(1 + fightTime / 750, 3.8);
+  if (frameCount % 65 === 0 && random() < 0.75) {
+    for (let i = 0; i < 7; i++) {
       particles.push({
-        x: drVon.x + random(-60,60),
+        x: drVon.x + random(-70,70),
         y: 195,
-        life: 20,
+        life: 22,
         col: [255, 80, 80]
       });
     }
-    // Damage if close
-    if (dist(drVon.x, drVon.y, roofly.x, roofly.y) < 90) {
-      health -= 8 * attackPower;
+    if (dist(drVon.x, drVon.y, roofly.x, roofly.y) < 95) {
+      health -= 9 * attackPower;
     }
   }
   
   // Roofly physics
   roofly.x += roofly.vx;
   roofly.y += roofly.vy;
-  roofly.vy += 0.75;
+  roofly.vy += 0.78;
   roofly.onGround = false;
   
   if (roofly.y > 185) {
     roofly.y = 185;
     roofly.vy = 0;
     roofly.onGround = true;
-    roofly.jetpack = 0;
   }
   
-  // Clamp Roofly
   if (roofly.x < 120) roofly.x = 120;
   if (roofly.x > 920) roofly.x = 920;
   
-  // Clamp health
   health = constrain(health, 0, 100);
   bossHealth = constrain(bossHealth, 0, 100);
   
@@ -269,7 +273,6 @@ function drawGame() {
   text("ROOFLY", 30, 40);
   text("DR. VON", width - 150, 40);
   
-  // Health bars
   fill(60);
   rect(30, 50, 200, 18);
   fill(80, 220, 120);
@@ -280,14 +283,10 @@ function drawGame() {
   fill(255, 80, 80);
   rect(width - 230, 50, bossHealth * 2, 18);
   
-  // Special attack meter hint
   fill(255, 200, 100);
-  text("Hold SPACE for MULTI-SWORD BARRAGE", width/2 - 150, 580);
+  text("Hold SPACE = MULTIPLYING SWORDS BARRAGE", width/2 - 170, 580);
   
-  // Check win/lose
-  if (health <= 0) {
-    gameState = "lose";
-  }
+  if (health <= 0) gameState = "lose";
   if (bossHealth <= 0) {
     gameState = "win";
     score += 500;
@@ -299,20 +298,16 @@ function drawRoofly() {
   translate(roofly.x, roofly.y);
   scale(roofly.facing, 1);
   
-  // Big brown body
   fill(140, 90, 50);
   ellipse(0, 0, roofly.size * 1.1, roofly.size * 0.85);
   
-  // Smushed head
   fill(130, 85, 45);
   ellipse(18, -22, 32, 28);
   
-  // Ears
   fill(120, 75, 40);
   ellipse(8, -38, 14, 18);
   ellipse(28, -38, 14, 18);
   
-  // Red cape with blue "A"
   fill(200, 30, 40);
   beginShape();
   vertex(-8, 5);
@@ -321,33 +316,28 @@ function drawRoofly() {
   vertex(-12, 30);
   endShape(CLOSE);
   
-  // Blue letter A on cape
   fill(40, 120, 255);
   textSize(14);
   text("A", 3, 22);
   
-  // Built-in jetpack legs
   fill(80, 80, 95);
   rect(-12, 18, 10, 22);
   rect(2, 18, 10, 22);
-  // Jet flames when jumping
+  
   if (!roofly.onGround) {
     fill(255, 180, 50);
     rect(-9, 38, 5, random(8, 18));
     rect(5, 38, 5, random(8, 18));
   }
   
-  // Human-like fingers / paw holding sword
   fill(210, 170, 130);
   ellipse(26, 4, 11, 9);
   
-  // Sword (raised)
   fill(210, 210, 225);
   rect(28, -38, 6, 44);
   fill(255, 215, 80);
   rect(27, -46, 8, 12);
   
-  // Eye lasers when attacking
   if (keyIsDown(32)) {
     fill(80, 220, 255);
     ellipse(12, -26, 6, 4);
@@ -361,18 +351,14 @@ function drawDrVon() {
   push();
   translate(drVon.x, drVon.y);
   
-  // Red suit (Waluigi style)
   fill(180, 20, 30);
   ellipse(0, 5, 46, 50);
   
-  // Tall hat with upside-down V
   fill(30, 30, 50);
   rect(-16, -42, 32, 38);
-  // Upside down V emblem
   fill(255, 220, 60);
   triangle(0, -38, -10, -22, 10, -22);
   
-  // Zigzag mustache
   fill(60, 30, 10);
   beginShape();
   vertex(-18, -8);
@@ -382,14 +368,12 @@ function drawDrVon() {
   vertex(18, -8);
   endShape();
   
-  // Evil smirk
   noFill();
   stroke(255, 200, 180);
   strokeWeight(2);
   arc(0, 8, 18, 10, 0, PI);
   noStroke();
   
-  // Big hulk-like fists
   fill(240, 200, 170);
   ellipse(-22, 12, 22, 20);
   ellipse(22, 12, 22, 20);
@@ -403,6 +387,7 @@ function keyPressed() {
     health = 100;
     bossHealth = 100;
     fightTime = 0;
+    specialTimer = 0;
     lasers = [];
     swords = [];
   }
@@ -412,6 +397,7 @@ function keyPressed() {
     health = 100;
     bossHealth = 100;
     fightTime = 0;
+    specialTimer = 0;
     roofly.x = 220;
     roofly.y = 180;
     drVon.x = 780;
@@ -421,39 +407,13 @@ function keyPressed() {
     particles = [];
   }
   
-  // Jetpack jump
   if (keyCode === SHIFT && roofly.onGround) {
-    roofly.vy = -13;
+    roofly.vy = -13.5;
     roofly.onGround = false;
   }
   
-  // Move
   if (key === 'w' || key === 'W') {
-    roofly.vx = 5.5 * roofly.facing;
-  }
-  
-  // Special attack - multiple floating swords
-  if (key === ' ' && gameState === "play") {
-    // Basic laser shot from eyes
-    lasers.push({
-      x: roofly.x + 30 * roofly.facing,
-      y: roofly.y - 22,
-      vx: 9 * roofly.facing,
-      vy: 0
-    });
-    
-    // Multi-sword special (if holding)
-    if (keyIsDown(32)) {
-      for (let i = 0; i < 3; i++) {
-        swords.push({
-          x: roofly.x,
-          y: roofly.y - 20,
-          vx: random(-4, 4) * roofly.facing,
-          vy: random(-3, 2),
-          angle: random(-0.8, 0.8)
-        });
-      }
-    }
+    roofly.vx = 5.8 * roofly.facing;
   }
 }
 
@@ -464,36 +424,30 @@ function keyReleased() {
 }
 
 function mouseMoved() {
-  // Mouse controls facing / aim
   if (gameState === "play") {
-    if (mouseX < roofly.x) {
-      roofly.facing = -1;
-    } else {
-      roofly.facing = 1;
-    }
+    roofly.facing = (mouseX < roofly.x) ? -1 : 1;
   }
 }
 
 function mousePressed() {
   if (gameState === "play") {
-    // Mouse click = throw floating sword + knife
     let angle = atan2(mouseY - roofly.y, mouseX - roofly.x);
     swords.push({
       x: roofly.x + 25 * roofly.facing,
       y: roofly.y - 10,
-      vx: cos(angle) * 7,
+      vx: cos(angle) * 7.5,
       vy: sin(angle) * 7,
       angle: angle
     });
     
-    // Secret knife compartment
-    if (random() < 0.6) {
+    // Secret knife
+    if (random() < 0.65) {
       swords.push({
         x: roofly.x + 20 * roofly.facing,
         y: roofly.y + 5,
-        vx: cos(angle) * 9.5,
-        vy: sin(angle) * 5,
-        angle: angle + 0.3
+        vx: cos(angle) * 10,
+        vy: sin(angle) * 4.5,
+        angle: angle + 0.35
       });
     }
   }

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baby Demon • 3 Nights</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+    body { font-family: 'Press Start 2P', system-ui, sans-serif; }
+    canvas { image-rendering: pixelated; border: 4px solid #3f2a1e; }
+    .crt { 
+      box-shadow: 0 0 0 8px #1a120b, 
+                  0 0 0 12px #3f2a1e,
+                  inset 0 0 60px rgba(0,0,0,0.8);
+    }
+    .night { background: #0a0a0a; color: #ffcc66; }
+    .demon { background: #1a0000; color: #ff3333; animation: flicker 0.1s infinite; }
+    @keyframes flicker {
+      0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; }
+    }
+    .instruction { 
+      font-size: 14px; 
+      padding: 8px 12px; 
+      background: #3f2a1e; 
+      border: 3px solid #ffcc66;
+    }
+  </style>
+</head>
+<body class="bg-[#1a120b] text-[#ffcc66]">
+  <div class="max-w-4xl mx-auto p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-4xl font-bold tracking-wider">BABY DEMON</h1>
+        <p class="text-sm opacity-75">3 Nights of Care • Horror Prototype</p>
+      </div>
+      <div class="text-right text-xs">
+        <div>NIGHT <span id="night">1</span>/3</div>
+        <div class="text-red-400" id="status">NORMAL</div>
+      </div>
+    </div>
+
+    <div id="game-container" class="flex justify-center"></div>
+    
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Controls -->
+      <div class="bg-[#2a1f14] p-4 border-4 border-[#ffcc66]">
+        <h3 class="text-sm mb-3 text-[#ffcc66]">ACTIONS</h3>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="doAction('feed')" class="px-3 py-2 bg-[#3f2a1e] hover:bg-[#ffcc66] hover:text-[#1a120b] border-2 border-[#ffcc66]">FEED BABY</button>
+          <button onclick="doAction('change')" class="px-3 py-2 bg-[#3f2a1e] hover:bg-[#ffcc66] hover:text-[#1a120b] border-2 border-[#ffcc66]">CHANGE BABY</button>
+          <button onclick="doAction('play')" class="px-3 py-2 bg-[#3f2a1e] hover:bg-[#ffcc66] hover:text-[#1a120b] border-2 border-[#ffcc66]">PLAY WITH BABY</button>
+          <button onclick="doAction('sleep')" class="px-3 py-2 bg-[#3f2a1e] hover:bg-[#ffcc66] hover:text-[#1a120b] border-2 border-[#ffcc66]">PUT TO SLEEP</button>
+        </div>
+      </div>
+
+      <!-- Plush Selection -->
+      <div class="bg-[#2a1f14] p-4 border-4 border-[#ffcc66]">
+        <h3 class="text-sm mb-3">NIGHTLY PLUSH (match the book!)</h3>
+        <div class="flex gap-2">
+          <button onclick="selectPlush('bunny')" class="flex-1 px-3 py-2 text-xs bg-[#3f2a1e] hover:bg-pink-900 border-2 border-pink-400">🐰 BUNNY</button>
+          <button onclick="selectPlush('cat')" class="flex-1 px-3 py-2 text-xs bg-[#3f2a1e] hover:bg-yellow-900 border-2 border-yellow-400">🐱 CAT</button>
+          <button onclick="selectPlush('puppy')" class="flex-1 px-3 py-2 text-xs bg-[#3f2a1e] hover:bg-orange-900 border-2 border-orange-400">🐶 PUPPY</button>
+        </div>
+        <div id="plush-status" class="mt-2 text-xs opacity-75">Choose correct plush for the night</div>
+      </div>
+    </div>
+
+    <div class="mt-4 text-xs bg-black/50 p-3 border border-[#ffcc66]">
+      <div class="font-bold mb-1">INSTRUCTIONS FROM BABY:</div>
+      <div id="baby-instruction" class="instruction">Take care of me... feed me, change me, play with me.</div>
+    </div>
+
+    <div class="mt-4 flex gap-3 text-xs">
+      <button onclick="resetGame()" class="px-4 py-1 bg-red-900 hover:bg-red-800 border border-red-400">RESET NIGHT</button>
+      <div class="flex-1 text-right opacity-60">Follow every instruction or you lose. Infinite nights • 3 nights per cycle</div>
+    </div>
+  </div>
+
+  <script>
+    let night = 1;
+    let correctPlush = 'bunny';
+    let plushChosen = null;
+    let babyState = { fed: false, changed: false, played: false, asleep: false };
+    let gamePhase = 'care'; // care, sleep, elevator, house, demon
+    let instructions = [];
+    let currentInstruction = 0;
+    let score = 0;
+    let demonMode = false;
+
+    function updateUI() {
+      document.getElementById('night').innerText = night;
+      const statusEl = document.getElementById('status');
+      if (demonMode) {
+        statusEl.innerText = 'DEMON';
+        statusEl.className = 'text-red-400 animate-pulse';
+        document.body.classList.add('demon');
+      } else {
+        statusEl.innerText = 'NORMAL';
+        statusEl.className = 'text-yellow-400';
+        document.body.classList.remove('demon');
+      }
+    }
+
+    function selectPlush(type) {
+      plushChosen = type;
+      const status = document.getElementById('plush-status');
+      
+      if (type === correctPlush) {
+        status.innerHTML = `✅ Correct! The ${type} matches the book.`;
+        status.style.color = '#66ff99';
+      } else {
+        status.innerHTML = `❌ Wrong plush! Should have been ${correctPlush}.`;
+        status.style.color = '#ff6666';
+      }
+      
+      // After choosing, advance to sleep if ready
+      setTimeout(() => {
+        if (plushChosen === correctPlush) {
+          triggerSleepSequence();
+        } else {
+          loseGame("Wrong plush selected. The baby is restless...");
+        }
+      }, 1200);
+    }
+
+    function doAction(action) {
+      if (gamePhase !== 'care') return;
+      
+      const instrEl = document.getElementById('baby-instruction');
+      
+      switch(action) {
+        case 'feed':
+          babyState.fed = true;
+          instrEl.innerText = "Mmm... thank you. Now change me?";
+          score += 10;
+          break;
+        case 'change':
+          babyState.changed = true;
+          instrEl.innerText = "Much better! Can we play?";
+          score += 10;
+          break;
+        case 'play':
+          babyState.played = true;
+          instrEl.innerText = "Yay! I'm getting sleepy...";
+          score += 10;
+          break;
+        case 'sleep':
+          if (babyState.fed && babyState.changed && babyState.played) {
+            babyState.asleep = true;
+            instrEl.innerText = "Good night... zzz";
+            setTimeout(() => {
+              triggerSleepSequence();
+            }, 800);
+          } else {
+            instrEl.innerText = "Not yet! I still need more care...";
+          }
+          break;
+      }
+    }
+
+    function triggerSleepSequence() {
+      gamePhase = 'sleep';
+      const instrEl = document.getElementById('baby-instruction');
+      instrEl.innerText = "The baby is asleep. Go watch TV outside...";
+      
+      setTimeout(() => {
+        gamePhase = 'elevator';
+        instrEl.innerText = "You fall asleep... You are now in an elevator. Get off at floor 2.";
+        
+        setTimeout(() => {
+          gamePhase = 'house';
+          startHouseSequence();
+        }, 2000);
+      }, 2500);
+    }
+
+    function startHouseSequence() {
+      const instrEl = document.getElementById('baby-instruction');
+      instructions = [
+        "Kneel down on the floor",
+        "Move forward",
+        "Move to the left side",
+        "Feed the baby",
+        "Change the baby"
+      ];
+      currentInstruction = 0;
+      
+      instrEl.innerHTML = `<span class="text-red-400">HOUSE #10</span> — Baby is waiting on the rug.<br>Follow instructions exactly.`;
+      
+      // Show first instruction
+      setTimeout(() => {
+        showNextInstruction();
+      }, 1500);
+    }
+
+    function showNextInstruction() {
+      if (currentInstruction >= instructions.length) {
+        completeNight();
+        return;
+      }
+      
+      const instrEl = document.getElementById('baby-instruction');
+      const action = instructions[currentInstruction];
+      
+      instrEl.innerHTML = `<span class="text-[#ffcc66]">INSTRUCTION ${currentInstruction + 1}:</span> ${action}<br><span class="text-xs opacity-60">Click the matching button below</span>`;
+      
+      // Highlight relevant buttons
+      highlightActionButtons(action);
+    }
+
+    function highlightActionButtons(instruction) {
+      // Simple mapping for prototype
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(b => b.style.borderColor = '#ffcc66');
+      
+      if (instruction.includes('Kneel') || instruction.includes('forward') || instruction.includes('left')) {
+        // Movement buttons would be highlighted in full version
+      }
+    }
+
+    function doHouseAction(action) {
+      if (gamePhase !== 'house') return;
+      
+      const instrEl = document.getElementById('baby-instruction');
+      const required = instructions[currentInstruction].toLowerCase();
+      
+      let correct = false;
+      
+      if (required.includes('kneel') && action === 'kneel') correct = true;
+      if (required.includes('forward') && action === 'forward') correct = true;
+      if (required.includes('left') && action === 'left') correct = true;
+      if (required.includes('feed') && action === 'feed') correct = true;
+      if (required.includes('change') && action === 'change') correct = true;
+      
+      if (correct) {
+        currentInstruction++;
+        score += 25;
+        instrEl.innerText = "Good... next instruction.";
+        setTimeout(showNextInstruction, 600);
+      } else {
+        loseGame(`You didn't follow: "${instructions[currentInstruction]}"`);
+      }
+    }
+
+    function completeNight() {
+      const instrEl = document.getElementById('baby-instruction');
+      
+      if (night === 3) {
+        // DEMON TRANSFORMATION
+        demonMode = true;
+        updateUI();
+        instrEl.innerHTML = `<span class="text-red-500 text-lg">THE BABY IS FLOATING...</span><br>Red outfit. Creepy smile. Brown eyes. No hair.<br><span class="text-red-400">IT'S TURNING INTO A DEMON.</span>`;
+        
+        setTimeout(() => {
+          instrEl.innerHTML = `SCARY ENDING — You survived the night... but the demon is now free.<br><span class="text-xs">Infinite levels continue. Next cycle starts at night 1.</span>`;
+          setTimeout(() => {
+            nextCycle();
+          }, 4000);
+        }, 2800);
+      } else {
+        instrEl.innerText = `Night ${night} complete. The baby is safe... for now.`;
+        setTimeout(() => {
+          night++;
+          resetNightState();
+          updateUI();
+          instrEl.innerText = `Night ${night} begins. Take care of the baby.`;
+        }, 2200);
+      }
+    }
+
+    function nextCycle() {
+      night = 1;
+      demonMode = false;
+      resetNightState();
+      updateUI();
+      const instrEl = document.getElementById('baby-instruction');
+      instrEl.innerText = "A new cycle begins. The baby needs you again...";
+    }
+
+    function loseGame(reason) {
+      const instrEl = document.getElementById('baby-instruction');
+      instrEl.innerHTML = `<span class="text-red-500">YOU FAILED.</span><br>${reason}<br><span class="text-xs">The baby disappears into the darkness...</span>`;
+      
+      setTimeout(() => {
+        resetGame();
+      }, 2800);
+    }
+
+    function resetNightState() {
+      babyState = { fed: false, changed: false, played: false, asleep: false };
+      plushChosen = null;
+      gamePhase = 'care';
+      instructions = [];
+      currentInstruction = 0;
+      document.getElementById('plush-status').innerHTML = 'Choose correct plush for the night';
+      document.getElementById('plush-status').style.color = '';
+      
+      // Set correct plush based on night (simple rotation)
+      const plushOptions = ['bunny', 'cat', 'puppy'];
+      correctPlush = plushOptions[(night - 1) % 3];
+    }
+
+    function resetGame() {
+      night = 1;
+      demonMode = false;
+      score = 0;
+      resetNightState();
+      updateUI();
+      const instrEl = document.getElementById('baby-instruction');
+      instrEl.innerText = "Take care of the baby for 3 nights. Match the plush to the book each night.";
+    }
+
+    // Keyboard support for movement simulation
+    function keyPressed() {
+      if (gamePhase === 'house') {
+        if (keyCode === LEFT_ARROW) doHouseAction('left');
+        if (keyCode === RIGHT_ARROW) doHouseAction('right');
+        if (keyCode === UP_ARROW) doHouseAction('forward');
+        if (keyCode === DOWN_ARROW) doHouseAction('kneel');
+      }
+    }
+
+    function setup() {
+      let cnv = createCanvas(640, 400);
+      cnv.parent('game-container');
+      
+      // Initial state
+      resetNightState();
+      updateUI();
+      
+      // Add keyboard hint
+      const hint = document.createElement('div');
+      hint.className = 'text-[10px] mt-1 opacity-50 text-center';
+      hint.innerText = 'Arrow keys also work for movement in house phase';
+      document.getElementById('game-container').appendChild(hint);
+    }
+
+    function draw() {
+      background(demonMode ? '#1a0000' : '#2a1f14');
+      
+      // Simple scene
+      if (gamePhase === 'care') {
+        // Crib scene
+        fill(60, 40, 30);
+        rect(220, 180, 200, 140);
+        fill(255, 220, 180);
+        ellipse(320, 210, 60, 50); // baby head
+        fill(200, 50, 50);
+        rect(290, 230, 60, 70); // red outfit
+        
+        if (demonMode) {
+          fill(255, 0, 0);
+          ellipse(310, 200, 8, 8); // creepy eyes
+          ellipse(330, 200, 8, 8);
+        } else {
+          fill(139, 90, 43);
+          ellipse(310, 200, 6, 6);
+          ellipse(330, 200, 6, 6);
+        }
+        
+        textSize(12);
+        fill(255, 204, 102);
+        text("BABY", 295, 270);
+        
+        if (plushChosen) {
+          textSize(10);
+          text(`Plush: ${plushChosen}`, 260, 310);
+        }
+      } else if (gamePhase === 'elevator') {
+        fill(40);
+        rect(280, 100, 80, 200);
+        fill(255, 204, 102);
+        textSize(14);
+        text("ELEVATOR", 270, 150);
+        text("Floor 2", 285, 200);
+      } else if (gamePhase === 'house') {
+        // House interior
+        fill(80, 60, 40);
+        rect(100, 80, 440, 280);
+        fill(40);
+        rect(200, 200, 80, 60); // rug
+        fill(255, 200, 150);
+        ellipse(240, 220, 30, 30); // baby on rug
+        fill(255, 204, 102);
+        textSize(11);
+        text("Baby waiting...", 180, 290);
+      } else if (gamePhase === 'sleep') {
+        fill(20);
+        rect(0, 0, width, height);
+        fill(255, 204, 102);
+        textSize(16);
+        text("zzz... watching TV...", 180, 200);
+      }
+      
+      // Score
+      fill(255, 204, 102);
+      textSize(10);
+      text(`Score: ${score}`, 20, 30);
+    }
+    
+    // Make house actions available via buttons too
+    window.doHouseAction = doHouseAction;
+    
+    // Bonus: expose a couple movement buttons dynamically
+    setTimeout(() => {
+      const moveDiv = document.createElement('div');
+      moveDiv.className = 'mt-2 flex gap-1 text-[10px]';
+      moveDiv.innerHTML = `
+        <button onclick="doHouseAction('kneel')" class="px-2 py-1 bg-[#3f2a1e] border border-[#ffcc66]">KNEEL</button>
+        <button onclick="doHouseAction('forward')" class="px-2 py-1 bg-[#3f2a1e] border border-[#ffcc66]">FORWARD</button>
+        <button onclick="doHouseAction('left')" class="px-2 py-1 bg-[#3f2a1e] border border-[#ffcc66]">LEFT</button>
+        <button onclick="doHouseAction('right')" class="px-2 py-1 bg-[#3f2a1e] border border-[#ffcc66]">RIGHT</button>
+      `;
+      const container = document.getElementById('game-container');
+      if (container) container.appendChild(moveDiv);
+    }, 500);
+  </script>
+</body>
+</html>
