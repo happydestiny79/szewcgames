@@ -6,8 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
   <style>
     body { margin:0; background:#000; display:flex; justify-content:center; align-items:center; height:100vh; font-family:monospace; color:#0ff; }
-    canvas { border:4px solid #0ff; box-shadow:0 0 20px #0ff; }
-    .hud { position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.75); padding:8px 14px; border:2px solid #0ff; font-size:13px; }
+    canvas { border:4px solid #0ff; box-shadow:0 0 25px #0ff; }
+    .hud { position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.8); padding:8px 14px; border:2px solid #0ff; font-size:13px; }
     .shop { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.95); border:3px solid #0ff; padding:18px; display:none; text-align:center; z-index:100; }
     button { background:#0ff; color:#000; border:none; padding:7px 14px; margin:5px; font-family:monospace; cursor:pointer; }
     button:hover { background:#fff; }
@@ -19,7 +19,7 @@
     <div>Level: <span id="lvl">1</span></div>
     <div>Money: $<span id="cash">0</span></div>
     <div>Health: <span id="hp">100</span></div>
-    <div style="font-size:10px; margin-top:6px; opacity:0.75;">↑ Closer &nbsp; ↓ Run Away &nbsp; Z Sword &nbsp; X Laser &nbsp; D Draw &nbsp; S Shop</div>
+    <div style="font-size:10px; margin-top:6px; opacity:0.8;">↑↓ Closer/Run &nbsp; ←→ Strafe &nbsp; Z Sword &nbsp; X Laser &nbsp; D Draw &nbsp; S Shop</div>
   </div>
 
   <div id="shop" class="shop">
@@ -46,16 +46,18 @@
     let drawPoints = [];
     let screenShake = 0;
     let lastAttack = 0;
+    let playerX = 0; // horizontal position (-150 to 150)
 
     function setup() {
-      createCanvas(1100, 620);
-      for (let i = 0; i < 26; i++) {
+      createCanvas(1200, 650);
+      // More buildings
+      for (let i = 0; i < 35; i++) {
         cityLights.push({
-          x: random(40, width-40),
-          y: random(20, 160),
-          w: random(6, 15),
-          h: random(28, 80),
-          lit: random() > 0.3
+          x: random(20, width-20),
+          y: random(15, 155),
+          w: random(7, 18),
+          h: random(35, 95),
+          lit: random() > 0.25
         });
       }
       spawnWave();
@@ -63,79 +65,82 @@
 
     function spawnWave() {
       enemies = [];
-      let count = 5 + floor(level * 1.6);
+      let count = 6 + floor(level * 1.8);
       for (let i = 0; i < count; i++) {
         enemies.push({
-          depth: random(60, 380),   // distance from player (higher = farther)
-          lane: random(-120, 120),  // horizontal position
-          health: 40 + level * 10,
-          type: random() < 0.4 ? 'rusher' : 'shooter',
-          shootTimer: random(40, 85)
+          depth: random(70, 420),
+          lane: random(-180, 180),
+          health: 42 + level * 11,
+          type: random() < 0.45 ? 'rusher' : 'shooter',
+          shootTimer: random(35, 80)
         });
       }
     }
 
     function draw() {
-      background(5, 5, 22);
+      background(4, 4, 20);
 
-      // Screen shake
       if (screenShake > 0) {
         translate(random(-screenShake, screenShake), random(-screenShake, screenShake));
-        screenShake *= 0.8;
+        screenShake *= 0.78;
       }
 
-      // Night sky + buildings
-      fill(10, 10, 35);
-      rect(0, 0, width, 180);
+      // Sky + many buildings
+      fill(8, 8, 32);
+      rect(0, 0, width, 175);
       for (let b of cityLights) {
-        fill(b.lit ? '#ffeb99' : '#222244');
+        fill(b.lit ? '#ffeb88' : '#1f1f3a');
         rect(b.x, b.y, b.w, b.h);
+        if (b.lit && frameCount % 30 < 15) {
+          fill(255, 235, 120, 55);
+          rect(b.x-1, b.y-1, b.w+2, b.h+2);
+        }
       }
 
-      // Road perspective
-      fill(25, 25, 38);
-      quad(0, 180, width, 180, width, height, 0, height);
+      // Wide road with perspective
+      fill(22, 22, 35);
+      quad(0, 175, width, 175, width, height, 0, height);
 
-      // Road lines (perspective)
-      stroke(255, 220, 50);
-      strokeWeight(2);
-      for (let i = 1; i < 7; i++) {
-        let y = 200 + i * 55;
-        let spread = i * 35;
+      // Road lines (wider perspective)
+      stroke(255, 215, 40);
+      strokeWeight(2.5);
+      for (let i = 1; i < 8; i++) {
+        let y = 195 + i * 58;
+        let spread = i * 42;
         line(width/2 - spread, y, width/2 + spread, y);
       }
       noStroke();
 
-      // Draw enemies (first person - they get bigger when closer)
+      // Enemies - first person style
       for (let e of enemies) {
-        let size = map(e.depth, 380, 20, 18, 95);
-        let x = width/2 + e.lane * map(e.depth, 380, 20, 0.3, 1.0);
-        let y = 220 + map(e.depth, 380, 20, 0, 140);
+        let size = map(e.depth, 420, 18, 16, 105);
+        let x = width/2 + (e.lane - playerX) * map(e.depth, 420, 18, 0.28, 1.05);
+        let y = 205 + map(e.depth, 420, 18, 0, 155);
 
-        // Simple Dr. Swzec shape
+        // Dr. Swzec body
         fill('#c41e3a');
-        ellipse(x, y, size, size * 1.15);
+        ellipse(x, y, size, size * 1.18);
         fill('#3d2b1f');
         for (let k = 0; k < 5; k++) {
-          ellipse(x - size*0.35 + k * (size*0.18), y - size*0.55, size*0.22, size*0.32);
+          ellipse(x - size*0.32 + k * (size*0.17), y - size*0.52, size*0.2, size*0.3);
         }
         fill('#ffdbac');
-        ellipse(x, y - size*0.15, size*0.65, size*0.55);
+        ellipse(x, y - size*0.12, size*0.62, size*0.52);
 
-        // Health bar
-        fill(180, 0, 0);
-        rect(x - size*0.5, y - size*0.85, size, 5);
-        fill(0, 255, 80);
-        rect(x - size*0.5, y - size*0.85, map(e.health, 0, 60, 0, size), 5);
+        // Health
+        fill(180,0,0);
+        rect(x - size*0.48, y - size*0.82, size, 5);
+        fill(0,255,90);
+        rect(x - size*0.48, y - size*0.82, map(e.health,0,60,0,size), 5);
       }
 
-      // Enemy projectiles
+      // Projectiles
       for (let p of projectiles) {
         fill('#ffaa00');
-        ellipse(p.x, p.y, 8, 8);
+        ellipse(p.x, p.y, 7, 7);
       }
 
-      // Summons (drawn helpers)
+      // Summons
       for (let s of summons) {
         fill(s.col);
         ellipse(s.x, s.y, s.sz, s.sz);
@@ -149,25 +154,25 @@
         ellipse(p.x, p.y, p.s, p.s);
       }
 
-      // Crosshair (first person feel)
-      stroke(0, 255, 255, 160);
+      // Crosshair
+      stroke(0,255,255,170);
       strokeWeight(1.5);
-      line(width/2 - 18, height/2, width/2 + 18, height/2);
-      line(width/2, height/2 - 18, width/2, height/2 + 18);
+      line(width/2-20, height/2, width/2+20, height/2);
+      line(width/2, height/2-20, width/2, height/2+20);
       noStroke();
 
       // HUD
-      fill(0, 255, 255);
+      fill(0,255,255);
       textSize(14);
-      text(`LEVEL ${level}   |   $${money}   |   HP: ${max(0, health)}`, 16, 26);
+      text(`LEVEL ${level}   |   $${money}   |   HP: ${max(0,health)}`, 16, 26);
 
       if (gameOver) {
-        fill(255, 40, 40);
+        fill(255,40,40);
         textSize(38);
         textAlign(CENTER);
-        text("GAME OVER", width/2, height/2 - 10);
+        text("GAME OVER", width/2, height/2-10);
         textSize(15);
-        text("Press SPACE to restart", width/2, height/2 + 30);
+        text("Press SPACE to restart", width/2, height/2+30);
         textAlign(LEFT);
       }
 
@@ -175,57 +180,55 @@
     }
 
     function updateGame() {
-      // Move enemies closer (first person depth)
+      // Enemies move forward
       for (let e of enemies) {
-        e.depth -= (e.type === 'rusher' ? 2.8 : 1.6);
+        e.depth -= (e.type === 'rusher' ? 3.2 : 1.8);
 
-        // Enemy attacks
         if (e.type === 'shooter') {
           e.shootTimer--;
           if (e.shootTimer <= 0) {
-            let ex = width/2 + e.lane * map(e.depth, 380, 20, 0.3, 1.0);
-            let ey = 220 + map(e.depth, 380, 20, 0, 140);
-            projectiles.push({ x: ex, y: ey, vx: random(-3.5, -1.5), vy: random(-1.2, 1.2) });
-            e.shootTimer = random(55, 95);
+            let ex = width/2 + (e.lane - playerX) * map(e.depth, 420, 18, 0.28, 1.05);
+            let ey = 205 + map(e.depth, 420, 18, 0, 155);
+            projectiles.push({x: ex, y: ey, vx: random(-3.8,-1.8), vy: random(-1.3,1.3)});
+            e.shootTimer = random(48, 88);
           }
         }
       }
 
       // Projectiles
       for (let p of projectiles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (dist(p.x, p.y, width/2, height/2) < 25) {
-          health -= 7;
-          screenShake = 6;
+        p.x += p.vx; p.y += p.vy;
+        if (dist(p.x, p.y, width/2, height/2) < 22) {
+          health -= 8;
+          screenShake = 7;
           createParticles(p.x, p.y, 5, '#ffaa00');
           p.dead = true;
         }
       }
-      projectiles = projectiles.filter(p => !p.dead && p.x > 40);
+      projectiles = projectiles.filter(p => !p.dead && p.x > 30);
 
-      // Summons move and attack
+      // Summons
       for (let s of summons) {
-        s.x += s.vx;
-        s.y += s.vy;
+        s.x += s.vx; s.y += s.vy;
         for (let e of enemies) {
-          let ex = width/2 + e.lane * map(e.depth, 380, 20, 0.3, 1.0);
-          let ey = 220 + map(e.depth, 380, 20, 0, 140);
-          if (dist(s.x, s.y, ex, ey) < 35) {
-            e.health -= (s.dmg || 12) * summonPower;
+          let ex = width/2 + (e.lane - playerX) * map(e.depth, 420, 18, 0.28, 1.05);
+          let ey = 205 + map(e.depth, 420, 18, 0, 155);
+          if (dist(s.x, s.y, ex, ey) < 32) {
+            e.health -= (s.dmg || 11) * summonPower;
             createParticles(s.x, s.y, 4, '#88ff44');
             s.life = 0;
           }
         }
       }
 
-      // Remove dead enemies + reward
+      // Cleanup
       enemies = enemies.filter(e => {
-        if (e.health <= 0 || e.depth < 15) {
+        if (e.health <= 0 || e.depth < 12) {
           if (e.health <= 0) {
-            money += floor(22 + level * 3);
-            createParticles(width/2 + e.lane * map(e.depth, 380, 20, 0.3, 1.0), 220 + map(e.depth, 380, 20, 0, 140), 10, '#ff5555');
-            screenShake = 4;
+            money += floor(23 + level * 3);
+            let ex = width/2 + (e.lane - playerX) * map(e.depth, 420, 18, 0.28, 1.05);
+            createParticles(ex, 205 + map(e.depth, 420, 18, 0, 155), 11, '#ff5555');
+            screenShake = 5;
           }
           return false;
         }
@@ -235,11 +238,10 @@
       summons = summons.filter(s => s.life > 0);
       particles = particles.filter(p => { p.life--; p.x += p.vx; p.y += p.vy; p.s *= 0.94; return p.life > 0; });
 
-      // Next wave
       if (enemies.length === 0 && !gameOver) {
         level++;
         document.getElementById('lvl').innerText = level;
-        if (level % 2 === 0) money += 50;
+        if (level % 2 === 0) money += 55;
         spawnWave();
       }
 
@@ -251,20 +253,13 @@
 
     function createParticles(x, y, count, col) {
       for (let i = 0; i < count; i++) {
-        particles.push({
-          x: x, y: y,
-          vx: random(-2, 2),
-          vy: random(-2, 2),
-          s: random(3, 6.5),
-          c: col,
-          life: random(14, 28)
-        });
+        particles.push({x:x, y:y, vx:random(-2.2,2.2), vy:random(-2,2), s:random(3,6.5), c:col, life:random(15,30)});
       }
     }
 
     function keyPressed() {
       if (gameOver && key === ' ') {
-        health = 100; money = 0; level = 1; damage = 1; summonPower = 1; gameOver = false;
+        health = 100; money = 0; level = 1; damage = 1; summonPower = 1; playerX = 0; gameOver = false;
         document.getElementById('lvl').innerText = 1;
         document.getElementById('cash').innerText = 0;
         document.getElementById('hp').innerText = 100;
@@ -272,55 +267,51 @@
         return;
       }
 
-      // First person depth controls
+      // Depth
       if (keyCode === UP_ARROW) {
-        for (let e of enemies) e.depth = max(15, e.depth - 22);
+        for (let e of enemies) e.depth = max(12, e.depth - 24);
       }
       if (keyCode === DOWN_ARROW) {
-        for (let e of enemies) e.depth = min(420, e.depth + 22);
+        for (let e of enemies) e.depth = min(450, e.depth + 24);
       }
 
+      // Side to side strafe
+      if (keyCode === LEFT_ARROW) playerX = constrain(playerX - 28, -220, 220);
+      if (keyCode === RIGHT_ARROW) playerX = constrain(playerX + 28, -220, 220);
+
       let now = millis();
-      if ((key === 'z' || key === 'Z') && now - lastAttack > 160) {
-        // Sword attack - hits closest enemies
+      if ((key === 'z' || key === 'Z') && now - lastAttack > 150) {
         for (let e of enemies) {
-          if (e.depth < 95) {
-            e.health -= 24 * damage;
-            let ex = width/2 + e.lane * map(e.depth, 380, 20, 0.3, 1.0);
-            createParticles(ex, 220 + map(e.depth, 380, 20, 0, 140), 6, '#aaffff');
+          let ex = width/2 + (e.lane - playerX) * map(e.depth, 420, 18, 0.28, 1.05);
+          if (e.depth < 90 && abs(ex - width/2) < 110) {
+            e.health -= 25 * damage;
+            createParticles(ex, 205 + map(e.depth, 420, 18, 0, 155), 6, '#aaffff');
             screenShake = 3;
           }
         }
         lastAttack = now;
       }
 
-      if ((key === 'x' || key === 'X') && now - lastAttack > 200) {
-        // Laser - hits enemies in center
+      if ((key === 'x' || key === 'X') && now - lastAttack > 190) {
         for (let e of enemies) {
-          let ex = width/2 + e.lane * map(e.depth, 380, 20, 0.3, 1.0);
-          if (abs(ex - width/2) < 160 && e.depth < 280) {
-            e.health -= 13 * damage;
-            createParticles(ex, 220 + map(e.depth, 380, 20, 0, 140), 4, '#ff6666');
+          let ex = width/2 + (e.lane - playerX) * map(e.depth, 420, 18, 0.28, 1.05);
+          if (abs(ex - width/2) < 170 && e.depth < 260) {
+            e.health -= 14 * damage;
+            createParticles(ex, 205 + map(e.depth, 420, 18, 0, 155), 4, '#ff6666');
           }
         }
         screenShake = 2;
         lastAttack = now;
       }
 
-      if (key === 'd' || key === 'D') {
-        drawMode = !drawMode;
-        drawPoints = [];
-      }
-
-      if ((key === 's' || key === 'S') && !gameOver) {
-        document.getElementById('shop').style.display = 'block';
-      }
+      if (key === 'd' || key === 'D') { drawMode = !drawMode; drawPoints = []; }
+      if ((key === 's' || key === 'S') && !gameOver) document.getElementById('shop').style.display = 'block';
     }
 
     function buy(type) {
-      if (type === 'health' && money >= 40) { money -= 40; health = min(100, health + 35); }
-      if (type === 'damage' && money >= 60) { money -= 60; damage += 0.35; }
-      if (type === 'summon' && money >= 35) { money -= 35; summonPower += 0.3; }
+      if (type === 'health' && money >= 40) { money -= 40; health = min(100, health + 38); }
+      if (type === 'damage' && money >= 60) { money -= 60; damage += 0.38; }
+      if (type === 'summon' && money >= 35) { money -= 35; summonPower += 0.32; }
       closeShop();
     }
 
@@ -328,31 +319,17 @@
       document.getElementById('shop').style.display = 'none';
     }
 
-    function mousePressed() {
-      if (drawMode) drawPoints.push({x: mouseX, y: mouseY});
-    }
-    function mouseDragged() {
-      if (drawMode) drawPoints.push({x: mouseX, y: mouseY});
-    }
+    function mousePressed() { if (drawMode) drawPoints.push({x:mouseX, y:mouseY}); }
+    function mouseDragged() { if (drawMode) drawPoints.push({x:mouseX, y:mouseY}); }
     function mouseReleased() {
       if (drawMode && drawPoints.length > 4) {
-        let avgX = drawPoints.reduce((a,b) => a + b.x, 0) / drawPoints.length;
-        let avgY = drawPoints.reduce((a,b) => a + b.y, 0) / drawPoints.length;
+        let avgX = drawPoints.reduce((a,b)=>a+b.x,0)/drawPoints.length;
+        let avgY = drawPoints.reduce((a,b)=>a+b.y,0)/drawPoints.length;
         let w = abs(drawPoints[0].x - drawPoints[drawPoints.length-1].x);
-
-        let kind = w > 50 ? 'drone' : 'star';
+        let kind = w > 55 ? 'drone' : 'star';
         let col = kind === 'drone' ? '#66ffcc' : '#ffdd55';
-        let sz = kind === 'drone' ? 14 : 18;
-
-        summons.push({
-          x: avgX, y: avgY,
-          vx: 3.4, vy: random(-0.8, 0.8),
-          life: 85,
-          kind: kind,
-          col: col,
-          sz: sz,
-          dmg: kind === 'drone' ? 16 : 10
-        });
+        let sz = kind === 'drone' ? 15 : 19;
+        summons.push({x:avgX, y:avgY, vx:3.5, vy:random(-0.9,0.9), life:88, kind:kind, col:col, sz:sz, dmg:kind==='drone'?17:11});
         createParticles(avgX, avgY, 5, '#ffff88');
       }
       drawPoints = [];

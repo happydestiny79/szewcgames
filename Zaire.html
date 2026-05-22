@@ -19,6 +19,10 @@ let health = 100;
 let score = 0;
 let gameState = "start";
 let fireEffects = [];
+let totalSpirits = 0;
+let boss = null;
+let musicEnabled = true;
+let audioContext, musicOsc, musicGain;
 
 function setup() {
   createCanvas(1050, 550);
@@ -33,6 +37,19 @@ function setup() {
     });
   }
 }
+
+// Simple chiptune background music
+
+
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
 
 function draw() {
   background(15, 5, 5);
@@ -82,6 +99,18 @@ function draw() {
     text("Score: " + score + "  |  Press R to restart", width/2, height/2 + 50);
   }
 }
+
+// Simple chiptune background music
+
+
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
 
 function drawGame() {
   // Jack - character style (fire avatar)
@@ -162,6 +191,43 @@ function drawGame() {
     text("SPIRIT", s.x, s.y + 32);
   }
   
+  // Draw Fire Boss
+  if (boss) {
+    push();
+    translate(boss.x, boss.y);
+    
+    // Massive fiery body
+    fill(180, 40, 0);
+    ellipse(0, 10, boss.size, boss.size * 1.1);
+    
+    // Boss head
+    fill(220, 60, 0);
+    ellipse(0, -15, 55, 50);
+    
+    // Horns
+    fill(255, 120, 0);
+    triangle(-25, -35, -15, -55, -5, -35);
+    triangle(25, -35, 15, -55, 5, -35);
+    
+    // Glowing eyes
+    fill(255, 255, 0);
+    ellipse(-15, -18, 10, 10);
+    ellipse(15, -18, 10, 10);
+    
+    // Health bar
+    fill(255, 0, 0);
+    rect(-40, -70, 80, 8);
+    fill(255, 200, 0);
+    rect(-40, -70, 80 * (boss.health / boss.maxHealth), 8);
+    
+    pop();
+    
+    fill(255);
+    textSize(14);
+    textAlign(CENTER);
+    text("FIRE BOSS", boss.x, boss.y + 70);
+  }
+  
   fill(255);
   textSize(18);
   textAlign(LEFT);
@@ -185,17 +251,56 @@ function updateGame() {
     s.x -= 2.2;
     
     if (dist(jack.x, jack.y, s.x, s.y) < 48) {
-      health -= 9;
+      health -= (s.isBossMinion ? 18 : 9);
       spirits.splice(i, 1);
-      score++;  // Award point for defeating the spirit
+      score++;
+      totalSpirits++;
       if (health <= 0) gameState = "lose";
     }
     
     if (s.x < -30) spirits.splice(i, 1);
   }
   
-  if (frameCount % 42 === 0 && spirits.length < 7) {
+  if (boss) {
+    if (dist(jack.x, jack.y, boss.x, boss.y) < 70) {
+      health -= 30;
+      if (health <= 0) gameState = "lose";
+    }
+    
+    // Flame dash damages boss
+    if (abs(boss.x - jack.x) < 150) {
+      boss.health -= 4;
+      if (boss.health <= 0) {
+        score += 50;
+        totalSpirits += 50;
+        boss = null;
+      }
+    }
+    
+    if (boss && boss.x < -100) boss = null;
+  }
+  
+  // Boss spawn at 200 spirits
+  if (totalSpirits >= 200 && !boss) {
+    health = 300;  // boost for boss fight
+    boss = {
+      x: width + 80,
+      y: 280,
+      health: 500,
+      maxHealth: 500,
+      size: 90
+    };
+  }
+  
+  if (!boss && frameCount % 42 === 0 && spirits.length < 7) {
     spirits.push({ x: width + 30, y: random(200, 380) });
+  }
+  
+  if (boss) {
+    boss.x -= 1.3;
+    if (frameCount % 55 === 0) {
+      spirits.push({ x: boss.x, y: boss.y + random(-40, 40), isBossMinion: true });
+    }
   }
   
   // Clean up fire effects
@@ -204,13 +309,28 @@ function updateGame() {
   }
 }
 
+// Simple chiptune background music
+
+
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
+
 function keyPressed() {
   if (gameState === "start" && key === ' ') {
     gameState = "play";
     health = 100;
     score = 0;
+    totalSpirits = 0;
+    boss = null;
     spirits = [];
     fireEffects = [];
+    startMusic();
   }
   
   if (gameState === "play") {
@@ -238,12 +358,28 @@ function keyPressed() {
       jack.x += 80;
       fireEffects.push({ x: jack.x, y: jack.y, size: 35, life: 10 });
     }
+    
+    if (key === 'm' || key === 'M') {
+      toggleMusic();
+    }
   }
   
   if ((gameState === "win" || gameState === "lose") && key === 'r') {
     gameState = "start";
   }
 }
+
+// Simple chiptune background music
+
+
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
 </script>
 </body>
 </html>

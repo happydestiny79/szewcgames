@@ -14,7 +14,7 @@
 <body>
 <div class="info">
   <h1>MJ • THE STRONGEST HERO</h1>
-  <p>2070 New York • Play as MJ (Kesha) • Defeat the Villain Nick</p>
+  <p>2070 New York • Play as MJ • Defeat the Villain Nick</p>
 </div>
 
 <script>
@@ -48,7 +48,6 @@ function setup() {
     });
   }
   
-  // Villain Nick - Super Speed
   nick = {
     x: 180,
     y: 320,
@@ -56,10 +55,10 @@ function setup() {
     color: color(20, 20, 20),
     facing: 1,
     dashCooldown: 0,
+    attackTimer: 0,
     trail: []
   };
   
-  // MJ - The Strongest Hero (human character, all white, flight)
   mj = {
     x: 680,
     y: 200,
@@ -136,7 +135,7 @@ function drawStartScreen() {
   
   textSize(15);
   fill(180);
-  text("2070 Flooded New York • Defeat the Villain", width/2, 330);
+  text("Arrow Keys = Move  |  SPACE = Energy Blast  |  X = Flying Strike", width/2, 330);
 }
 
 function drawFight() {
@@ -147,10 +146,10 @@ function drawFight() {
   fill(200);
   textSize(14);
   textAlign(LEFT);
-  text("Arrow Keys: Move   |   SPACE: Energy Blast", 30, height - 25);
+  text("Arrow Keys: Move   |   SPACE: Energy Blast   |   X: Flying Strike", 30, height - 25);
   
   handleInput();
-  updateNick();
+  updateNickAI();
   
   if (nickHealth <= 0) gameState = "win";
   if (mjHealth <= 0) gameState = "lose";
@@ -158,76 +157,65 @@ function drawFight() {
 
 function drawNick() {
   nick.trail.push({x: nick.x, y: nick.y});
-  if (nick.trail.length > 6) nick.trail.shift();
+  if (nick.trail.length > 7) nick.trail.shift();
   
   for (let i = 0; i < nick.trail.length; i++) {
-    let alpha = map(i, 0, nick.trail.length, 30, 150);
-    fill(50, 50, 200, alpha);
-    ellipse(nick.trail[i].x, nick.trail[i].y + 25, nick.size * 0.7);
+    let alpha = map(i, 0, nick.trail.length, 20, 140);
+    fill(80, 80, 220, alpha);
+    ellipse(nick.trail[i].x, nick.trail[i].y + 25, nick.size * 0.75);
   }
   
-  // More human-like body for Nick
+  // Human-like villain body
   fill(nick.color);
-  // Head
-  ellipse(nick.x, nick.y - 15, 32, 34);
-  // Body
-  rect(nick.x - 15, nick.y + 2, 30, 38);
-  // Legs
-  rect(nick.x - 12, nick.y + 38, 9, 18);
+  ellipse(nick.x, nick.y - 15, 32, 34); // head
+  rect(nick.x - 15, nick.y + 2, 30, 38); // body
+  rect(nick.x - 12, nick.y + 38, 9, 18); // legs
   rect(nick.x + 3, nick.y + 38, 9, 18);
   
-  // Hood
   fill(0);
-  ellipse(nick.x, nick.y - 18, 26, 22);
+  ellipse(nick.x, nick.y - 18, 26, 22); // hood
   
-  // Brown eyes
   fill(139, 69, 19);
   ellipse(nick.x - 7, nick.y - 18, 6, 5);
   ellipse(nick.x + 7, nick.y - 18, 6, 5);
   
-  // Speed lines
-  if (abs(nick.vx || 0) > 4) {
-    stroke(100, 150, 255, 150);
-    strokeWeight(2);
-    line(nick.x - 40 * nick.facing, nick.y + 10, nick.x - 20 * nick.facing, nick.y + 10);
-    noStroke();
+  // Angry red eyes when attacking
+  if (nick.dashCooldown > 8) {
+    fill(255, 50, 50);
+    ellipse(nick.x - 7, nick.y - 18, 7, 6);
+    ellipse(nick.x + 7, nick.y - 18, 7, 6);
   }
 }
 
 function drawMJ() {
-  // Floating effect
   mj.y = 195 + sin(frameCount * 0.07) * 22;
   
   // White glowing aura
   fill(200, 230, 255, 35);
   ellipse(mj.x, mj.y, mj.size * 1.8, mj.size * 2.0);
   
-  // Human-like body for MJ (African woman, all white outfit)
+  // Human-like MJ body
   fill(mj.color);
-  // Head
-  ellipse(mj.x, mj.y - 18, 30, 32);
-  // Body / dress
-  rect(mj.x - 14, mj.y + 1, 28, 36);
-  // Arms (energy wings style)
-  stroke(255, 255, 255, 200);
-  strokeWeight(5);
-  line(mj.x - 14, mj.y + 8, mj.x - 32, mj.y - 2);
-  line(mj.x + 14, mj.y + 8, mj.x + 32, mj.y - 2);
-  noStroke();
-  // Legs
+  ellipse(mj.x, mj.y - 18, 30, 32); // head
+  rect(mj.x - 14, mj.y + 1, 28, 36); // body
   fill(250);
   rect(mj.x - 10, mj.y + 35, 8, 16);
   rect(mj.x + 2, mj.y + 35, 8, 16);
   
-  // White hood / hair
   fill(245);
-  ellipse(mj.x, mj.y - 20, 26, 20);
-  // Brown eyes
+  ellipse(mj.x, mj.y - 20, 26, 20); // hood/hair
+  
   fill(101, 67, 33);
   ellipse(mj.x - 6, mj.y - 19, 6, 5);
   ellipse(mj.x + 6, mj.y - 19, 6, 5);
   
-  // Flying energy effect
+  // Energy wings
+  stroke(255, 255, 255, 200);
+  strokeWeight(5);
+  line(mj.x - 14, mj.y + 8, mj.x - 34, mj.y - 4);
+  line(mj.x + 14, mj.y + 8, mj.x + 34, mj.y - 4);
+  noStroke();
+  
   fill(255, 255, 255, 120);
   ellipse(mj.x, mj.y + 48, 36, 8);
 }
@@ -257,25 +245,53 @@ function handleInput() {
   if (keyIsDown(UP_ARROW)) { mj.y -= speed * 0.75; }
   if (keyIsDown(DOWN_ARROW)) { mj.y += speed * 0.75; }
   
-  // Energy Blast (SPACE)
+  // SPACE = Energy Blast (ranged)
   if (keyIsDown(32) && mj.attackTimer <= 0) {
-    mj.attackTimer = 22;
+    mj.attackTimer = 18;
     
-    // Blast particles toward Nick
     for (let i = 0; i < 10; i++) {
       particles.push({
         x: mj.x,
         y: mj.y,
-        vx: (nick.x - mj.x) * 0.08 + random(-2, 2),
-        vy: (nick.y - mj.y) * 0.08 + random(-2, 2),
-        life: 22,
+        vx: (nick.x - mj.x) * 0.09 + random(-2, 2),
+        vy: (nick.y - mj.y) * 0.09 + random(-2, 2),
+        life: 20,
         color: color(150, 220, 255)
       });
     }
     
-    if (dist(mj.x, mj.y, nick.x, nick.y) < 130) {
-      nickHealth -= 11;
+    if (dist(mj.x, mj.y, nick.x, nick.y) < 135) {
+      nickHealth -= 10;
       createHitParticles(nick.x, nick.y);
+    }
+  }
+  
+  // X = Flying Strike (close range melee)
+  if (keyIsDown(88) && mj.attackTimer <= 0) { // X key
+    mj.attackTimer = 24;
+    
+    // Dash forward quickly
+    mj.x += 45 * mj.facing;
+    
+    // Strong hit if close
+    if (dist(mj.x, mj.y, nick.x, nick.y) < 75) {
+      nickHealth -= 18;
+      createHitParticles(nick.x, nick.y);
+      
+      // Knockback effect
+      nick.x += 30 * mj.facing;
+    }
+    
+    // Strike particles
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        x: mj.x + random(-15, 15),
+        y: mj.y + random(-10, 20),
+        vx: 6 * mj.facing,
+        vy: random(-3, 3),
+        life: 16,
+        color: color(255, 255, 255)
+      });
     }
   }
   
@@ -284,24 +300,45 @@ function handleInput() {
   mj.y = constrain(mj.y, 90, waterLevel - 40);
 }
 
-function updateNick() {
-  nick.attackTimer = (nick.attackTimer || 0) + 1;
+function updateNickAI() {
+  nick.attackTimer++;
+  nick.dashCooldown = max(0, nick.dashCooldown - 1);
   
-  // Nick dashes toward MJ
-  let targetX = mj.x + (sin(frameCount * 0.04) * 60);
-  nick.x = lerp(nick.x, targetX, 0.03);
+  // Aggressive chasing
+  let targetX = mj.x + (sin(frameCount * 0.035) * 50);
+  nick.x = lerp(nick.x, targetX, 0.035);
   
-  if (nick.attackTimer % 50 === 0) {
-    nick.vx = (mj.x > nick.x) ? 7 : -7;
+  // Nick dashes more aggressively
+  if (nick.attackTimer % 38 === 0 && nick.dashCooldown <= 0) {
+    nick.dashCooldown = 16;
+    nick.x += 70 * ((mj.x > nick.x) ? 1 : -1);
+    
+    // Strong dash attack
+    if (dist(mj.x, mj.y, nick.x, nick.y) < 85) {
+      mjHealth -= 13;
+      createHitParticles(mj.x, mj.y);
+    }
+    
+    // Dash particles
+    for (let i = 0; i < 9; i++) {
+      particles.push({
+        x: nick.x - 25 * nick.facing,
+        y: nick.y + random(-12, 12),
+        vx: -7 * ((mj.x > nick.x) ? 1 : -1),
+        vy: random(-2, 2),
+        life: 14,
+        color: color(120, 100, 255)
+      });
+    }
   }
   
-  nick.x += nick.vx || 0;
-  nick.vx = (nick.vx || 0) * 0.88;
-  
-  // Damage player on contact
-  if (dist(mj.x, mj.y, nick.x, nick.y) < 50 && nick.attackTimer % 18 === 0) {
-    mjHealth -= 7;
-    createHitParticles(mj.x, mj.y);
+  // Occasional powerful counter attack
+  if (nick.attackTimer % 75 === 0) {
+    nick.x += 35 * ((mj.x > nick.x) ? 1 : -1);
+    if (dist(mj.x, mj.y, nick.x, nick.y) < 65) {
+      mjHealth -= 9;
+      createHitParticles(mj.x, mj.y);
+    }
   }
   
   nick.x = constrain(nick.x, 50, width - 50);

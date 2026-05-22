@@ -18,6 +18,10 @@ let jake, spirits = [], buildings = [], platforms = [];
 let health = 100;
 let score = 0;
 let gameState = "start";
+let totalSpirits = 0;        // cumulative spirits defeated
+let boss = null;             // boss object when active
+let musicEnabled = true;
+let audioContext, musicOsc, musicGain;
 
 function setup() {
   createCanvas(1050, 550);
@@ -48,6 +52,49 @@ function setup() {
     }
   }
 }
+
+// Simple chiptune background music
+function startMusic() {
+  if (!musicEnabled) return;
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    musicOsc = audioContext.createOscillator();
+    musicGain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    
+    musicOsc.type = 'sawtooth';
+    musicOsc.frequency.value = 80;
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    musicGain.gain.value = 0.08;
+    
+    const lfo = audioContext.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.3;
+    const lfoGain = audioContext.createGain();
+    lfoGain.gain.value = 20;
+    
+    lfo.connect(lfoGain);
+    lfoGain.connect(musicOsc.frequency);
+    
+    musicOsc.connect(filter);
+    filter.connect(musicGain);
+    musicGain.connect(audioContext.destination);
+    
+    musicOsc.start();
+    lfo.start();
+  } catch(e) {}
+}
+
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
 
 function draw() {
   background(10, 10, 30);
@@ -121,6 +168,49 @@ function draw() {
     text("Spirits Defeated: " + score + "  |  Press R to restart", width/2, height/2 + 60);
   }
 }
+
+// Simple chiptune background music
+function startMusic() {
+  if (!musicEnabled) return;
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    musicOsc = audioContext.createOscillator();
+    musicGain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    
+    musicOsc.type = 'sawtooth';
+    musicOsc.frequency.value = 80;
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    musicGain.gain.value = 0.08;
+    
+    const lfo = audioContext.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.3;
+    const lfoGain = audioContext.createGain();
+    lfoGain.gain.value = 20;
+    
+    lfo.connect(lfoGain);
+    lfoGain.connect(musicOsc.frequency);
+    
+    musicOsc.connect(filter);
+    filter.connect(musicGain);
+    musicGain.connect(audioContext.destination);
+    
+    musicOsc.start();
+    lfo.start();
+  } catch(e) {}
+}
+
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
 
 function drawGame() {
   // Jake - character style (air avatar)
@@ -203,12 +293,58 @@ function drawGame() {
     text("SPIRIT", s.x, s.y + 30);
   }
   
+  // Draw Boss
+  if (boss) {
+    push();
+    translate(boss.x, boss.y);
+    
+    // Massive boss body
+    fill(40, 20, 80);
+    ellipse(0, 10, boss.size, boss.size * 1.1);
+    
+    // Boss head
+    fill(60, 30, 100);
+    ellipse(0, -15, 55, 50);
+    
+    // Horns
+    fill(30, 10, 50);
+    triangle(-25, -35, -15, -55, -5, -35);
+    triangle(25, -35, 15, -55, 5, -35);
+    
+    // Glowing eyes
+    fill(255, 50, 50);
+    ellipse(-15, -18, 10, 10);
+    ellipse(15, -18, 10, 10);
+    
+    // Health bar
+    fill(255, 0, 0);
+    rect(-40, -70, 80, 8);
+    fill(0, 255, 100);
+    rect(-40, -70, 80 * (boss.health / boss.maxHealth), 8);
+    
+    pop();
+    
+    fill(255);
+    textSize(14);
+    textAlign(CENTER);
+    text("COSMIC BOSS", boss.x, boss.y + 70);
+  }
+  
   // HUD
   fill(255);
   textSize(18);
   textAlign(LEFT);
   text("Health: " + health, 50, 50);
-  text("Spirits Defeated: " + score, 50, 80);
+  text("Spirits Defeated: " + score + " / 200", 50, 80);
+  text("Total: " + totalSpirits, 50, 105);
+  if (boss) {
+    textSize(16);
+    fill(255, 100, 100);
+    text("BOSS HEALTH: " + boss.health, width - 250, 50);
+  }
+  textSize(12);
+  fill(200);
+  text("M = toggle music", width - 150, height - 20);
   
   // Update
   updateGame();
@@ -246,18 +382,60 @@ function updateGame() {
     
     // Collision with Jake
     if (dist(jake.x, jake.y, s.x, s.y) < 45) {
-      health -= 8;
+      health -= (s.isBossMinion ? 15 : 8);
       spirits.splice(i, 1);
-      score++;  // Award point for defeating the spirit
+      score++;
+      totalSpirits++;
       if (health <= 0) gameState = "lose";
     }
     
     if (s.x < -30) spirits.splice(i, 1);
   }
   
-  // Spawn new spirits
-  if (frameCount % 45 === 0 && spirits.length < 6) {
+  // Boss collision
+  if (boss) {
+    if (dist(jake.x, jake.y, boss.x, boss.y) < 70) {
+      health -= 25;
+      if (health <= 0) gameState = "lose";
+    }
+    
+    // Air blast damages boss
+    if (jake.airBending > 0 && abs(boss.x - jake.x) < 140) {
+      boss.health -= 3;
+      if (boss.health <= 0) {
+        score += 50;
+        totalSpirits += 50;
+        boss = null;
+      }
+    }
+    
+    if (boss && boss.x < -100) boss = null;
+  }
+  
+  // Spawn new spirits or boss
+  if (totalSpirits >= 200 && !boss) {
+    // Spawn the boss! Give player more health for the fight
+    health = 300;
+    boss = {
+      x: width + 80,
+      y: 280,
+      health: 500,
+      maxHealth: 500,
+      size: 90
+    };
+  }
+  
+  if (!boss && frameCount % 45 === 0 && spirits.length < 6) {
     spirits.push({ x: width + 30, y: random(200, 380) });
+  }
+  
+  // Boss movement
+  if (boss) {
+    boss.x -= 1.2;
+    // Simple boss attack pattern
+    if (frameCount % 60 === 0) {
+      spirits.push({ x: boss.x, y: boss.y + random(-40, 40), isBossMinion: true });
+    }
   }
   
   // Air bending cooldown
@@ -269,7 +447,10 @@ function keyPressed() {
     gameState = "play";
     health = 100;
     score = 0;
+    totalSpirits = 0;
+    boss = null;
     spirits = [];
+    startMusic();
   }
   
   if (gameState === "play") {
@@ -298,12 +479,59 @@ function keyPressed() {
       jake.vy = -8;
       jake.airBending = 20;
     }
+    
+    if (key === 'm' || key === 'M') {
+      toggleMusic();
+    }
   }
   
   if ((gameState === "win" || gameState === "lose") && key === 'r') {
     gameState = "start";
   }
 }
+
+// Simple chiptune background music
+function startMusic() {
+  if (!musicEnabled) return;
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    musicOsc = audioContext.createOscillator();
+    musicGain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    
+    musicOsc.type = 'sawtooth';
+    musicOsc.frequency.value = 80;
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    musicGain.gain.value = 0.08;
+    
+    const lfo = audioContext.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.3;
+    const lfoGain = audioContext.createGain();
+    lfoGain.gain.value = 20;
+    
+    lfo.connect(lfoGain);
+    lfoGain.connect(musicOsc.frequency);
+    
+    musicOsc.connect(filter);
+    filter.connect(musicGain);
+    musicGain.connect(audioContext.destination);
+    
+    musicOsc.start();
+    lfo.start();
+  } catch(e) {}
+}
+
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  if (musicEnabled && !audioContext) {
+    startMusic();
+  } else if (audioContext) {
+    musicGain.gain.value = musicEnabled ? 0.08 : 0;
+  }
+}
+
 </script>
 </body>
 </html>
