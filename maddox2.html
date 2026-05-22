@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maddox2: Nur vs Guk - City Brawl</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+        
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Press Start 2P', system-ui;
+            overflow-x: hidden;
+        }
+        
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+        
+        #header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        #title {
+            font-size: 24px;
+            text-shadow: 0 0 12px #ff00aa;
+            margin: 0;
+            color: #ff00aa;
+        }
+        
+        #subtitle {
+            font-size: 12px;
+            color: #00aaff;
+        }
+        
+        #main-area {
+            display: flex;
+            gap: 18px;
+            max-width: 1280px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        
+        #canvas-container {
+            border: 4px solid #ff00aa;
+            box-shadow: 0 0 25px #ff00aa;
+        }
+        
+        #ui-panel {
+            width: 280px;
+            background: #111;
+            border: 4px solid #00aaff;
+            padding: 14px;
+            box-shadow: 0 0 20px #00aaff;
+            flex-shrink: 0;
+        }
+        
+        .stat {
+            margin: 6px 0;
+            font-size: 12px;
+        }
+        
+        button {
+            background: #330033;
+            color: #ff00aa;
+            border: 3px solid #ff00aa;
+            padding: 10px 14px;
+            font-family: 'Press Start 2P', system-ui;
+            font-size: 11px;
+            margin: 5px 3px;
+            cursor: pointer;
+            transition: all 0.1s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #ff00aa;
+            color: #330033;
+            box-shadow: 0 0 12px #ff00aa;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .action-btn {
+            background: #003333;
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+        
+        .action-btn:hover {
+            background: #00ffff;
+            color: #003333;
+        }
+        
+        #log {
+            height: 120px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            border: 2px solid #333;
+            padding: 8px;
+            font-size: 10px;
+            margin-top: 10px;
+        }
+        
+        .level {
+            color: #ffaa00;
+            font-size: 14px;
+            text-align: center;
+            margin: 5px 0;
+        }
+        
+        .health-bar {
+            width: 100%;
+            height: 14px;
+            background: #330000;
+            border: 2px solid #ff0000;
+            margin: 4px 0;
+            position: relative;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffaa00);
+            transition: width 0.2s;
+        }
+        
+        .character-info {
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="header">
+            <h1 id="title">MADDOX2: NUR vs GUK</h1>
+            <p id="subtitle">CITY BRAWL • 55 LEVELS • FIGHTING GAME</p>
+        </div>
+        
+        <div id="main-area">
+            <div id="canvas-container"></div>
+            
+            <div id="ui-panel">
+                <div class="level" id="level-display">LEVEL 1 / 55</div>
+                
+                <div class="character-info">
+                    <div style="color:#ff00aa"><strong>GUK (YOU)</strong></div>
+                    <div class="health-bar"><div class="health-fill" id="guk-health" style="width:100%"></div></div>
+                    <div class="stat">HP: <span id="guk-hp">100</span>/100</div>
+                </div>
+                
+                <div class="character-info">
+                    <div style="color:#00aaff"><strong>NUR (ENEMY)</strong></div>
+                    <div class="health-bar"><div class="health-fill" id="nur-health" style="width:100%; background: linear-gradient(90deg, #00aaff, #00ffff);"></div></div>
+                    <div class="stat">HP: <span id="nur-hp">100</span>/100 • Revives: <span id="nur-revives">3</span></div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <button onclick="performAction('fight')" class="action-btn">FIGHT</button>
+                    <button onclick="performAction('hack')" class="action-btn">HACK</button>
+                    <button onclick="performAction('incinerate')" class="action-btn">INCINERATE (Guk Special)</button>
+                    <button onclick="performAction('skip')">SKIP TURN</button>
+                    <button onclick="performAction('now')">NOW ATTACK</button>
+                </div>
+                
+                <div id="log"></div>
+                
+                <div style="margin-top: 12px; font-size: 10px; color: #666;">
+                    CONTROLS: Arrow keys to move • Space = Punch • Q = Special
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let canvas;
+        let gameState = "title"; // title, story, fight, win, lose
+        let level = 1;
+        const MAX_LEVELS = 55;
+        
+        // Characters
+        let guk = {
+            x: 180,
+            y: 280,
+            health: 100,
+            maxHealth: 100,
+            facing: 1,
+            attacking: false,
+            special: false,
+            bandanaOn: true,
+            vx: 0
+        };
+        
+        let nur = {
+            x: 480,
+            y: 280,
+            health: 100,
+            maxHealth: 100,
+            facing: -1,
+            attacking: false,
+            reviving: false,
+            revivesLeft: 3,
+            vx: 0
+        };
+        
+        // City elements
+        let buildings = [];
+        let people = [];
+        let particles = [];
+        let fightLog = [];
+        
+        function setup() {
+            canvas = createCanvas(720, 480);
+            canvas.parent('canvas-container');
+            
+            // Generate city buildings
+            for (let i = 0; i < 6; i++) {
+                buildings.push({
+                    x: 60 + i * 120,
+                    w: 90,
+                    h: random(120, 220)
+                });
+            }
+            
+            // Generate background people
+            for (let i = 0; i < 8; i++) {
+                people.push({
+                    x: random(50, 670),
+                    y: 340 + random(-20, 20),
+                    speed: random(0.4, 1.2),
+                    dir: random() > 0.5 ? 1 : -1,
+                    color: [random(100, 255), random(100, 255), random(100, 255)]
+                });
+            }
+            
+            textFont('Press Start 2P');
+            textSize(12);
+            
+            // Start on title
+            gameState = "title";
+        }
+        
+        function draw() {
+            background(15, 10, 35); // Night city sky
+            
+            // Draw city background
+            drawCity();
+            
+            if (gameState === "title") {
+                drawTitleScreen();
+            } else if (gameState === "story") {
+                drawStoryScreen();
+            } else if (gameState === "fight") {
+                drawFightScene();
+            } else if (gameState === "win") {
+                drawWinScreen();
+            } else if (gameState === "lose") {
+                drawLoseScreen();
+            }
+            
+            // Update particles
+            updateParticles();
+        }
+        
+        function drawCity() {
+            // Ground
+            fill(30, 25, 40);
+            rect(0, 340, width, 140);
+            
+            // Neon road lines
+            stroke(0, 255, 200);
+            strokeWeight(2);
+            for (let i = 0; i < 8; i++) {
+                let lx = (frameCount * 3 + i * 100) % width;
+                line(lx, 380, lx + 60, 380);
+            }
+            noStroke();
+            
+            // Buildings
+            for (let b of buildings) {
+                fill(20, 20, 40);
+                rect(b.x, 340 - b.h, b.w, b.h);
+                
+                // Windows
+                fill(255, 200, 50, 180);
+                for (let wy = 0; wy < b.h - 20; wy += 22) {
+                    for (let wx = 8; wx < b.w - 8; wx += 18) {
+                        if (random() > 0.3) rect(b.x + wx, 340 - b.h + wy, 10, 12);
+                    }
+                }
+                
+                // Neon signs
+                if (b.x % 3 === 0) {
+                    fill(255, 0, 150);
+                    rect(b.x + 15, 340 - b.h + 20, 60, 8);
+                }
+            }
+            
+            // Background people walking
+            for (let p of people) {
+                fill(p.color[0], p.color[1], p.color[2]);
+                // Head
+                ellipse(p.x, p.y - 8, 8, 8);
+                // Body
+                rect(p.x - 4, p.y, 8, 14);
+                
+                // Move
+                p.x += p.speed * p.dir;
+                if (p.x < 30 || p.x > width - 30) p.dir *= -1;
+            }
+            
+            // Neon glow on ground
+            fill(0, 100, 150, 40);
+            rect(0, 360, width, 80);
+        }
+        
+        function drawTitleScreen() {
+            fill(0, 0, 0, 180);
+            rect(0, 0, width, height);
+            
+            fill(255, 0, 170);
+            textAlign(CENTER, CENTER);
+            textSize(28);
+            text("NUR vs GUK", width/2, height/2 - 80);
+            
+            textSize(14);
+            fill(0, 200, 255);
+            text("MADDOX'S SECOND FIGHTING GAME", width/2, height/2 - 40);
+            
+            textSize(11);
+            fill(255);
+            text("55 LEVELS OF INTENSE CITY BRAWLS", width/2, height/2 + 20);
+            
+            text("GUK: Purple hair • Red eyes • Bandana incinerate", width/2, height/2 + 60);
+            text("NUR: Orange hair • Blue bandana • Returns from ashes", width/2, height/2 + 80);
+            
+            fill(255, 255, 0);
+            textSize(13);
+            text("PRESS ENTER TO BEGIN", width/2, height/2 + 130);
+        }
+        
+        function drawStoryScreen() {
+            fill(0, 0, 0, 200);
+            rect(40, 60, width - 80, height - 120);
+            
+            fill(255, 0, 170);
+            textAlign(CENTER);
+            textSize(16);
+            text("THE STORY", width/2, 100);
+            
+            fill(255);
+            textSize(11);
+            textAlign(LEFT);
+            let story = [
+                "Nur goes against Guk.",
+                "You must beat Nur to win.",
+                "Guk finds Nur in the city.",
+                "They fight each other.",
+                "One will win.",
+                "",
+                "Guk can remove his black bandana",
+                "and incinerate enemies with his eyes.",
+                "",
+                "Nur returns from ashes when defeated.",
+                "He has limited revives.",
+                "",
+                "City is full of people watching the fight.",
+                "Use FIGHT, HACK, INCINERATE buttons!"
+            ];
+            
+            let y = 130;
+            for (let line of story) {
+                text(line, 70, y);
+                y += 18;
+            }
+            
+            fill(0, 255, 150);
+            textAlign(CENTER);
+            text("PRESS SPACE TO START FIGHTING", width/2, height - 90);
+        }
+        
+        function drawFightScene() {
+            // Draw Guk (player)
+            drawGuk();
+            
+            // Draw Nur (enemy)
+            drawNur();
+            
+            // Attack effects
+            if (guk.attacking) {
+                drawAttackEffect(guk.x + 40, guk.y + 20, "#ff00aa");
+            }
+            if (nur.attacking) {
+                drawAttackEffect(nur.x - 40, nur.y + 20, "#00aaff");
+            }
+            
+            if (guk.special) {
+                drawIncinerateBeam();
+            }
+            
+            // Particles
+            for (let p of particles) {
+                fill(p.color);
+                ellipse(p.x, p.y, p.size, p.size);
+            }
+            
+            // Level info
+            fill(255, 200, 0);
+            textAlign(CENTER);
+            textSize(10);
+            text("LEVEL " + level + " / " + MAX_LEVELS, width/2, 30);
+            
+            // Win condition check
+            if (nur.health <= 0 && nur.revivesLeft <= 0) {
+                gameState = "win";
+                addLog("YOU WON! Guk defeated Nur for good!");
+            }
+            
+            if (guk.health <= 0) {
+                gameState = "lose";
+                addLog("Nur defeated you... Try again!");
+            }
+        }
+        
+        function drawGuk() {
+            let gx = guk.x;
+            let gy = guk.y;
+            
+            // Shadow
+            fill(0, 0, 0, 80);
+            ellipse(gx + 10, gy + 35, 28, 8);
+            
+            // Legs
+            fill(80, 0, 120);
+            rect(gx - 6, gy + 18, 8, 16);
+            rect(gx + 4, gy + 18, 8, 16);
+            
+            // Body (purple shirt)
+            fill(120, 0, 180);
+            rect(gx - 8, gy, 22, 20);
+            
+            // Head
+            fill(255, 220, 180);
+            ellipse(gx + 3, gy - 8, 18, 18);
+            
+            // Purple hair
+            fill(140, 0, 200);
+            arc(gx + 3, gy - 10, 20, 16, PI, TWO_PI);
+            
+            // Red eyes
+            fill(255, 0, 0);
+            ellipse(gx - 2, gy - 8, 5, 4);
+            ellipse(gx + 8, gy - 8, 5, 4);
+            
+            // Black bandana
+            if (guk.bandanaOn) {
+                fill(20, 20, 20);
+                rect(gx - 8, gy - 14, 22, 6);
+            } else {
+                // Bandana off - glowing red eyes
+                fill(255, 50, 50);
+                ellipse(gx - 2, gy - 8, 7, 6);
+                ellipse(gx + 8, gy - 8, 7, 6);
+            }
+            
+            // Arms
+            fill(255, 220, 180);
+            if (guk.attacking) {
+                rect(gx + 14, gy + 2, 18, 6); // Punching
+            } else {
+                rect(gx - 14, gy + 2, 8, 6);
+                rect(gx + 14, gy + 2, 8, 6);
+            }
+        }
+        
+        function drawNur() {
+            let nx = nur.x;
+            let ny = nur.y;
+            
+            // Shadow
+            fill(0, 0, 0, 80);
+            ellipse(nx - 5, ny + 35, 28, 8);
+            
+            // Legs (blue pants)
+            fill(0, 80, 180);
+            rect(nx - 10, ny + 18, 8, 16);
+            rect(nx, ny + 18, 8, 16);
+            
+            // Body
+            fill(0, 100, 200);
+            rect(nx - 12, ny, 24, 20);
+            
+            // Head
+            fill(255, 220, 180);
+            ellipse(nx, ny - 8, 18, 18);
+            
+            // Orange hair
+            fill(255, 140, 0);
+            arc(nx, ny - 10, 20, 16, PI, TWO_PI);
+            
+            // Blue bandana (not covering eyes)
+            fill(0, 120, 220);
+            rect(nx - 9, ny - 14, 18, 5);
+            
+            // Eyes
+            fill(0, 0, 0);
+            ellipse(nx - 4, ny - 8, 4, 4);
+            ellipse(nx + 5, ny - 8, 4, 4);
+            
+            // Arms
+            fill(255, 220, 180);
+            if (nur.attacking) {
+                rect(nx - 28, ny + 2, 18, 6);
+            } else {
+                rect(nx - 18, ny + 2, 8, 6);
+                rect(nx + 10, ny + 2, 8, 6);
+            }
+            
+            // Revive effect
+            if (nur.reviving) {
+                fill(0, 255, 255, 150);
+                ellipse(nx, ny, 50, 50);
+            }
+        }
+        
+        function drawAttackEffect(x, y, col) {
+            stroke(col);
+            strokeWeight(3);
+            line(x - 15, y, x + 15, y);
+            line(x, y - 10, x, y + 10);
+            noStroke();
+        }
+        
+        function drawIncinerateBeam() {
+            stroke(255, 50, 50);
+            strokeWeight(4);
+            line(guk.x + 20, guk.y - 8, nur.x - 10, nur.y - 5);
+            stroke(255, 200, 50);
+            strokeWeight(2);
+            line(guk.x + 20, guk.y - 8, nur.x - 10, nur.y - 5);
+            noStroke();
+            
+            // Damage over time
+            if (frameCount % 8 === 0 && gameState === "fight") {
+                nur.health = max(0, nur.health - 2);
+                updateHealthUI();
+                createParticles(nur.x, nur.y - 10, 4, "#ff5500");
+            }
+        }
+        
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1;
+                p.size *= 0.95;
+                p.life--;
+                
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+        
+        function createParticles(x, y, count, col) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: random(-3, 3),
+                    vy: random(-4, -1),
+                    size: random(4, 9),
+                    color: col,
+                    life: 25
+                });
+            }
+        }
+        
+        function keyPressed() {
+            if (gameState === "title" && keyCode === ENTER) {
+                gameState = "story";
+                addLog("Story loaded. Get ready to fight!");
+            }
+            
+            if (gameState === "story" && key === ' ') {
+                startFight();
+            }
+            
+            if (gameState === "fight") {
+                if (keyCode === LEFT_ARROW) {
+                    guk.vx = -4;
+                }
+                if (keyCode === RIGHT_ARROW) {
+                    guk.vx = 4;
+                }
+                if (key === ' ') {
+                    performAction('fight');
+                }
+                if (key.toLowerCase() === 'q') {
+                    performAction('incinerate');
+                }
+            }
+            
+            if ((gameState === "win" || gameState === "lose") && key === ' ') {
+                resetGame();
+            }
+        }
+        
+        function keyReleased() {
+            if (keyCode === LEFT_ARROW || keyCode === RIGHT_ARROW) {
+                guk.vx = 0;
+            }
+        }
+        
+        function mousePressed() {
+            if (gameState === "title") {
+                gameState = "story";
+            } else if (gameState === "story") {
+                startFight();
+            } else if (gameState === "win" || gameState === "lose") {
+                resetGame();
+            }
+        }
+        
+        function startFight() {
+            gameState = "fight";
+            level = 1;
+            resetCharacters();
+            addLog("Fight begins in the city! Level 1");
+            addLog("Use buttons or SPACE / Q keys");
+        }
+        
+        function resetCharacters() {
+            guk.health = guk.maxHealth;
+            guk.x = 180;
+            guk.bandanaOn = true;
+            guk.special = false;
+            guk.attacking = false;
+            
+            nur.health = 80 + level * 3; // Scales with level
+            nur.maxHealth = nur.health;
+            nur.x = 480;
+            nur.revivesLeft = min(3, Math.floor(level / 8) + 1);
+            nur.reviving = false;
+            nur.attacking = false;
+            
+            updateHealthUI();
+            particles = [];
+        }
+        
+        function updateHealthUI() {
+            document.getElementById('guk-hp').innerText = Math.max(0, Math.floor(guk.health));
+            document.getElementById('guk-health').style.width = Math.max(0, (guk.health / guk.maxHealth) * 100) + '%';
+            
+            document.getElementById('nur-hp').innerText = Math.max(0, Math.floor(nur.health));
+            document.getElementById('nur-health').style.width = Math.max(0, (nur.health / nur.maxHealth) * 100) + '%';
+            
+            document.getElementById('nur-revives').innerText = nur.revivesLeft;
+            document.getElementById('level-display').innerText = `LEVEL ${level} / ${MAX_LEVELS}`;
+        }
+        
+        function performAction(action) {
+            if (gameState !== "fight") return;
+            
+            let logMsg = "";
+            
+            if (action === 'fight') {
+                // Basic punch
+                guk.attacking = true;
+                setTimeout(() => { guk.attacking = false; }, 180);
+                
+                let damage = random(8, 15);
+                nur.health = max(0, nur.health - damage);
+                createParticles(nur.x, nur.y, 6, "#ffaa00");
+                logMsg = `Guk punched Nur for ${Math.floor(damage)} damage!`;
+                
+                // Enemy counter
+                setTimeout(enemyTurn, 600);
+                
+            } else if (action === 'hack') {
+                let damage = random(12, 20);
+                nur.health -= damage;
+                createParticles(nur.x, nur.y - 15, 8, "#00ffaa");
+                logMsg = `HACK! Guk exploited a weakness for ${Math.floor(damage)} damage!`;
+                setTimeout(enemyTurn, 500);
+                
+            } else if (action === 'incinerate') {
+                if (guk.bandanaOn) {
+                    guk.bandanaOn = false;
+                    logMsg = "Guk removes his bandana... EYES GLOWING!";
+                }
+                guk.special = true;
+                createParticles(guk.x + 25, guk.y - 8, 12, "#ff3300");
+                
+                setTimeout(() => {
+                    guk.special = false;
+                    let damage = random(18, 28);
+                    nur.health = max(0, nur.health - damage);
+                    createParticles(nur.x, nur.y, 15, "#ff5500");
+                    updateHealthUI();
+                    addLog(`INCINERATE! ${Math.floor(damage)} damage to Nur!`);
+                    
+                    if (nur.health > 0) setTimeout(enemyTurn, 400);
+                }, 1200);
+                logMsg = "Guk charges INCINERATE BEAM!";
+                
+            } else if (action === 'skip') {
+                logMsg = "Skipped turn... Nur advances!";
+                setTimeout(enemyTurn, 300);
+                
+            } else if (action === 'now') {
+                let damage = random(15, 25);
+                nur.health -= damage;
+                createParticles(nur.x, nur.y, 10, "#ffff00");
+                logMsg = `NOW ATTACK! Massive ${Math.floor(damage)} damage!`;
+                setTimeout(enemyTurn, 450);
+            }
+            
+            if (logMsg) addLog(logMsg);
+            updateHealthUI();
+            
+            // Check for Nur death + revive
+            if (nur.health <= 0) {
+                if (nur.revivesLeft > 0) {
+                    nur.revivesLeft--;
+                    nur.reviving = true;
+                    setTimeout(() => {
+                        nur.reviving = false;
+                        nur.health = Math.floor(nur.maxHealth * 0.6);
+                        addLog("Nur returns from the ashes!");
+                        updateHealthUI();
+                    }, 900);
+                } else {
+                    addLog("Nur has no more revives!");
+                }
+            }
+        }
+        
+        function enemyTurn() {
+            if (gameState !== "fight" || nur.health <= 0) return;
+            
+            nur.attacking = true;
+            setTimeout(() => { nur.attacking = false; }, 200);
+            
+            let damage = random(6, 14) + Math.floor(level / 6);
+            guk.health = max(0, guk.health - damage);
+            
+            createParticles(guk.x, guk.y, 5, "#00aaff");
+            addLog(`Nur counter-attacked for ${Math.floor(damage)} damage!`);
+            
+            updateHealthUI();
+            
+            // Random Nur special
+            if (random() < 0.25 && nur.health > 0) {
+                setTimeout(() => {
+                    if (gameState === "fight") {
+                        let extra = random(5, 12);
+                        guk.health -= extra;
+                        addLog("Nur used a surprise move!");
+                        updateHealthUI();
+                    }
+                }, 700);
+            }
+        }
+        
+        function addLog(msg) {
+            fightLog.unshift(msg);
+            if (fightLog.length > 6) fightLog.pop();
+            
+            let logEl = document.getElementById('log');
+            logEl.innerHTML = fightLog.map(m => `<div>${m}</div>`).join('');
+        }
+        
+        function drawWinScreen() {
+            fill(0, 0, 0, 200);
+            rect(0, 0, width, height);
+            
+            fill(0, 255, 150);
+            textAlign(CENTER);
+            textSize(22);
+            text("VICTORY!", width/2, height/2 - 50);
+            
+            textSize(13);
+            fill(255);
+            text(`You beat Nur on Level ${level}!`, width/2, height/2);
+            text("Guk's incinerate powers ruled the city!", width/2, height/2 + 30);
+            
+            fill(255, 200, 0);
+            textSize(12);
+            text("PRESS SPACE TO CONTINUE TO NEXT LEVEL", width/2, height/2 + 80);
+        }
+        
+        function drawLoseScreen() {
+            fill(0, 0, 0, 200);
+            rect(0, 0, width, height);
+            
+            fill(255, 50, 50);
+            textAlign(CENTER);
+            textSize(22);
+            text("DEFEATED...", width/2, height/2 - 50);
+            
+            textSize(13);
+            fill(255);
+            text(`Nur got the better of Guk on Level ${level}`, width/2, height/2);
+            text("He kills you... but you can try again!", width/2, height/2 + 30);
+            
+            fill(255, 200, 0);
+            textSize(12);
+            text("PRESS SPACE TO RETRY", width/2, height/2 + 80);
+        }
+        
+        function resetGame() {
+            if (gameState === "win") {
+                level++;
+                if (level > MAX_LEVELS) {
+                    addLog("CONGRATULATIONS! All 55 levels complete!");
+                    level = MAX_LEVELS;
+                }
+            }
+            
+            gameState = "fight";
+            resetCharacters();
+            addLog(`Level ${level} begins!`);
+        }
+        
+        // Auto enemy pressure every few seconds
+        setInterval(() => {
+            if (gameState === "fight" && random() < 0.35 && nur.health > 0) {
+                enemyTurn();
+            }
+        }, 3800);
+        
+        // Update UI periodically
+        setInterval(() => {
+            if (gameState === "fight") updateHealthUI();
+        }, 500);
+        
+        // Initial log
+        window.onload = function() {
+            setTimeout(() => {
+                let logEl = document.getElementById('log');
+                logEl.innerHTML = "<div>Ready to fight in the city...</div>";
+            }, 300);
+        }
+    </script>
+</body>
+</html>

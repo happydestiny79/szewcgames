@@ -93,7 +93,7 @@
     <!-- Title Screen -->
     <div id="title-screen">
         <h1>🟩 JAYLEN'S LIFE</h1>
-        <button class="menu-button" onclick="startGame()">START GAME</button>
+        <button id="start-btn" class="menu-button">START GAME</button>
         <button class="menu-button" onclick="showSettings()">SETTINGS</button>
     </div>
     
@@ -140,7 +140,7 @@
         let happiness = 70;
         let day = 1;
         let gameStarted = false;
-        let location = "outside";
+        let currentLocation = "outside";
         
         let player = { x: 450, y: 320 };
         let family = [];
@@ -216,7 +216,7 @@
             document.getElementById("controls").style.display = "block";
             
             gameStarted = true;
-            location = "house";
+            currentLocation = "house";
             player.x = 280;
             player.y = 260;
             
@@ -237,8 +237,16 @@
         }
         
         function startGame() {
-            document.getElementById("title-screen").style.display = "none";
-            document.getElementById("role-screen").style.display = "flex";
+            const title = document.getElementById("title-screen");
+            const roleScreen = document.getElementById("role-screen");
+            
+            if (title && roleScreen) {
+                title.style.display = "none";
+                roleScreen.style.display = "flex";
+                console.log("%c[Jaylen] Role selection screen opened", "color:#4ecdc4");
+            } else {
+                console.error("Could not find title or role screen elements");
+            }
         }
         
         function showSettings() {
@@ -339,28 +347,28 @@
             // E = Enter/Exit buildings
             if (key === 'e' || key === 'E') {
                 // House door
-                if (location === "house" && player.x > 200 && player.x < 340 && player.y < 170) {
-                    location = "outside";
+                if (currentLocation === "house" && player.x > 200 && player.x < 340 && player.y < 170) {
+                    currentLocation = "outside";
                     player.x = 450;
                     player.y = 480;
                     addLog("You went outside onto the street.", "#4ecdc4");
                 } 
-                else if (location === "outside" && player.x > 400 && player.x < 520 && player.y > 450 && player.y < 510) {
-                    location = "house";
+                else if (currentLocation === "outside" && player.x > 400 && player.x < 520 && player.y > 450 && player.y < 510) {
+                    currentLocation = "house";
                     player.x = 280;
                     player.y = 240;
                     addLog("You entered the house.", "#4ecdc4");
                 }
                 // School
-                else if (location === "outside" && player.x > 620 && player.x < 750 && player.y > 200 && player.y < 300) {
-                    location = "school";
+                else if (currentLocation === "outside" && player.x > 620 && player.x < 750 && player.y > 200 && player.y < 300) {
+                    currentLocation = "school";
                     player.x = 180;
                     player.y = 280;
                     addLog("You arrived at school.", "#3498db");
                 }
                 // Store
-                else if (location === "outside" && player.x > 700 && player.x < 820 && player.y > 120 && player.y < 220) {
-                    location = "store";
+                else if (currentLocation === "outside" && player.x > 700 && player.x < 820 && player.y > 120 && player.y < 220) {
+                    currentLocation = "store";
                     player.x = 150;
                     player.y = 200;
                     addLog("You entered the store.", "#f1c40f");
@@ -417,13 +425,13 @@
             }
             
             // Fridge (house)
-            if (location === "house" && mouseX > 420 && mouseX < 500 && mouseY > 190 && mouseY < 280) {
+            if (currentLocation === "house" && mouseX > 420 && mouseX < 500 && mouseY > 190 && mouseY < 280) {
                 if (role === "Parent") performRoleAction("cook");
                 else performRoleAction("eat");
             }
             
             // Bed
-            if (location === "house" && mouseX > 70 && mouseX < 200 && mouseY > 270 && mouseY < 360) {
+            if (currentLocation === "house" && mouseX > 70 && mouseX < 200 && mouseY > 270 && mouseY < 360) {
                 energy = Math.min(100, energy + 40);
                 day++;
                 addLog(`You slept. Day ${day} started.`, "#9b59b6");
@@ -431,16 +439,16 @@
             }
             
             // School door
-            if (location === "outside" && mouseX > 620 && mouseX < 750 && mouseY > 200 && mouseY < 300) {
-                location = "school";
+            if (currentLocation === "outside" && mouseX > 620 && mouseX < 750 && mouseY > 200 && mouseY < 300) {
+                currentLocation = "school";
                 player.x = 180;
                 player.y = 280;
                 addLog("You entered the school.", "#3498db");
             }
             
             // Store door
-            if (location === "outside" && mouseX > 700 && mouseX < 820 && mouseY > 120 && mouseY < 220) {
-                location = "store";
+            if (currentLocation === "outside" && mouseX > 700 && mouseX < 820 && mouseY > 120 && mouseY < 220) {
+                currentLocation = "store";
                 player.x = 150;
                 player.y = 200;
                 addLog("You went to the store.", "#f1c40f");
@@ -465,7 +473,7 @@
             }
             
             // ========== OUTSIDE - STREET & WORLD ==========
-            if (location === "outside") {
+            if (currentLocation === "outside") {
                 // Grass background
                 fill(34, 139, 34);
                 rect(0, 0, width, height);
@@ -555,7 +563,7 @@
             }
             
             // ========== HOUSE INTERIOR ==========
-            else if (location === "house") {
+            else if (currentLocation === "house") {
                 fill(160, 110, 60);
                 rect(40, 70, 820, 490);
                 
@@ -608,7 +616,7 @@
             }
             
             // ========== SCHOOL ==========
-            else if (location === "school") {
+            else if (currentLocation === "school") {
                 fill(200, 185, 160);
                 rect(30, 50, 840, 520);
                 
@@ -627,7 +635,7 @@
                 text("Press E to leave school", width/2, 560);
                 
                 if (keyIsDown(69)) {
-                    location = "outside";
+                    currentLocation = "outside";
                     player.x = 700;
                     player.y = 340;
                     addLog("You left school.", "#aaa");
@@ -635,7 +643,7 @@
             }
             
             // ========== STORE ==========
-            else if (location === "store") {
+            else if (currentLocation === "store") {
                 fill(220, 200, 170);
                 rect(30, 50, 840, 520);
                 
@@ -655,7 +663,7 @@
                 text("Press E to leave store", width/2, 560);
                 
                 if (keyIsDown(69)) {
-                    location = "outside";
+                    currentLocation = "outside";
                     player.x = 760;
                     player.y = 200;
                     addLog("You left the store.", "#aaa");
@@ -684,7 +692,7 @@
                         energy = 55;
                         hunger = 50;
                         happiness = 80;
-                        location = "house";
+                        currentLocation = "house";
                         player.x = 280;
                         player.y = 260;
                         updateHUD();
