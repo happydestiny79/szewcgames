@@ -4,45 +4,249 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Allyssa's Red Carpet ✨</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
   <style>
-    body { font-family: 'Poppins', system_ui, sans-serif; }
-    .heading { font-family: 'Playfair Display', Georgia, serif; }
-    .game-container { box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&amp;family=Playfair+Display:wght@700&amp;display=swap');
+    
+    body {
+      font-family: 'Poppins', system_ui, sans-serif;
+      background: #18181b;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.2rem;
+      margin: 0 0 8px 0;
+    }
+    
+    .subtext {
+      color: #c084fc;
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+    
+    .game-box {
+      background: #27272a;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
+      border: 1px solid #3f3f46;
+    }
+    
+    .character-area {
+      background: #18181b;
+      border-radius: 18px;
+      padding: 20px;
+      margin: 20px 0;
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .character {
+      position: relative;
+      width: 220px;
+      height: 340px;
+    }
+    
+    .info-text {
+      text-align: center;
+      color: #a1a1aa;
+      font-size: 0.9rem;
+      margin: 12px 0;
+    }
+    
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .big-btn {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 9999px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 130px;
+      transition: all 0.1s ease;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    
+    .big-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2);
+    }
+    
+    .big-btn.pink { background: #db2777; }
+    .big-btn.purple { background: #7c3aed; }
+    .big-btn.yellow { background: #ca8a04; }
+    .big-btn.rose { background: #be123c; }
+    
+    .nav-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+    
+    .nav-btn {
+      padding: 12px 28px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .secret-btn { background: #6366f1; color: white; }
+    .redcarpet-btn { background: #b91c1c; color: white; }
+    
+    .result-stars {
+      font-size: 3.5rem;
+      text-align: center;
+      margin: 20px 0;
+      letter-spacing: 8px;
+    }
+    
+    .hidden { display: none; }
+    
+    .label {
+      position: absolute;
+      font-size: 0.75rem;
+      color: #71717a;
+      background: #27272a;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
   </style>
 </head>
-<body class="bg-zinc-950 text-white">
-  <div class="max-w-2xl mx-auto">
-    <div class="flex items-center justify-between px-6 pt-6 pb-4">
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
       <div>
-        <h1 class="text-4xl heading font-bold tracking-tight">Allyssa's Red Carpet ✨</h1>
-        <p class="text-purple-300 text-sm mt-1">Dress to impress • No villains • Pure fun</p>
+        <h1>Allyssa's Red Carpet ✨</h1>
+        <div class="subtext">Dress to impress • No villains • Pure fun</div>
       </div>
-      <div class="text-right">
-        <div class="text-xs text-zinc-400">Created for</div>
-        <div class="font-semibold text-purple-400">Allyssa</div>
+      <div style="text-align: right; font-size: 0.85rem;">
+        <div style="color: #71717a;">Created for</div>
+        <div style="color: #c084fc; font-weight: 600;">Allyssa</div>
       </div>
     </div>
 
-    <div class="game-container mx-4 rounded-3xl overflow-hidden border border-zinc-800 bg-zinc-900">
-      <div id="game-container"></div>
-    </div>
-
-    <div class="px-6 py-4 text-center">
-      <div class="flex justify-center gap-6 text-xs text-zinc-400">
-        <div>👆 Tap buttons to change clothes</div>
-        <div>✨ Get 5+ stars to win!</div>
+    <!-- Main Game Box -->
+    <div class="game-box">
+      
+      <!-- Dress Up Screen -->
+      <div id="dressup-screen">
+        <h2 style="margin: 0 0 8px 0; text-align: center; color: #e0e7ff;">Dress Up Studio</h2>
+        <p class="info-text">Tap the colored buttons to change your look!</p>
+        
+        <!-- Character -->
+        <div class="character-area">
+          <div class="character" id="character">
+            <!-- Character is built with CSS + JS -->
+          </div>
+        </div>
+        
+        <div class="button-row">
+          <button class="big-btn purple" onclick="changeItem('top')">👕 TOP</button>
+          <button class="big-btn pink" onclick="changeItem('bottom')">👖 BOTTOM</button>
+          <button class="big-btn purple" onclick="changeItem('accessory')">💎 ACCESSORY</button>
+          <button class="big-btn pink" onclick="changeItem('hair')">💇 HAIR</button>
+        </div>
+        
+        <div class="nav-buttons">
+          <button onclick="goToSecret()" class="nav-btn secret-btn">🪄 Secret Room</button>
+          <button onclick="goToRedCarpet()" class="nav-btn redcarpet-btn">🚶 Red Carpet</button>
+        </div>
       </div>
+      
+      <!-- Secret Room -->
+      <div id="secret-screen" class="hidden">
+        <h2 style="text-align: center; color: #e0e7ff;">✨ Secret Room ✨</h2>
+        <p class="info-text">Special bonus items only found here!</p>
+        
+        <div style="display: flex; justify-content: center; gap: 20px; margin: 30px 0;">
+          <button onclick="equipSecret(3)" class="big-btn yellow">👑 Floating Tiara</button>
+          <button onclick="equipSecret(1)" class="big-btn yellow">✨ Magic Slippers</button>
+          <button onclick="equipSecret(2)" class="big-btn yellow">🌟 Glowing Sash</button>
+        </div>
+        
+        <div class="character-area">
+          <div class="character" id="secret-character"></div>
+        </div>
+        
+        <div style="text-align: center;">
+          <button onclick="goBackToDressup()" class="nav-btn secret-btn">← Back to Dress Up</button>
+        </div>
+      </div>
+      
+      <!-- Red Carpet -->
+      <div id="redcarpet-screen" class="hidden">
+        <h2 style="text-align: center; color: #fefce8;">Red Carpet Time!</h2>
+        <p style="text-align: center; color: #fed7aa;">The judges are watching...</p>
+        
+        <div class="character-area" style="background: linear-gradient(#4a0000, #220000);">
+          <div class="character" id="redcarpet-character"></div>
+        </div>
+        
+        <div style="text-align: center; margin: 24px 0;">
+          <button onclick="getJudged()" class="big-btn yellow" style="font-size: 1.1rem; padding: 16px 40px;">✨ Get Judged!</button>
+        </div>
+        
+        <div style="text-align: center;">
+          <button onclick="goBackToDressup()" class="nav-btn" style="background: #3f3f46; color: white;">← Back</button>
+        </div>
+      </div>
+      
+      <!-- Results -->
+      <div id="result-screen" class="hidden">
+        <h2 style="text-align: center;">The Results Are In!</h2>
+        
+        <div id="stars-display" class="result-stars"></div>
+        
+        <div id="result-message" style="text-align: center; font-size: 1.2rem; margin: 16px 0;"></div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <button onclick="playAgain()" class="big-btn purple" style="padding: 14px 36px;">Play Again ✨</button>
+        </div>
+      </div>
+      
+    </div>
+    
+    <div style="text-align: center; margin-top: 16px; color: #52525b; font-size: 0.85rem;">
+      👆 Tap buttons to change clothes &nbsp;&nbsp; ✨ Get 5+ stars to win!
     </div>
   </div>
 
   <script>
-    let gameState = 'dressup';
-    let currentOutfit = { top: 0, bottom: 0, accessory: 0, hair: 0, special: 0 };
+    let currentOutfit = {
+      top: 0,
+      bottom: 0,
+      accessory: 0,
+      hair: 0,
+      special: 0
+    };
+    
     let stars = 0;
     let prize = '';
-
+    
     const outfits = {
       tops: ['Classic PJ Top', 'Sparkly PJ Top', 'Rainbow PJ Top', 'Heart PJ Top'],
       bottoms: ['Fuzzy PJ Pants', 'Star PJ Pants', 'Stripe PJ Pants', 'Polka PJ Shorts'],
@@ -50,348 +254,204 @@
       hairs: ['Long Straight', 'Long Wavy', 'Long Curly', 'Long with Bows'],
       specials: ['None', 'Magic Slippers', 'Glowing Sash', 'Floating Tiara']
     };
-
-    function setup() {
-      let canvas = createCanvas(600, 720);
-      canvas.parent('game-container');
-    }
-
-    function draw() {
-      background(24, 24, 27);
-
-      if (gameState === 'dressup') {
-        drawDressUpScreen();
-      } else if (gameState === 'secret') {
-        drawSecretRoom();
-      } else if (gameState === 'redcarpet') {
-        drawRedCarpet();
-      } else if (gameState === 'result') {
-        drawResultScreen();
-      }
-    }
-
-    function drawDressUpScreen() {
-      fill(250);
-      textSize(26);
-      textAlign(CENTER);
-      text('Dress Up Studio', width/2, 45);
-
-      fill(200, 180, 255);
-      textSize(13);
-      text('Tap the colored buttons to change your look!', width/2, 68);
-
-      drawCharacter(300, 310, 1.05);
-
-      // Current outfit text
-      fill(180);
-      textSize(12);
-      textAlign(LEFT);
-      text('Top: ' + outfits.tops[currentOutfit.top], 60, 500);
-      text('Bottom: ' + outfits.bottoms[currentOutfit.bottom], 60, 520);
-      text('Accessory: ' + outfits.accessories[currentOutfit.accessory], 60, 540);
-      text('Hair: ' + outfits.hairs[currentOutfit.hair], 320, 500);
-      text('Special: ' + outfits.specials[currentOutfit.special], 320, 520);
-
-      // BIG EASY BUTTONS
-      drawBigButton(80, 570, '#7c3aed', '👕 TOP', () => { currentOutfit.top = (currentOutfit.top + 1) % outfits.tops.length; });
-      drawBigButton(220, 570, '#db2777', '👖 BOTTOM', () => { currentOutfit.bottom = (currentOutfit.bottom + 1) % outfits.bottoms.length; });
-      drawBigButton(360, 570, '#c026d3', '💎 ACCESSORY', () => { currentOutfit.accessory = (currentOutfit.accessory + 1) % outfits.accessories.length; });
-      drawBigButton(500, 570, '#7c3aed', '💇 HAIR', () => { currentOutfit.hair = (currentOutfit.hair + 1) % outfits.hairs.length; });
-
-      // Secret Room Button
-      fill(129, 140, 248);
-      rect(120, 620, 200, 36, 18);
-      fill(255);
-      textAlign(CENTER);
-      textSize(14);
-      text('🪄 Secret Room', 220, 644);
-
-      // Red Carpet Button
-      fill(190, 24, 49);
-      rect(340, 620, 200, 36, 18);
-      fill(255);
-      textSize(14);
-      text('🚶 Red Carpet!', 440, 644);
-    }
-
-    function drawBigButton(x, y, color, label, action) {
-      fill(color);
-      rect(x - 55, y, 110, 38, 12);
-      fill(255);
-      textAlign(CENTER);
-      textSize(13);
-      text(label, x, y + 25);
-    }
-
-    function drawCharacter(x, y, scale) {
-      push();
-      translate(x, y);
-      scale(scale);
-
+    
+    function updateCharacter(containerId = 'character') {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      
+      container.innerHTML = '';
+      container.style.position = 'relative';
+      container.style.width = '220px';
+      container.style.height = '340px';
+      
       // Shadow
-      fill(0, 0, 0, 40);
-      ellipse(0, 135, 85, 22);
-
-      // Pajama Top
-      let topColors = ['#c084fc', '#f472b6', '#fb923c', '#a78bfa'];
-      fill(topColors[currentOutfit.top]);
-      rect(-32, 15, 64, 78, 12);
-
+      const shadow = document.createElement('div');
+      shadow.style.cssText = 'position:absolute; bottom:20px; left:50%; transform:translateX(-50%); width:110px; height:22px; background:rgba(0,0,0,0.35); border-radius:50%;';
+      container.appendChild(shadow);
+      
+      // Body - Pajama Top
+      const topColors = ['#c084fc', '#f472b6', '#fb923c', '#a78bfa'];
+      const bodyTop = document.createElement('div');
+      bodyTop.style.cssText = `position:absolute; top:95px; left:50%; transform:translateX(-50%); width:88px; height:95px; background:${topColors[currentOutfit.top]}; border-radius:18px;`;
+      container.appendChild(bodyTop);
+      
       // Pajama Bottom
-      let bottomColors = ['#7c3aed', '#e879f9', '#f59e0b', '#c026d3'];
-      fill(bottomColors[currentOutfit.bottom]);
-      rect(-30, 88, 60, 75, 8);
-
+      const bottomColors = ['#7c3aed', '#e879f9', '#f59e0b', '#c026d3'];
+      const bodyBottom = document.createElement('div');
+      bodyBottom.style.cssText = `position:absolute; top:185px; left:50%; transform:translateX(-50%); width:82px; height:95px; background:${bottomColors[currentOutfit.bottom]}; border-radius:14px;`;
+      container.appendChild(bodyBottom);
+      
       // Head
-      fill('#fcd9c0');
-      ellipse(0, -8, 52, 56);
-
+      const head = document.createElement('div');
+      head.style.cssText = 'position:absolute; top:55px; left:50%; transform:translateX(-50%); width:72px; height:78px; background:#fcd9c0; border-radius:50%;';
+      container.appendChild(head);
+      
       // Long Hair
-      let hairColors = ['#581c87', '#831843', '#713f12', '#4c1d95'];
-      fill(hairColors[currentOutfit.hair]);
-      ellipse(-3, 8, 58, 70);
-      rect(-25, -28, 10, 65);
-      rect(15, -28, 10, 65);
-
-      // Face
-      fill('#fcd9c0');
-      ellipse(0, -5, 46, 50);
-
+      const hairColors = ['#581c87', '#831843', '#713f12', '#4c1d95'];
+      const hairBack = document.createElement('div');
+      hairBack.style.cssText = `position:absolute; top:48px; left:50%; transform:translateX(-50%); width:82px; height:95px; background:${hairColors[currentOutfit.hair]}; border-radius:50%; z-index: -1;`;
+      container.appendChild(hairBack);
+      
+      // Hair strands
+      const leftStrand = document.createElement('div');
+      leftStrand.style.cssText = `position:absolute; top:52px; left:38px; width:14px; height:85px; background:${hairColors[currentOutfit.hair]}; border-radius:999px;`;
+      container.appendChild(leftStrand);
+      
+      const rightStrand = document.createElement('div');
+      rightStrand.style.cssText = `position:absolute; top:52px; right:38px; width:14px; height:85px; background:${hairColors[currentOutfit.hair]}; border-radius:999px;`;
+      container.appendChild(rightStrand);
+      
       // Eyes
-      fill(50);
-      ellipse(-11, -7, 7, 9);
-      ellipse(11, -7, 7, 9);
-
+      const leftEye = document.createElement('div');
+      leftEye.style.cssText = 'position:absolute; top:82px; left:72px; width:9px; height:12px; background:#3f2a1f; border-radius:50%;';
+      container.appendChild(leftEye);
+      
+      const rightEye = document.createElement('div');
+      rightEye.style.cssText = 'position:absolute; top:82px; right:72px; width:9px; height:12px; background:#3f2a1f; border-radius:50%;';
+      container.appendChild(rightEye);
+      
       // Smile
-      noFill();
-      stroke(200, 120, 120);
-      strokeWeight(2);
-      arc(0, 10, 14, 9, 0, PI);
-      noStroke();
-
+      const smile = document.createElement('div');
+      smile.style.cssText = 'position:absolute; top:105px; left:50%; transform:translateX(-50%); width:18px; height:9px; border-bottom:3px solid #d4a5a5; border-radius:0 0 50% 50%;';
+      container.appendChild(smile);
+      
       // Accessories
-      if (currentOutfit.accessory === 1) {
-        fill('#fbbf24');
-        ellipse(0, 32, 12, 12);
-      } else if (currentOutfit.accessory === 2) {
-        fill('#f472b6');
-        ellipse(-23, 8, 7, 7);
-        ellipse(23, 8, 7, 7);
-      } else if (currentOutfit.accessory === 3) {
-        fill('#c026d3');
-        rect(-20, -35, 40, 7, 3);
-      } else if (currentOutfit.accessory === 4) {
-        fill('#67e8f9');
-        rect(-35, 65, 7, 18, 3);
+      if (currentOutfit.accessory === 1) { // Necklace
+        const necklace = document.createElement('div');
+        necklace.style.cssText = 'position:absolute; top:138px; left:50%; transform:translateX(-50%); width:18px; height:18px; background:#fbbf24; border-radius:50%; border:3px solid #fcd9c0;';
+        container.appendChild(necklace);
+      } else if (currentOutfit.accessory === 2) { // Earrings
+        const e1 = document.createElement('div');
+        e1.style.cssText = 'position:absolute; top:95px; left:42px; width:10px; height:10px; background:#f472b6; border-radius:50%;';
+        container.appendChild(e1);
+        const e2 = e1.cloneNode(true);
+        e2.style.left = 'auto';
+        e2.style.right = '42px';
+        container.appendChild(e2);
+      } else if (currentOutfit.accessory === 3) { // Headband
+        const headband = document.createElement('div');
+        headband.style.cssText = 'position:absolute; top:48px; left:50%; transform:translateX(-50%); width:68px; height:10px; background:#c026d3; border-radius:999px;';
+        container.appendChild(headband);
+      } else if (currentOutfit.accessory === 4) { // Bracelet
+        const bracelet = document.createElement('div');
+        bracelet.style.cssText = 'position:absolute; top:175px; left:42px; width:9px; height:26px; background:#67e8f9; border-radius:999px;';
+        container.appendChild(bracelet);
       }
-
+      
       // Special items
-      if (currentOutfit.special === 1) {
-        fill('#fbbf24');
-        rect(-25, 158, 18, 10, 3);
-        rect(7, 158, 18, 10, 3);
-      } else if (currentOutfit.special === 2) {
-        fill(255, 200, 50, 220);
-        rect(-28, 78, 56, 10);
-      } else if (currentOutfit.special === 3) {
-        fill('#fef08c');
-        triangle(-12, -42, 12, -42, 0, -54);
-      }
-
-      pop();
-    }
-
-    function drawSecretRoom() {
-      background(30, 27, 75);
-      
-      fill(250);
-      textSize(24);
-      textAlign(CENTER);
-      text('✨ Secret Room ✨', width/2, 50);
-      
-      fill(200, 180, 255);
-      textSize(13);
-      text('Special bonus items!', width/2, 75);
-
-      // Bonus items
-      drawSecretItem(150, 180, 'Floating Tiara', 3, '#fef08c');
-      drawSecretItem(300, 180, 'Magic Slippers', 1, '#fbbf24');
-      drawSecretItem(450, 180, 'Glowing Sash', 2, '#f472b6');
-
-      drawCharacter(300, 360, 0.9);
-
-      fill(129, 140, 248);
-      rect(200, 580, 200, 36, 18);
-      fill(255);
-      textAlign(CENTER);
-      textSize(14);
-      text('← Back to Dress Up', 300, 604);
-    }
-
-    function drawSecretItem(x, y, name, specialIndex, color) {
-      fill(63, 66, 90);
-      rect(x - 50, y, 100, 65, 10);
-      fill(color);
-      textAlign(CENTER);
-      textSize(11);
-      text(name, x, y + 22);
-      
-      if (mouseIsPressed && dist(mouseX, mouseY, x, y + 32) < 35) {
-        currentOutfit.special = specialIndex;
+      if (currentOutfit.special === 1) { // Magic Slippers
+        const s1 = document.createElement('div');
+        s1.style.cssText = 'position:absolute; top:278px; left:58px; width:26px; height:14px; background:#fbbf24; border-radius:6px;';
+        container.appendChild(s1);
+        const s2 = s1.cloneNode(true);
+        s2.style.left = 'auto';
+        s2.style.right = '58px';
+        container.appendChild(s2);
+      } else if (currentOutfit.special === 2) { // Glowing Sash
+        const sash = document.createElement('div');
+        sash.style.cssText = 'position:absolute; top:180px; left:50%; transform:translateX(-50%); width:78px; height:14px; background:rgba(254,249,138,0.9); border-radius:999px;';
+        container.appendChild(sash);
+      } else if (currentOutfit.special === 3) { // Floating Tiara
+        const tiara = document.createElement('div');
+        tiara.style.cssText = 'position:absolute; top:32px; left:50%; transform:translateX(-50%); width:42px; height:22px; background:#fef08c; border-radius:999px;';
+        container.appendChild(tiara);
       }
     }
-
-    function drawRedCarpet() {
-      fill(120, 20, 30);
-      rect(0, 0, width, height);
-
-      fill(255, 220, 150, 50);
-      ellipse(width/2, 260, 360, 360);
-
-      fill(250);
-      textSize(22);
-      textAlign(CENTER);
-      text('Red Carpet Time!', width/2, 55);
-
-      fill(255, 200, 200);
-      textSize(13);
-      text('The judges are watching...', width/2, 78);
-
-      drawCharacter(300, 310, 1.0);
-
-      // Judges
-      fill(70);
-      rect(70, 450, 95, 55, 8);
-      rect(255, 450, 95, 55, 8);
-      rect(440, 450, 95, 55, 8);
-
-      fill(255);
-      textSize(11);
-      text('Judge 1', 117, 480);
-      text('Judge 2', 302, 480);
-      text('Judge 3', 487, 480);
-
-      // Big Judge Button
-      fill(234, 179, 8);
-      rect(180, 530, 240, 45, 22);
-      fill(30);
-      textAlign(CENTER);
-      textSize(16);
-      text('✨ Get Judged!', 300, 560);
-
-      fill(100);
-      rect(200, 600, 200, 32, 16);
-      fill(255);
-      textSize(13);
-      text('← Back', 300, 621);
+    
+    function changeItem(type) {
+      if (type === 'top') currentOutfit.top = (currentOutfit.top + 1) % outfits.tops.length;
+      if (type === 'bottom') currentOutfit.bottom = (currentOutfit.bottom + 1) % outfits.bottoms.length;
+      if (type === 'accessory') currentOutfit.accessory = (currentOutfit.accessory + 1) % outfits.accessories.length;
+      if (type === 'hair') currentOutfit.hair = (currentOutfit.hair + 1) % outfits.hairs.length;
+      
+      updateCharacter('character');
     }
-
-    function calculateStars() {
+    
+    function equipSecret(specialIndex) {
+      currentOutfit.special = specialIndex;
+      updateCharacter('secret-character');
+    }
+    
+    function goToSecret() {
+      document.getElementById('dressup-screen').classList.add('hidden');
+      document.getElementById('secret-screen').classList.remove('hidden');
+      updateCharacter('secret-character');
+    }
+    
+    function goToRedCarpet() {
+      document.getElementById('dressup-screen').classList.add('hidden');
+      document.getElementById('redcarpet-screen').classList.remove('hidden');
+      updateCharacter('redcarpet-character');
+    }
+    
+    function goBackToDressup() {
+      document.getElementById('secret-screen').classList.add('hidden');
+      document.getElementById('redcarpet-screen').classList.add('hidden');
+      document.getElementById('result-screen').classList.add('hidden');
+      document.getElementById('dressup-screen').classList.remove('hidden');
+      updateCharacter('character');
+    }
+    
+    function getJudged() {
       let score = 2;
       if (currentOutfit.hair === 2 || currentOutfit.hair === 3) score += 1;
       if (currentOutfit.accessory !== 0) score += 1;
       if (currentOutfit.special !== 0) score += 1.5;
       if (currentOutfit.top === 1 || currentOutfit.top === 2) score += 0.5;
       if (currentOutfit.special === 3) score += 1;
-      return Math.min(6, Math.floor(score));
-    }
-
-    function drawResultScreen() {
-      background(20, 20, 30);
       
-      fill(250);
-      textSize(26);
-      textAlign(CENTER);
-      text('The Results Are In!', width/2, 70);
-
-      textSize(52);
-      let displayStars = '';
-      for (let i = 0; i < stars; i++) displayStars += '⭐';
-      fill(251, 191, 36);
-      text(displayStars, width/2, 160);
-
-      fill(200);
-      textSize(16);
-      text('You got ' + stars + ' stars!', width/2, 195);
-
+      stars = Math.min(6, Math.floor(score));
+      
       if (stars >= 5) {
-        fill(74, 222, 128);
-        textSize(20);
-        text('🏆 YOU WIN THE PRIZE! 🏆', width/2, 250);
-        textSize(14);
-        fill(180);
-        text(prize, width/2, 285);
+        prize = 'Golden Trophy + Infinite Hugs!';
       } else if (stars >= 4) {
-        fill(250, 204, 21);
-        textSize(16);
-        text('Great job! So close!', width/2, 250);
+        prize = 'Shiny Star Badge!';
       } else {
-        fill(248, 113, 113);
-        textSize(15);
-        text('Nice try! Try the secret room next time.', width/2, 250);
+        prize = 'Participation Sticker';
       }
-
-      drawCharacter(300, 440, 0.75);
-
-      fill(129, 140, 248);
-      rect(180, 580, 240, 40, 20);
-      fill(255);
-      textAlign(CENTER);
-      textSize(15);
-      text('Play Again ✨', 300, 607);
+      
+      showResults();
     }
-
-    function mousePressed() {
-      if (gameState === 'dressup') {
-        // Secret Room
-        if (mouseY > 620 && mouseY < 656 && mouseX > 120 && mouseX < 320) {
-          gameState = 'secret';
-          return;
-        }
-        // Red Carpet
-        if (mouseY > 620 && mouseY < 656 && mouseX > 340 && mouseX < 540) {
-          gameState = 'redcarpet';
-          return;
-        }
-
-        // Item buttons (row at y=570)
-        if (mouseY > 570 && mouseY < 608) {
-          if (mouseX > 25 && mouseX < 135) currentOutfit.top = (currentOutfit.top + 1) % outfits.tops.length;
-          if (mouseX > 165 && mouseX < 275) currentOutfit.bottom = (currentOutfit.bottom + 1) % outfits.bottoms.length;
-          if (mouseX > 305 && mouseX < 415) currentOutfit.accessory = (currentOutfit.accessory + 1) % outfits.accessories.length;
-          if (mouseX > 445 && mouseX < 555) currentOutfit.hair = (currentOutfit.hair + 1) % outfits.hairs.length;
-        }
-
-      } else if (gameState === 'secret') {
-        if (mouseY > 580 && mouseY < 616 && mouseX > 200 && mouseX < 400) {
-          gameState = 'dressup';
-        }
-      } else if (gameState === 'redcarpet') {
-        // Get Judged
-        if (mouseY > 530 && mouseY < 575 && mouseX > 180 && mouseX < 420) {
-          stars = calculateStars();
-          if (stars >= 5) prize = 'Golden Trophy + Infinite Hugs!';
-          else if (stars >= 4) prize = 'Shiny Star Badge!';
-          else prize = 'Participation Sticker';
-          gameState = 'result';
-        }
-        // Back
-        if (mouseY > 600 && mouseY < 632 && mouseX > 200 && mouseX < 400) {
-          gameState = 'dressup';
-        }
-      } else if (gameState === 'result') {
-        if (mouseY > 580 && mouseY < 620 && mouseX > 180 && mouseX < 420) {
-          gameState = 'dressup';
-          stars = 0;
-          currentOutfit = { top: 0, bottom: 0, accessory: 0, hair: 0, special: 0 };
-        }
+    
+    function showResults() {
+      document.getElementById('redcarpet-screen').classList.add('hidden');
+      document.getElementById('result-screen').classList.remove('hidden');
+      
+      const starsEl = document.getElementById('stars-display');
+      let starText = '';
+      for (let i = 0; i < stars; i++) starText += '⭐';
+      starsEl.innerHTML = starText;
+      
+      const msgEl = document.getElementById('result-message');
+      if (stars >= 5) {
+        msgEl.innerHTML = `<span style="color:#4ade80; font-size:1.4rem;">🏆 YOU WIN THE PRIZE! 🏆</span><br><span style="color:#a1a1aa; font-size:1rem;">${prize}</span>`;
+      } else if (stars >= 4) {
+        msgEl.innerHTML = `<span style="color:#fde047;">Great job! So close to the big prize!</span>`;
+      } else {
+        msgEl.innerHTML = `<span style="color:#f87171;">Nice try! Try the secret room for extra points.</span>`;
       }
     }
-
-    function touchStarted() {
-      mousePressed();
-      return false;
+    
+    function playAgain() {
+      stars = 0;
+      currentOutfit = { top: 0, bottom: 0, accessory: 0, hair: 0, special: 0 };
+      document.getElementById('result-screen').classList.add('hidden');
+      document.getElementById('dressup-screen').classList.remove('hidden');
+      updateCharacter('character');
     }
+    
+    // Initialize
+    function init() {
+      updateCharacter('character');
+      
+      // Make sure all screens are hidden except dressup
+      document.getElementById('secret-screen').classList.add('hidden');
+      document.getElementById('redcarpet-screen').classList.add('hidden');
+      document.getElementById('result-screen').classList.add('hidden');
+      document.getElementById('dressup-screen').classList.remove('hidden');
+    }
+    
+    window.onload = init;
   </script>
 </body>
 </html>
