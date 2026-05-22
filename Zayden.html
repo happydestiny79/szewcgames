@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jay's Escape - Super Saiyan Platformer</title>
+  <title>Zayden's Escape - Super Saiyan Stage 2</title>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
   <style>
     body {
@@ -27,8 +27,8 @@
       max-width: 700px;
     }
     h1 {
-      color: #ffd700;
-      text-shadow: 0 0 10px #ffd700;
+      color: #aa66ff;
+      text-shadow: 0 0 15px #aa66ff;
       margin: 0 0 10px 0;
     }
     .controls {
@@ -45,109 +45,111 @@
   </style>
 </head>
 <body>
-  <h1>🌀 JAY'S ESCAPE 🌀</h1>
-  <p style="color:#88ccff; margin:5px 0;">Future Platform • Trapped • Super Saiyan Power</p>
+  <h1>🌀 ZAYDEN'S ESCAPE 🌀</h1>
+  <p style="color:#aa88ff; margin:5px 0;">Future Platform • Trapped • Super Saiyan Stage 2 (Purple)</p>
   
   <div id="game-container"></div>
   
   <div class="info">
     <div class="controls">
       <strong>Controls:</strong><br>
-      ← → / A D : Move &nbsp;&nbsp; SPACE : Jump &nbsp;&nbsp; <span style="color:#ffd700">G : Go Super Saiyan</span><br>
-      <span style="color:#ff6666">At the end: K = Kill the bad guy &nbsp; | &nbsp; S = Spare (risky)</span>
+      ← → / A D : Move &nbsp;&nbsp; SPACE : Jump &nbsp;&nbsp; <span style="color:#aa66ff">G : Super Saiyan Stage 2</span><br>
+      <span style="color:#ff6666">At the end: K = Kill &nbsp; | &nbsp; S = Spare</span>
     </div>
     <p style="font-size:13px; color:#aaa; margin-top:8px;">
-      You wake up confused on a floating platform in the future.<br>
-      A mysterious man in black doesn't want you to escape.<br>
-      15 levels of increasing difficulty. Start easy, get harder.<br>
-      <span class="status">Level <span id="level-display">1</span> / 15</span>
+      Trapped in the future. Escape John and find your way home.<br>
+      <span class="status">Level <span id="level-display">1</span> / 19</span>
     </p>
   </div>
 
   <script>
-    let player;
-    let enemy;
-    let platforms = [];
+    let player, enemy, platforms = [];
     let level = 1;
-    let maxLevels = 15;
-    let gameState = "playing"; // playing, escaped, badEnding, won
+    let maxLevels = 19;
+    let gameState = "playing";
     let superSaiyan = false;
     let superTimer = 0;
     let score = 0;
-    let clouds = [];
-    let particles = [];
+    let clouds = [], particles = [];
+    let storyIndex = 0;
+    let inJohnsHouse = false;
+    let choiceMade = "";
+    let storyPhase = 0; // 0 = first escape story, 1 = John's house story
+
+    const storyBeats = [
+      "You finally escape the floating platforms...",
+      "You see your mom waiting at the door. She looks worried but relieved.",
+      "She cooks your favorite meal. You sit together and eat in silence.",
+      "After dinner, you go upstairs to your room.",
+      "You turn on the TV. Something feels... off. The news looks strange.",
+      "You start feeling sleepy. Your eyes grow heavy...",
+      "You wake up — not in your bed, but in a dark house.",
+      "This is John's house. You're trapped again."
+    ];
+
+    const johnsHouseStory = [
+      "You escaped John's house... but something still feels wrong.",
+      "You run back home, heart pounding.",
+      "Your mom is waiting. She asks if you're okay.",
+      "You tell her everything. She believes you.",
+      "That night, you go to sleep again...",
+      "This time, you wake up in a completely new place.",
+      "The cycle isn't over yet..."
+    ];
 
     function setup() {
       let canvas = createCanvas(800, 500);
       canvas.parent('game-container');
-      
       resetLevel();
-      
-      // Background clouds
       for (let i = 0; i < 6; i++) {
-        clouds.push({
-          x: random(width),
-          y: random(50, 150),
-          size: random(40, 80)
-        });
+        clouds.push({x: random(width), y: random(50, 150), size: random(40, 80)});
       }
     }
 
     function resetLevel() {
       platforms = [];
       
-      // Ground platform
-      platforms.push({x: 0, y: 420, w: 800, h: 80});
-      
-      // Procedural platforms based on level
-      let platformCount = min(3 + floor(level / 2), 8);
-      
-      for (let i = 0; i < platformCount; i++) {
-        let px = 100 + (i * (650 / platformCount)) + random(-30, 30);
-        let py = 380 - (i * 35) - random(0, level * 8);
-        let pw = random(80, 140);
+      if (inJohnsHouse) {
+        // John's House - Much Harder Version
+        platforms.push({x: 0, y: 420, w: 800, h: 80, house: true});
         
-        // Make some moving platforms on higher levels
-        let moving = level > 4 && random() > 0.6;
+        // More complex and dangerous layout
+        platforms.push({x: 80, y: 360, w: 100, h: 18, house: true, moving: true, dir: 1, speed: 1.8});
+        platforms.push({x: 250, y: 300, w: 90, h: 18, house: true});
+        platforms.push({x: 400, y: 260, w: 110, h: 18, house: true, moving: true, dir: -1, speed: 2.2});
+        platforms.push({x: 580, y: 220, w: 85, h: 18, house: true});
+        platforms.push({x: 300, y: 170, w: 120, h: 18, house: true, moving: true, dir: 1, speed: 1.5});
+        platforms.push({x: 150, y: 120, w: 95, h: 18, house: true});
+        platforms.push({x: 520, y: 90, w: 100, h: 18, house: true, moving: true, dir: -1, speed: 2.0});
         
-        platforms.push({
-          x: px, 
-          y: constrain(py, 150, 380), 
-          w: pw, 
-          h: 20,
-          moving: moving,
-          dir: random([-1, 1]),
-          speed: random(0.8, 1.8)
-        });
+        // Final exit
+        platforms.push({x: 650, y: 420, w: 120, h: 20, goal: true, house: true});
+      } else {
+        // Normal floating platforms
+        platforms.push({x: 0, y: 420, w: 800, h: 80});
+        let platformCount = min(3 + floor(level / 2), 9);
+        for (let i = 0; i < platformCount; i++) {
+          let px = 100 + (i * (650 / platformCount)) + random(-25, 25);
+          let py = 380 - (i * 38) - random(0, level * 9);
+          platforms.push({
+            x: px, y: constrain(py, 140, 380), w: random(75, 135), h: 20,
+            moving: level > 5 && random() > 0.5,
+            dir: random([-1, 1]), speed: random(1.0, 2.0)
+          });
+        }
+        platforms.push({x: 650, y: 200, w: 120, h: 20, goal: true});
       }
       
-      // End platform (goal)
-      platforms.push({x: 650, y: 200, w: 120, h: 20, goal: true});
-      
-      // Player - Jay
       player = {
-        x: 80,
-        y: 350,
-        w: 28,
-        h: 42,
-        vx: 0,
-        vy: 0,
-        onGround: false,
-        color: [70, 130, 200], // blue shirt
-        hairColor: [101, 67, 33] // brown hair
+        x: 80, y: inJohnsHouse ? 380 : 350,
+        w: 28, h: 42, vx: 0, vy: 0, onGround: false, color: [70, 130, 200]
       };
       
-      // Enemy - John
       enemy = {
-        x: 400,
-        y: 350,
-        w: 30,
-        h: 44,
-        vx: 0,
-        vy: 0,
-        onGround: false,
-        health: 3 + floor(level / 3),
-        angry: false
+        x: inJohnsHouse ? 550 : 420, y: inJohnsHouse ? 380 : 350,
+        w: 30, h: 44, vx: 0, vy: 0, onGround: false,
+        health: inJohnsHouse ? 8 : (3 + floor(level / 3)),
+        angry: true
       };
       
       superSaiyan = false;
@@ -156,242 +158,192 @@
     }
 
     function draw() {
-      // Futuristic sky background
-      background(20, 60, 140);
-      
-      // Gradient sky
-      for (let i = 0; i < 8; i++) {
-        fill(30 + i*8, 80 + i*10, 160 + i*5, 180);
-        rect(0, i * 60, width, 70);
+      if (gameState === "story") {
+        drawStoryScreen();
+        return;
       }
       
-      // Sun
-      fill(255, 230, 100);
-      circle(650, 80, 50);
-      fill(255, 200, 50, 100);
-      circle(650, 80, 70);
+      // Background
+      if (inJohnsHouse) {
+        background(25, 20, 40);
+        fill(45, 35, 60);
+        rect(0, 0, width, 90);
+        fill(60, 50, 80, 80);
+        for (let i = 0; i < 5; i++) {
+          rect(50 + i * 160, 20, 30, 50);
+        }
+      } else {
+        background(20, 60, 140);
+        for (let i = 0; i < 8; i++) {
+          fill(30 + i*8, 80 + i*10, 160 + i*5, 180);
+          rect(0, i * 60, width, 70);
+        }
+        fill(255, 230, 100); circle(650, 80, 50);
+      }
       
       // Clouds
-      fill(255, 255, 255, 180);
-      for (let c of clouds) {
-        ellipse(c.x, c.y, c.size, c.size * 0.6);
-        ellipse(c.x + 25, c.y - 5, c.size * 0.8, c.size * 0.5);
-        c.x += 0.15;
-        if (c.x > width + 50) c.x = -80;
+      if (!inJohnsHouse) {
+        fill(255, 255, 255, 170);
+        for (let c of clouds) {
+          ellipse(c.x, c.y, c.size, c.size * 0.6);
+          ellipse(c.x + 25, c.y - 5, c.size * 0.8, c.size * 0.5);
+          c.x += 0.15; if (c.x > width + 50) c.x = -80;
+        }
       }
       
-      // Draw platforms
+      // Platforms
       for (let p of platforms) {
         if (p.moving) {
           p.x += p.dir * p.speed;
-          if (p.x < 50 || p.x + p.w > 750) p.dir *= -1;
+          if (p.x < 40 || p.x + p.w > 760) p.dir *= -1;
         }
-        
-        // Platform style - metallic future look
-        fill(p.goal ? '#00ffaa' : '#334466');
-        stroke(p.goal ? '#00ffcc' : '#556688');
+        if (inJohnsHouse) {
+          fill(p.goal ? '#ffaa00' : '#443355');
+          stroke('#665577');
+        } else {
+          fill(p.goal ? '#00ffaa' : '#334466');
+          stroke(p.goal ? '#00ffcc' : '#556688');
+        }
         strokeWeight(2);
         rect(p.x, p.y, p.w, p.h, 4);
-        
-        // Platform details
-        fill(80, 100, 140, 150);
-        rect(p.x + 5, p.y + 3, p.w - 10, 5);
       }
       
-      // Draw enemy - John (bad guy)
       drawJohn();
+      drawZayden();
       
-      // Draw player - Jay
-      drawJay();
-      
-      // Particles for super saiyan aura
+      // Purple particles
       if (superSaiyan) {
         for (let i = particles.length - 1; i >= 0; i--) {
           let pt = particles[i];
-          fill(255, 220, 50, pt.alpha);
-          noStroke();
+          fill(170, 100, 255, pt.alpha);
           circle(pt.x, pt.y, pt.size);
-          pt.y -= 1.5;
-          pt.alpha -= 8;
+          pt.y -= 2; pt.alpha -= 10;
           if (pt.alpha <= 0) particles.splice(i, 1);
         }
       }
       
       // UI
-      fill(255);
-      textSize(16);
-      textAlign(LEFT);
-      text(`Level ${level} / ${maxLevels}`, 20, 30);
+      fill(255); textSize(16); textAlign(LEFT);
+      let lvlText = inJohnsHouse ? "John's House" : `Level ${level}`;
+      text(lvlText, 20, 30);
       
       if (superSaiyan) {
-        fill(255, 220, 50);
-        text("⚡ SUPER SAIYAN MODE ⚡", 20, 55);
+        fill(170, 100, 255);
+        text("⚡ SUPER SAIYAN STAGE 2 ⚡", 20, 55);
         superTimer--;
-        if (superTimer <= 0) {
-          superSaiyan = false;
-        }
+        if (superTimer <= 0) superSaiyan = false;
       }
       
-      // Enemy health bar
       if (enemy.health > 0) {
-        fill(40);
-        rect(enemy.x - 5, enemy.y - 18, 40, 6);
-        fill(255, 50, 50);
-        rect(enemy.x - 5, enemy.y - 18, map(enemy.health, 0, 8, 0, 40), 6);
+        fill(40); rect(enemy.x - 5, enemy.y - 18, 40, 6);
+        fill(255, 50, 50); rect(enemy.x - 5, enemy.y - 18, map(enemy.health, 0, 9, 0, 40), 6);
       }
       
-      // Game state messages
+      // Messages
       if (gameState === "escaped") {
-        fill(0, 255, 150);
-        textSize(28);
-        textAlign(CENTER);
-        text("YOU ESCAPED!", width/2, 200);
-        textSize(16);
-        fill(255);
-        text("You got home... but it didn't end there.", width/2, 240);
-        text("Press R to continue to next level", width/2, 280);
+        fill(0, 255, 150); textSize(26); textAlign(CENTER);
+        text("YOU ESCAPED!", width/2, 170);
+        textSize(15); fill(255);
+        text("Press SPACE to continue the story", width/2, 210);
       }
-      
       if (gameState === "badEnding") {
-        fill(255, 80, 80);
-        textSize(24);
-        textAlign(CENTER);
-        text("THE BAD GUY FOLLOWED YOU...", width/2, 200);
-        textSize(16);
-        fill(255);
-        text("You spared him... but he came back.", width/2, 240);
-        text("Press R to try again", width/2, 280);
+        fill(255, 80, 80); textSize(22); textAlign(CENTER);
+        text("THE BAD GUY FOLLOWED YOU...", width/2, 190);
+        textSize(15); fill(255); text("Press R to try again", width/2, 240);
       }
-      
       if (gameState === "won") {
-        fill(255, 215, 0);
-        textSize(32);
-        textAlign(CENTER);
-        text("🏆 YOU WON! 🏆", width/2, 200);
-        textSize(18);
-        text("All 15 levels complete. Great job!", width/2, 240);
+        fill(255, 215, 0); textSize(30); textAlign(CENTER);
+        text("🏆 YOU WON! 🏆", width/2, 190);
+        textSize(16); text("All 19 levels complete!", width/2, 235);
       }
       
-      // Handle input
       handleInput();
-      
-      // Physics
       updatePhysics();
-      
-      // Collision
       handleCollisions();
-      
-      // Enemy AI
       updateEnemy();
-      
-      // Check win condition
       checkWinCondition();
     }
 
-    function drawJay() {
-      let p = player;
+    function drawStoryScreen() {
+      background(15, 18, 40);
+      fill(255); textAlign(CENTER); textSize(20);
+      text("Zayden's Story", width/2, 60);
       
-      push();
-      translate(p.x, p.y);
+      let currentStory = storyPhase === 0 ? storyBeats : johnsHouseStory;
       
-      let shirtColor = superSaiyan ? [255, 220, 50] : p.color;
-      let hairColor = superSaiyan ? [255, 230, 80] : p.hairColor;
-      
-      // Body - blue shirt / super saiyan glow
-      fill(shirtColor[0], shirtColor[1], shirtColor[2]);
-      rect(0, 12, p.w, 24, 3);
-      
-      // Head
-      fill(210, 160, 120); // brown skin
-      rect(4, 0, 20, 16, 4);
-      
-      // Hair
-      fill(hairColor[0], hairColor[1], hairColor[2]);
-      rect(3, -2, 22, 8, 3);
-      
-      // Super Saiyan aura hair spike
-      if (superSaiyan) {
-        fill(255, 240, 100);
-        triangle(5, -2, 14, -18, 23, -2);
-        // Aura
-        noFill();
-        stroke(255, 230, 80, 150);
-        strokeWeight(3);
-        ellipse(p.w/2, p.h/2 + 5, p.w + 18, p.h + 22);
+      fill(200, 180, 255); textSize(17);
+      let y = 130;
+      for (let i = 0; i <= storyIndex && i < currentStory.length; i++) {
+        text(currentStory[i], width/2, y);
+        y += 36;
       }
       
-      // Legs - black pants
-      fill(30);
-      rect(3, 34, 9, 12);
-      rect(16, 34, 9, 12);
+      // Show choices at certain points
+      if (storyIndex === 3 && storyPhase === 0) {
+        fill(255, 200, 100); textSize(15);
+        text("Choice: [1] Go straight to your room    [2] Check the window first", width/2, 420);
+      }
+      if (storyIndex === 5 && storyPhase === 0) {
+        fill(255, 200, 100); textSize(15);
+        text("Choice: [1] Fight the sleep    [2] Accept it and sleep", width/2, 420);
+      }
       
+      fill(150); textSize(14);
+      text("Press SPACE to continue...", width/2, 470);
+    }
+
+    function drawZayden() {
+      let p = player;
+      push(); translate(p.x, p.y);
+      let shirtColor = superSaiyan ? [170, 100, 255] : p.color;
+      fill(shirtColor[0], shirtColor[1], shirtColor[2]);
+      rect(0, 12, p.w, 24, 3);
+      fill(210, 160, 120); rect(4, 0, 20, 16, 4);
+      fill(superSaiyan ? [140, 80, 220] : [101, 67, 33]);
+      rect(3, -2, 22, 8, 3);
+      if (superSaiyan) {
+        fill(170, 100, 255); triangle(5, -2, 14, -20, 23, -2);
+        noFill(); stroke(170, 100, 255, 150); strokeWeight(3);
+        ellipse(p.w/2, p.h/2 + 5, p.w + 18, p.h + 22);
+      }
+      fill(30); rect(3, 34, 9, 12); rect(16, 34, 9, 12);
       pop();
     }
 
     function drawJohn() {
       let e = enemy;
-      
-      push();
-      translate(e.x, e.y);
-      
-      // Body - black shirt
-      fill(25);
-      rect(0, 14, e.w, 26);
-      
-      // Head
-      fill(60);
-      rect(3, 2, 24, 16, 3);
-      
-      // Black mask
-      fill(10);
-      rect(5, 5, 20, 10);
-      
-      // Black sunglasses
-      fill(0);
-      rect(6, 6, 16, 6);
-      
-      // Hair
-      fill(20);
-      rect(2, -1, 26, 6);
-      
-      // Gray pants
-      fill(90);
-      rect(3, 38, 10, 10);
-      rect(17, 38, 10, 10);
-      
+      push(); translate(e.x, e.y);
+      fill(25); rect(0, 14, e.w, 26);
+      fill(60); rect(3, 2, 24, 16, 3);
+      fill(10); rect(5, 5, 20, 10);
+      fill(0); rect(6, 6, 16, 6);
+      fill(20); rect(2, -1, 26, 6);
+      fill(90); rect(3, 38, 10, 10); rect(17, 38, 10, 10);
       pop();
     }
 
     function handleInput() {
       if (gameState !== "playing") return;
+      let speed = superSaiyan ? 5.8 : 4.2;
       
-      let speed = superSaiyan ? 5.5 : 4;
+      if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) player.vx = -speed;
+      else if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) player.vx = speed;
+      else player.vx *= 0.7;
       
-      if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) { // A
-        player.vx = -speed;
-      } else if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) { // D
-        player.vx = speed;
-      } else {
-        player.vx *= 0.7;
-      }
-      
-      // Jump
       if ((keyIsDown(32) || keyIsDown(UP_ARROW)) && player.onGround) {
-        player.vy = superSaiyan ? -14 : -11;
+        player.vy = superSaiyan ? -15 : -12;
         player.onGround = false;
       }
       
-      // Go Super Saiyan
-      if (keyIsDown(71) && !superSaiyan) { // G key
+      if (keyIsDown(71) && !superSaiyan) {
         superSaiyan = true;
-        superTimer = 180 + level * 10; // lasts longer on higher levels
-        // Spawn aura particles
-        for (let i = 0; i < 15; i++) {
+        superTimer = 220 + level * 12;
+        for (let i = 0; i < 20; i++) {
           particles.push({
             x: player.x + random(10, 30),
             y: player.y + random(10, 40),
-            size: random(4, 9),
-            alpha: 220
+            size: random(5, 11),
+            alpha: 240
           });
         }
       }
@@ -399,153 +351,132 @@
 
     function updatePhysics() {
       if (gameState !== "playing") return;
-      
-      // Gravity
-      player.vy += 0.6;
-      enemy.vy += 0.6;
-      
-      player.x += player.vx;
-      player.y += player.vy;
-      
-      enemy.x += enemy.vx;
-      enemy.y += enemy.vy;
-      
-      // Clamp to screen
+      player.vy += 0.6; enemy.vy += 0.6;
+      player.x += player.vx; player.y += player.vy;
+      enemy.x += enemy.vx; enemy.y += enemy.vy;
       player.x = constrain(player.x, 0, width - player.w);
       enemy.x = constrain(enemy.x, 0, width - enemy.w);
     }
 
     function handleCollisions() {
-      player.onGround = false;
-      enemy.onGround = false;
-      
+      player.onGround = false; enemy.onGround = false;
       for (let p of platforms) {
-        // Player collision
         if (player.x < p.x + p.w && player.x + player.w > p.x &&
             player.y < p.y + p.h && player.y + player.h > p.y) {
-          
           if (player.vy > 0 && player.y < p.y) {
-            player.y = p.y - player.h;
-            player.vy = 0;
-            player.onGround = true;
-          } else if (player.vy < 0) {
-            player.y = p.y + p.h;
-            player.vy = 0;
-          }
+            player.y = p.y - player.h; player.vy = 0; player.onGround = true;
+          } else if (player.vy < 0) { player.y = p.y + p.h; player.vy = 0; }
         }
-        
-        // Enemy collision
         if (enemy.x < p.x + p.w && enemy.x + enemy.w > p.x &&
             enemy.y < p.y + p.h && enemy.y + enemy.h > p.y) {
-          if (enemy.vy > 0) {
-            enemy.y = p.y - enemy.h;
-            enemy.vy = 0;
-            enemy.onGround = true;
-          }
+          if (enemy.vy > 0) { enemy.y = p.y - enemy.h; enemy.vy = 0; enemy.onGround = true; }
         }
       }
-      
-      // Keep on ground
-      if (player.y > 420) {
-        player.y = 420 - player.h;
-        player.vy = 0;
-        player.onGround = true;
-      }
+      if (player.y > 420) { player.y = 420 - player.h; player.vy = 0; player.onGround = true; }
     }
 
     function updateEnemy() {
       if (gameState !== "playing" || enemy.health <= 0) return;
+      let chaseSpeed = inJohnsHouse ? 3.2 : (2.3 + level * 0.2);
+      if (enemy.x < player.x - 18) enemy.vx = chaseSpeed;
+      else if (enemy.x > player.x + 18) enemy.vx = -chaseSpeed;
+      else enemy.vx *= 0.5;
       
-      let distToPlayer = abs(enemy.x - player.x);
-      
-      // Enemy becomes angry when player gets close or on higher levels
-      if (distToPlayer < 180 || level > 6) {
-        enemy.angry = true;
-      }
-      
-      if (enemy.angry) {
-        // Chase player
-        let chaseSpeed = 2.2 + level * 0.15;
-        if (enemy.x < player.x - 20) enemy.vx = chaseSpeed;
-        else if (enemy.x > player.x + 20) enemy.vx = -chaseSpeed;
-        else enemy.vx *= 0.6;
-        
-        // Occasionally jump
-        if (random() < 0.02 && enemy.onGround) {
-          enemy.vy = -9;
-        }
-      } else {
-        // Patrol
-        enemy.vx = sin(frameCount / 40) * 1.5;
+      if (random() < (inJohnsHouse ? 0.04 : 0.025) && enemy.onGround) {
+        enemy.vy = inJohnsHouse ? -11 : -9.5;
       }
     }
 
     function checkWinCondition() {
       if (gameState !== "playing") return;
-      
-      // Reached goal platform
       let goal = platforms.find(p => p.goal);
       if (goal && player.x > goal.x + 30 && player.y < goal.y + 30) {
-        
-        // Show choice
-        gameState = "choice";
-        
-        // Simple choice via key press in keyPressed()
-        fill(255);
-        textSize(18);
-        textAlign(CENTER);
-        text("You reached the end! Kill (K) or Spare (S)?", width/2, 160);
+        gameState = "escaped";
       }
-      
-      // Enemy catches player
       if (abs(player.x - enemy.x) < 25 && abs(player.y - enemy.y) < 30 && enemy.health > 0) {
-        if (!superSaiyan) {
-          gameState = "badEnding";
-        } else {
-          // Super saiyan can defeat enemy
-          enemy.health = 0;
-          score += 100;
-        }
+        if (!superSaiyan) gameState = "badEnding";
+        else { enemy.health = 0; score += 100; }
       }
     }
 
     function keyPressed() {
-      if (gameState === "choice") {
-        if (key === 'k' || key === 'K') {
-          // Kill the bad guy - clean escape
-          gameState = "escaped";
-          score += 200;
-        } else if (key === 's' || key === 'S') {
-          // Spare - bad guy follows
-          gameState = "badEnding";
+      if (gameState === "story") {
+        if (key === ' ') {
+          let currentStory = storyPhase === 0 ? storyBeats : johnsHouseStory;
+          
+          // Handle choices
+          if (storyIndex === 3 && storyPhase === 0) {
+            if (key === '1') choiceMade = "room";
+            if (key === '2') choiceMade = "window";
+          }
+          if (storyIndex === 5 && storyPhase === 0) {
+            if (key === '1') choiceMade = "fight";
+            if (key === '2') choiceMade = "accept";
+          }
+          
+          storyIndex++;
+          if (storyIndex >= currentStory.length) {
+            if (storyPhase === 0) {
+              // Finished first story → enter John's House
+              inJohnsHouse = true;
+              gameState = "playing";
+              level = 16;
+              resetLevel();
+              storyIndex = 0;
+              storyPhase = 1;
+            } else {
+              // Finished second story → win or continue
+              gameState = "won";
+            }
+          }
+        }
+        return;
+      }
+      
+      if (gameState === "escaped") {
+        if (key === ' ') {
+          if (level >= 15 && !inJohnsHouse) {
+            gameState = "story";
+            storyIndex = 0;
+            storyPhase = 0;
+          } else if (level < maxLevels) {
+            level++;
+            resetLevel();
+          } else {
+            gameState = "won";
+          }
         }
       }
       
       if ((gameState === "escaped" || gameState === "badEnding") && (key === 'r' || key === 'R')) {
-        if (level < maxLevels) {
-          level++;
-          resetLevel();
-        } else {
-          gameState = "won";
-        }
+        if (level < maxLevels) { level++; resetLevel(); }
+        else { gameState = "won"; }
       }
       
-      // Restart level
       if (key === 'r' || key === 'R') {
-        if (gameState === "playing") {
-          resetLevel();
-        }
+        if (gameState === "playing") resetLevel();
       }
     }
 
     function mousePressed() {
-      // Quick restart on click when game over
-      if (gameState !== "playing") {
-        if (level < maxLevels) {
-          level++;
-        } else {
-          level = 1;
+      if (gameState === "story") {
+        let currentStory = storyPhase === 0 ? storyBeats : johnsHouseStory;
+        storyIndex++;
+        if (storyIndex >= currentStory.length) {
+          if (storyPhase === 0) {
+            inJohnsHouse = true;
+            gameState = "playing";
+            level = 16;
+            resetLevel();
+            storyIndex = 0;
+            storyPhase = 1;
+          } else {
+            gameState = "won";
+          }
         }
+      } else if (gameState !== "playing") {
+        if (level < maxLevels) level++;
+        else { level = 1; inJohnsHouse = false; }
         resetLevel();
       }
     }

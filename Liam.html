@@ -3,7 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <title>Avatar the Creator - Liam</title>
-<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js">
+function mouseClicked() {
+  if (gameState === "play" && boss) {
+    // Fast clicking during boss fight gives health and damages boss
+    boss.health -= 8;
+    health = min(health + 5, 300);  // gain a bit of health per click
+    
+    if (boss.health <= 0) {
+      score += 50;
+      totalSpirits += 50;
+      boss = null;
+    }
+  }
+}
+
+</script>
 <style>
   body { margin:0; background:#0a0a1f; color:#fff; font-family:Arial; }
   canvas { display:block; margin:20px auto; border:4px solid #333; }
@@ -261,7 +276,7 @@ function updateGame() {
   
   // Boss logic
   if (totalSpirits >= 200 && !boss) {
-    health = 300;
+    health = 200;
     boss = { x: width + 80, y: 280, health: 500, maxHealth: 500, size: 90 };
   }
   
@@ -384,6 +399,21 @@ function toggleMusic() {
     musicGain.gain.value = musicEnabled ? 0.08 : 0;
   }
 }
+
+function mouseClicked() {
+  if (gameState === "play" && boss) {
+    // Fast clicking during boss fight gives health and damages boss
+    boss.health -= 8;
+    health = min(health + 5, 300);  // gain a bit of health per click
+    
+    if (boss.health <= 0) {
+      score += 50;
+      totalSpirits += 50;
+      boss = null;
+    }
+  }
+}
+
 </script>
 </body>
 </html>

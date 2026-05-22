@@ -53,7 +53,7 @@
         .menu-button:hover { background: #6bb88a; transform: scale(1.05); }
         
         .role-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 1100px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 900px;
         }
         
         .role-button {
@@ -81,6 +81,12 @@
             background: rgba(0,0,0,0.85); border: 3px solid #4a9c6d;
             padding: 10px; font-size: 11px; display: none; z-index: 50;
         }
+        
+        .role-action {
+            position: absolute; top: 70px; left: 15px;
+            background: rgba(0,0,0,0.85); border: 3px solid #4a9c6d;
+            padding: 8px 12px; font-size: 11px; display: none; z-index: 50;
+        }
     </style>
 </head>
 <body>
@@ -91,7 +97,7 @@
         <button class="menu-button" onclick="showSettings()">SETTINGS</button>
     </div>
     
-    <!-- Role Selection -->
+    <!-- Role Selection Screen -->
     <div id="role-screen">
         <h2 style="color:#ffe66d; margin-bottom:30px;">Choose Your Role</h2>
         <div class="role-grid">
@@ -100,10 +106,7 @@
             <button class="role-button" onclick="selectRole('Kid')"><span class="emoji">👦</span>Kid</button>
             <button class="role-button" onclick="selectRole('Teenager')"><span class="emoji">🧑</span>Teenager</button>
             <button class="role-button" onclick="selectRole('Parent')"><span class="emoji">👨</span>Parent</button>
-            <button class="role-button" onclick="selectRole('Senior Citizen')"><span class="emoji">👴</span>Senior</button>
-            <button class="role-button" onclick="selectRole('Random')" style="border-color:#ff9ff3; grid-column: span 2;">
-                <span class="emoji">🎲</span>Random Role
-            </button>
+            <button class="role-button" onclick="selectRole('Senior Citizen')"><span class="emoji">👴</span>Senior Citizen</button>
         </div>
     </div>
     
@@ -118,13 +121,16 @@
     <!-- Log -->
     <div class="log" id="log"></div>
     
-    <!-- Controls Help -->
+    <!-- Controls -->
     <div class="controls" id="controls">
         <strong>Controls:</strong><br>
         Arrow Keys / WASD = Move<br>
-        E = Interact | F = Eat | S = Sleep<br>
-        Click NPCs to talk/play
+        E = Enter/Exit buildings<br>
+        F = Eat | Click NPCs to interact
     </div>
+    
+    <!-- Role-specific actions hint -->
+    <div class="role-action" id="role-action"></div>
 
     <script>
         let role = "Kid";
@@ -136,10 +142,11 @@
         let gameStarted = false;
         let location = "outside";
         
-        let player = { x: 400, y: 320 };
+        let player = { x: 450, y: 320 };
         let family = [];
         let cars = [];
         let houses = [];
+        let store = { x: 720, y: 150, w: 110, h: 90 };
         
         const roleColors = {
             "Baby": "#ff9ff3", "Toddler": "#feca57", "Kid": "#48dbfb",
@@ -165,20 +172,43 @@
             document.getElementById("happiness-hud").innerText = Math.floor(happiness);
         }
         
-        function selectRole(selected) {
-            if (selected === "Random") {
-                const roles = ["Baby", "Toddler", "Kid", "Teenager", "Parent", "Senior Citizen"];
-                selected = roles[Math.floor(Math.random() * roles.length)];
+        function updateRoleActionHint() {
+            const hintDiv = document.getElementById("role-action");
+            let hint = "";
+            
+            if (role === "Baby" || role === "Toddler") {
+                hint = "Just relax and be cared for!";
+            } else if (role === "Kid") {
+                hint = "Do homework or play with friends";
+            } else if (role === "Teenager") {
+                hint = "Go to school or hang out";
+            } else if (role === "Parent") {
+                hint = "Work, cook, pay taxes, drive";
+            } else if (role === "Senior Citizen") {
+                hint = "Help the kid with homework";
             }
             
+            hintDiv.innerHTML = `<strong>${role}:</strong> ${hint}`;
+            hintDiv.style.display = "block";
+        }
+        
+        function selectRole(selected) {
             role = selected;
             
-            if (role === "Baby") { age = 0; energy = 55; hunger = 50; happiness = 75; }
-            else if (role === "Toddler") { age = 3; energy = 70; hunger = 35; happiness = 80; }
-            else if (role === "Kid") { age = 9; energy = 85; hunger = 25; happiness = 72; }
-            else if (role === "Teenager") { age = 15; energy = 65; hunger = 40; happiness = 58; }
-            else if (role === "Parent") { age = 35; energy = 78; hunger = 22; happiness = 82; }
-            else if (role === "Senior Citizen") { age = 68; energy = 50; hunger = 32; happiness = 88; }
+            // Starting stats per role
+            if (role === "Baby") {
+                age = 0; energy = 50; hunger = 55; happiness = 80;
+            } else if (role === "Toddler") {
+                age = 2; energy = 65; hunger = 40; happiness = 82;
+            } else if (role === "Kid") {
+                age = 8; energy = 85; hunger = 28; happiness = 75;
+            } else if (role === "Teenager") {
+                age = 15; energy = 70; hunger = 38; happiness = 60;
+            } else if (role === "Parent") {
+                age = 34; energy = 75; hunger = 25; happiness = 78;
+            } else if (role === "Senior Citizen") {
+                age = 70; energy = 48; hunger = 35; happiness = 85;
+            }
             
             document.getElementById("role-screen").style.display = "none";
             document.getElementById("hud").style.display = "block";
@@ -188,11 +218,22 @@
             gameStarted = true;
             location = "house";
             player.x = 280;
-            player.y = 280;
+            player.y = 260;
             
-            addLog(`You spawned as a ${role}!`, roleColors[role]);
-            addLog("Use arrow keys to move. Press E near objects.", "#ffe66d");
+            addLog(`You joined the world as a ${role}!`, roleColors[role]);
+            updateRoleActionHint();
             updateHUD();
+            
+            // Role-specific starting message
+            if (role === "Baby" || role === "Toddler") {
+                addLog("You are being taken care of by your family.", "#ff9ff3");
+            } else if (role === "Kid") {
+                addLog("Time to do homework or play!", "#48dbfb");
+            } else if (role === "Parent") {
+                addLog("You need to work, cook, and pay taxes.", "#1dd1a1");
+            } else if (role === "Senior Citizen") {
+                addLog("You can help the kids with homework.", "#a55eea");
+            }
         }
         
         function startGame() {
@@ -201,70 +242,81 @@
         }
         
         function showSettings() {
-            alert("Settings:\n- World Size: Large\n- Family Members: 4\n- Cars: Moving\n- School: Available");
+            alert("Settings:\n- First Person Exploration\n- Role-specific actions\n- School, Store, Street & Houses");
         }
         
         function createWorld() {
-            // Family members
+            // Family
             family = [
-                { name: "Steve", x: 180, y: 240, type: "dad", color: "#4a9c6d" },
-                { name: "Mom", x: 520, y: 260, type: "mom", color: "#e67e22" },
-                { name: "Sam", x: 340, y: 310, type: "sibling", color: "#9b59b6" },
-                { name: "Friend", x: 620, y: 380, type: "friend", color: "#3498db" }
+                { name: "Steve", x: 160, y: 230, type: "dad", color: "#4a9c6d" },
+                { name: "Mom", x: 540, y: 250, type: "mom", color: "#e67e22" },
+                { name: "Sam", x: 320, y: 300, type: "kid", color: "#9b59b6" },
+                { name: "Friend", x: 650, y: 390, type: "friend", color: "#3498db" }
             ];
             
-            // Cars on road
+            // Cars on street
             cars = [
-                { x: 120, y: 520, speed: 1.8, dir: 1 },
-                { x: 680, y: 560, speed: 2.3, dir: -1 },
-                { x: 300, y: 540, speed: 1.5, dir: 1 }
+                { x: 80, y: 530, speed: 2.0, dir: 1 },
+                { x: 720, y: 570, speed: 2.5, dir: -1 },
+                { x: 350, y: 550, speed: 1.7, dir: 1 }
             ];
             
-            // Houses
+            // More houses
             houses = [
-                { x: 80, y: 180, w: 140, h: 110 },
-                { x: 580, y: 160, w: 150, h: 120 },
-                { x: 240, y: 80, w: 120, h: 95 }
+                { x: 60, y: 170, w: 130, h: 100 },
+                { x: 620, y: 150, w: 140, h: 105 },
+                { x: 200, y: 70, w: 110, h: 90 },
+                { x: 420, y: 80, w: 100, h: 85 }
             ];
         }
         
-        function performAction(action) {
+        function performRoleAction(action) {
             let msg = "";
             let col = "#fff";
             
-            if (action === "fridge" || action === "eat") {
-                hunger = Math.max(0, hunger - 28);
-                energy += 12;
-                happiness += 6;
-                msg = "You ate from the fridge!";
-                col = "#f1c40f";
-            } 
-            else if (action === "sleep") {
-                energy = Math.min(100, energy + 42);
-                day++;
-                msg = `You slept. Day ${day} started.`;
-                col = "#9b59b6";
-            } 
-            else if (action === "school") {
-                if (role === "Kid" || role === "Teenager") {
-                    energy -= 15;
-                    happiness += 8;
-                    msg = "You went to school and learned!";
-                } else {
-                    msg = "You visited the school.";
+            if (role === "Baby" || role === "Toddler") {
+                msg = "You are too little to do that.";
+                col = "#aaa";
+            }
+            else if (role === "Kid") {
+                if (action === "homework") {
+                    energy -= 18;
+                    happiness += 5;
+                    msg = "You did your homework!";
+                    col = "#48dbfb";
+                } else if (action === "play") {
+                    happiness += 20;
+                    energy -= 10;
+                    msg = "You played outside!";
+                    col = "#2ecc71";
                 }
-                col = "#3498db";
-            } 
-            else if (action === "play") {
-                happiness += 18;
-                energy -= 12;
-                msg = "You played with family!";
-                col = "#2ecc71";
-            } 
-            else if (action === "talk") {
-                happiness += 10;
-                msg = "You talked with family.";
-                col = "#e74c3c";
+            }
+            else if (role === "Parent") {
+                if (action === "work") {
+                    energy -= 25;
+                    happiness -= 5;
+                    msg = "You went to work and earned money.";
+                    col = "#1dd1a1";
+                } else if (action === "cook") {
+                    hunger = Math.max(0, hunger - 35);
+                    happiness += 12;
+                    msg = "You cooked a nice meal!";
+                    col = "#f39c12";
+                } else if (action === "taxes") {
+                    energy -= 15;
+                    msg = "You paid the taxes at the store.";
+                    col = "#e74c3c";
+                } else if (action === "drive") {
+                    msg = "You drove the car around the block.";
+                    col = "#3498db";
+                }
+            }
+            else if (role === "Senior Citizen") {
+                if (action === "help") {
+                    happiness += 15;
+                    msg = "You helped the kid with homework!";
+                    col = "#a55eea";
+                }
             }
             
             energy = Math.max(0, Math.min(100, energy));
@@ -278,71 +330,120 @@
         function keyPressed() {
             if (!gameStarted) return;
             
-            let speed = 6;
+            let speed = 5.5;
             if (keyCode === UP_ARROW || key === 'w' || key === 'W') player.y -= speed;
             if (keyCode === DOWN_ARROW || key === 's' || key === 'S') player.y += speed;
             if (keyCode === LEFT_ARROW || key === 'a' || key === 'A') player.x -= speed;
             if (keyCode === RIGHT_ARROW || key === 'd' || key === 'D') player.x += speed;
             
-            // Enter / Exit house
+            // E = Enter/Exit buildings
             if (key === 'e' || key === 'E') {
-                if (location === "house" && player.x > 200 && player.x < 320 && player.y < 180) {
+                // House door
+                if (location === "house" && player.x > 200 && player.x < 340 && player.y < 170) {
                     location = "outside";
-                    player.x = 400;
-                    player.y = 450;
-                    addLog("You went outside.", "#4ecdc4");
+                    player.x = 450;
+                    player.y = 480;
+                    addLog("You went outside onto the street.", "#4ecdc4");
                 } 
-                else if (location === "outside" && player.x > 340 && player.x < 460 && player.y > 420 && player.y < 480) {
+                else if (location === "outside" && player.x > 400 && player.x < 520 && player.y > 450 && player.y < 510) {
                     location = "house";
                     player.x = 280;
                     player.y = 240;
                     addLog("You entered the house.", "#4ecdc4");
                 }
+                // School
                 else if (location === "outside" && player.x > 620 && player.x < 750 && player.y > 200 && player.y < 300) {
-                    // Go to school
                     location = "school";
-                    player.x = 200;
-                    player.y = 300;
-                    addLog("You arrived at school!", "#3498db");
+                    player.x = 180;
+                    player.y = 280;
+                    addLog("You arrived at school.", "#3498db");
+                }
+                // Store
+                else if (location === "outside" && player.x > 700 && player.x < 820 && player.y > 120 && player.y < 220) {
+                    location = "store";
+                    player.x = 150;
+                    player.y = 200;
+                    addLog("You entered the store.", "#f1c40f");
                 }
             }
             
-            // Quick actions
-            if (key === 'f' || key === 'F') performAction("eat");
-            if (key === 's' || key === 'S') performAction("sleep");
+            // Role actions
+            if (key === 'f' || key === 'F') {
+                if (role === "Parent") performRoleAction("cook");
+                else performRoleAction("eat");
+            }
+            
+            if (key === 'h' || key === 'H' && (role === "Kid" || role === "Teenager")) {
+                performRoleAction("homework");
+            }
+            
+            if (key === 'p' || key === 'P' && role === "Kid") {
+                performRoleAction("play");
+            }
+            
+            if (key === 'w' || key === 'W' && role === "Parent") {
+                performRoleAction("work");
+            }
+            
+            if (key === 't' || key === 'T' && role === "Parent") {
+                performRoleAction("taxes");
+            }
+            
+            if (key === 'd' || key === 'D' && role === "Parent") {
+                performRoleAction("drive");
+            }
+            
+            if (key === 'h' || key === 'H' && role === "Senior Citizen") {
+                performRoleAction("help");
+            }
         }
         
         function mousePressed() {
             if (!gameStarted) return;
             
-            // Click on family members
+            // Click family / NPCs
             for (let f of family) {
                 let d = dist(player.x, player.y, f.x, f.y);
-                if (d < 60) {
-                    performAction("talk");
-                    addLog(`You played with ${f.name}!`, "#ff9ff3");
-                    happiness = Math.min(100, happiness + 15);
+                if (d < 55) {
+                    if (role === "Senior Citizen" && f.type === "kid") {
+                        performRoleAction("help");
+                    } else {
+                        addLog(`You talked with ${f.name}.`, "#ff9ff3");
+                        happiness = Math.min(100, happiness + 10);
+                    }
                     updateHUD();
                     return;
                 }
             }
             
-            // Click on fridge area
-            if (location === "house" && mouseX > 420 && mouseX < 490 && mouseY > 200 && mouseY < 260) {
-                performAction("fridge");
+            // Fridge (house)
+            if (location === "house" && mouseX > 420 && mouseX < 500 && mouseY > 190 && mouseY < 280) {
+                if (role === "Parent") performRoleAction("cook");
+                else performRoleAction("eat");
             }
             
-            // Click on bed
-            if (location === "house" && mouseX > 80 && mouseX < 180 && mouseY > 280 && mouseY < 360) {
-                performAction("sleep");
+            // Bed
+            if (location === "house" && mouseX > 70 && mouseX < 200 && mouseY > 270 && mouseY < 360) {
+                energy = Math.min(100, energy + 40);
+                day++;
+                addLog(`You slept. Day ${day} started.`, "#9b59b6");
+                updateHUD();
             }
             
-            // Click school door
+            // School door
             if (location === "outside" && mouseX > 620 && mouseX < 750 && mouseY > 200 && mouseY < 300) {
                 location = "school";
-                player.x = 200;
-                player.y = 300;
+                player.x = 180;
+                player.y = 280;
                 addLog("You entered the school.", "#3498db");
+            }
+            
+            // Store door
+            if (location === "outside" && mouseX > 700 && mouseX < 820 && mouseY > 120 && mouseY < 220) {
+                location = "store";
+                player.x = 150;
+                player.y = 200;
+                addLog("You went to the store.", "#f1c40f");
             }
         }
         
@@ -363,199 +464,232 @@
                 return;
             }
             
-            // ========== OUTSIDE WORLD ==========
+            // ========== OUTSIDE - STREET & WORLD ==========
             if (location === "outside") {
-                // Grass
+                // Grass background
                 fill(34, 139, 34);
                 rect(0, 0, width, height);
                 
-                // Road
-                fill(60);
-                rect(0, 480, width, 140);
+                // Big Street / Road
+                fill(55);
+                rect(0, 470, width, 150);
                 fill(255);
-                for (let i = 0; i < 10; i++) {
-                    rect(30 + i * 95, 545, 60, 8);
+                for (let i = 0; i < 12; i++) {
+                    rect(20 + i * 80, 540, 50, 7);
                 }
                 
-                // Houses
+                // More houses
                 for (let h of houses) {
                     fill(139, 90, 43);
                     rect(h.x, h.y, h.w, h.h);
                     fill(200, 150, 100);
-                    triangle(h.x - 10, h.y, h.x + h.w/2, h.y - 40, h.x + h.w + 10, h.y);
+                    triangle(h.x - 8, h.y, h.x + h.w/2, h.y - 35, h.x + h.w + 8, h.y);
                     fill(80, 50, 20);
-                    rect(h.x + 20, h.y + 50, 30, 50); // door
+                    rect(h.x + 25, h.y + 45, 28, 45); // door
                 }
                 
-                // School
+                // School building
                 fill(70, 130, 180);
                 rect(620, 180, 160, 130);
                 fill(255);
-                textSize(11);
+                textSize(12);
                 text("SCHOOL", 700, 250);
                 fill(139, 90, 43);
-                rect(680, 310, 40, 60); // door
+                rect(680, 310, 40, 55);
                 
-                // Castle (far away)
+                // Store
+                fill(210, 180, 140);
+                rect(store.x, store.y, store.w, store.h);
+                fill(255);
+                textSize(11);
+                text("STORE", store.x + 55, store.y + 50);
+                fill(139, 90, 43);
+                rect(store.x + 35, store.y + store.h - 5, 40, 35);
+                
+                // Castle in distance
                 fill(120);
-                rect(50, 60, 100, 90);
+                rect(40, 50, 90, 80);
                 fill(100);
-                rect(70, 30, 20, 40);
-                rect(100, 20, 20, 50);
+                rect(55, 20, 18, 35);
+                rect(85, 15, 18, 40);
                 
-                // Moving cars
+                // Moving cars on street
                 for (let c of cars) {
-                    fill(200, 50, 50);
-                    rect(c.x, c.y, 70, 35);
+                    fill(180, 40, 40);
+                    rect(c.x, c.y, 65, 32);
                     fill(255);
-                    rect(c.x + 10, c.y + 5, 20, 12);
-                    rect(c.x + 40, c.y + 5, 20, 12);
+                    rect(c.x + 8, c.y + 6, 18, 10);
+                    rect(c.x + 38, c.y + 6, 18, 10);
                     c.x += c.speed * c.dir;
-                    if (c.x > width + 50) c.x = -80;
-                    if (c.x < -80) c.x = width + 50;
+                    if (c.x > width + 60) c.x = -70;
+                    if (c.x < -70) c.x = width + 60;
                 }
                 
-                // Family members outside
-                for (let f of family) {
-                    fill(f.color);
-                    ellipse(f.x, f.y, 22, 22);
-                    fill(255);
-                    textSize(9);
-                    textAlign(CENTER);
-                    text(f.name, f.x, f.y - 20);
-                    
-                    // Simple wandering
-                    if (frameCount % 40 === 0) {
-                        f.x += random(-12, 12);
-                        f.y += random(-8, 8);
-                    }
-                    f.x = constrain(f.x, 60, 840);
-                    f.y = constrain(f.y, 80, 470);
-                }
-                
-                // Player
-                fill(65, 105, 225);
-                ellipse(player.x, player.y, 26, 26);
-                fill(255);
-                textAlign(CENTER);
-                text(role, player.x, player.y - 22);
-                
-                // Instructions
-                fill(255, 255, 200);
-                textSize(12);
-                text("Walk to house door to enter | Walk to school", width/2, 40);
-            }
-            
-            // ========== HOUSE INTERIOR ==========
-            else if (location === "house") {
-                fill(160, 110, 60);
-                rect(40, 80, 820, 480);
-                
-                // Floor
-                fill(120, 85, 55);
-                rect(40, 400, 820, 160);
-                
-                // Window
-                fill(135, 206, 250);
-                rect(80, 120, 130, 100);
-                
-                // Bed
-                fill(139, 69, 19);
-                rect(80, 280, 120, 70);
-                fill(255, 182, 193);
-                rect(85, 275, 110, 20);
-                
-                // Fridge
-                fill(180);
-                rect(430, 200, 60, 90);
-                fill(100);
-                rect(440, 210, 40, 30);
-                fill(100);
-                rect(440, 250, 40, 30);
-                fill(255);
-                textSize(8);
-                text("FRIDGE", 460, 285);
-                
-                // Table
-                fill(101, 67, 33);
-                rect(280, 320, 140, 25);
-                
-                // Family members inside
+                // Family / NPCs
                 for (let f of family) {
                     fill(f.color);
                     ellipse(f.x, f.y, 20, 20);
                     fill(255);
                     textSize(8);
+                    textAlign(CENTER);
                     text(f.name, f.x, f.y - 18);
+                    
+                    if (frameCount % 45 === 0) {
+                        f.x += random(-10, 10);
+                        f.y += random(-6, 6);
+                    }
+                    f.x = constrain(f.x, 50, 850);
+                    f.y = constrain(f.y, 70, 460);
                 }
                 
-                // Player
+                // Player (first person style - blue character)
                 fill(65, 105, 225);
                 ellipse(player.x, player.y, 24, 24);
                 fill(255);
                 textAlign(CENTER);
                 text(role, player.x, player.y - 20);
                 
-                fill(255, 220, 100);
+                fill(255, 255, 200);
                 textSize(11);
-                text("Press E near door to go outside", width/2, 560);
+                text("Walk to buildings and press E to enter", width/2, 35);
+            }
+            
+            // ========== HOUSE INTERIOR ==========
+            else if (location === "house") {
+                fill(160, 110, 60);
+                rect(40, 70, 820, 490);
+                
+                fill(120, 85, 55);
+                rect(40, 390, 820, 170);
+                
+                // Window
+                fill(135, 206, 250);
+                rect(70, 100, 120, 95);
+                
+                // Bed
+                fill(139, 69, 19);
+                rect(70, 270, 130, 65);
+                fill(255, 182, 193);
+                rect(75, 265, 120, 18);
+                
+                // Fridge
+                fill(170);
+                rect(430, 190, 55, 95);
+                fill(90);
+                rect(438, 200, 38, 28);
+                rect(438, 235, 38, 28);
+                fill(255);
+                textSize(7);
+                text("FRIDGE", 458, 275);
+                
+                // Table
+                fill(101, 67, 33);
+                rect(260, 310, 150, 22);
+                
+                // Family inside
+                for (let f of family) {
+                    fill(f.color);
+                    ellipse(f.x, f.y, 18, 18);
+                    fill(255);
+                    textSize(7);
+                    text(f.name, f.x, f.y - 16);
+                }
+                
+                // Player
+                fill(65, 105, 225);
+                ellipse(player.x, player.y, 22, 22);
+                fill(255);
+                textAlign(CENTER);
+                text(role, player.x, player.y - 18);
+                
+                fill(255, 220, 100);
+                textSize(10);
+                text("Press E near door to go outside", width/2, 555);
             }
             
             // ========== SCHOOL ==========
             else if (location === "school") {
-                fill(200, 180, 150);
-                rect(40, 60, 820, 500);
+                fill(200, 185, 160);
+                rect(30, 50, 840, 520);
                 
                 fill(70, 130, 180);
-                rect(100, 120, 180, 120); // desks
+                rect(80, 110, 200, 100);
                 
                 fill(255);
-                textSize(16);
-                text("SCHOOL CLASSROOM", width/2, 90);
+                textSize(14);
+                text("SCHOOL - Classroom", width/2, 80);
                 
-                // Player at school
                 fill(65, 105, 225);
-                ellipse(player.x, player.y, 24, 24);
+                ellipse(player.x, player.y, 22, 22);
                 
                 fill(255);
-                textSize(12);
+                textSize(11);
                 text("Press E to leave school", width/2, 560);
                 
-                if (keyIsDown(69)) { // E key
+                if (keyIsDown(69)) {
                     location = "outside";
                     player.x = 700;
-                    player.y = 350;
+                    player.y = 340;
                     addLog("You left school.", "#aaa");
                 }
             }
             
-            // Clamp player
-            player.x = constrain(player.x, 50, width - 50);
-            player.y = constrain(player.y, 80, height - 50);
-            
-            // Random events
-            if (gameStarted && frameCount % 280 === 0 && random() < 0.3) {
-                const events = ["Steve told a funny story!", "Mom made cookies!", "You saw a cat outside."];
-                addLog(events[Math.floor(random() * events.length)], "#ffe66d");
+            // ========== STORE ==========
+            else if (location === "store") {
+                fill(220, 200, 170);
+                rect(30, 50, 840, 520);
+                
+                fill(139, 90, 43);
+                rect(120, 140, 80, 60); // shelf
+                rect(280, 140, 80, 60);
+                
+                fill(255);
+                textSize(14);
+                text("STORE", width/2, 80);
+                
+                fill(65, 105, 225);
+                ellipse(player.x, player.y, 22, 22);
+                
+                fill(255);
+                textSize(11);
+                text("Press E to leave store", width/2, 560);
+                
+                if (keyIsDown(69)) {
+                    location = "outside";
+                    player.x = 760;
+                    player.y = 200;
+                    addLog("You left the store.", "#aaa");
+                }
             }
             
-            // Auto age
-            if (gameStarted && frameCount % 900 === 0) {
+            // Clamp player
+            player.x = constrain(player.x, 40, width - 40);
+            player.y = constrain(player.y, 70, height - 60);
+            
+            // Random events
+            if (gameStarted && frameCount % 260 === 0 && random() < 0.25) {
+                const ev = ["Steve smiled at you.", "Mom is cooking dinner.", "A car drove by.", "You saw a bird."];
+                addLog(ev[Math.floor(random() * ev.length)], "#ffe66d");
+            }
+            
+            // Auto age progression
+            if (gameStarted && frameCount % 850 === 0) {
                 age++;
                 if (age >= 100) {
-                    addLog("You reached 100 years old!", "#ff6b6b");
+                    addLog("You lived to 100 years old!", "#ff6b6b");
                     setTimeout(() => {
-                        addLog("Respawning as new baby...", "#4ecdc4");
+                        addLog("Respawning as a new baby...", "#4ecdc4");
                         role = "Baby";
                         age = 0;
-                        energy = 60;
-                        hunger = 45;
-                        happiness = 75;
+                        energy = 55;
+                        hunger = 50;
+                        happiness = 80;
                         location = "house";
                         player.x = 280;
-                        player.y = 280;
+                        player.y = 260;
                         updateHUD();
-                    }, 2000);
+                        updateRoleActionHint();
+                    }, 2200);
                 }
                 updateHUD();
             }
