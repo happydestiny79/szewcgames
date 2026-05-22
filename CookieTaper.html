@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Taper</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
+        
+        body {
+            margin: 0;
+            background: linear-gradient(#2c1810, #1a0f08);
+            color: #ffcc66;
+            font-family: 'Press Start 2P', system-ui;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .game-container {
+            display: flex;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+        
+        .main-area {
+            text-align: center;
+        }
+        
+        .cookie {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle at 40% 35%, #f4d03f, #d68910);
+            border-radius: 50%;
+            border: 12px solid #8b5e00;
+            box-shadow: 0 0 40px #f4d03f,
+                        inset 0 0 60px rgba(139, 94, 0, 0.6),
+                        inset -40px -40px 60px rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: transform 0.05s ease;
+            position: relative;
+            margin: 20px auto;
+        }
+        
+        .cookie:active {
+            transform: scale(0.92);
+        }
+        
+        .cookie::after {
+            content: '';
+            position: absolute;
+            top: 25%;
+            left: 25%;
+            width: 50px;
+            height: 50px;
+            background: #8b5e00;
+            border-radius: 50%;
+            box-shadow: 
+                70px 30px 0 #8b5e00,
+                30px 90px 0 #8b5e00,
+                100px 80px 0 #8b5e00;
+        }
+        
+        .stats {
+            font-size: 28px;
+            margin: 15px 0;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .money {
+            color: #ffd700;
+            font-size: 32px;
+        }
+        
+        .sidebar {
+            width: 320px;
+            background: rgba(0,0,0,0.6);
+            border: 6px solid #8b5e00;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .upgrade {
+            background: #3a2a1f;
+            border: 4px solid #8b5e00;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .upgrade:hover {
+            background: #5c4633;
+            transform: translateX(8px);
+        }
+        
+        .upgrade.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .title {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 4px 4px 0 #000;
+            color: #ffaa00;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #cc9966;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            font-family: 'Press Start 2P', system-ui;
+            background: #8b5e00;
+            color: #ffcc66;
+            border: 4px solid #5c3d00;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 8px;
+        }
+        
+        button:hover {
+            background: #a67c00;
+        }
+        
+        .caleb {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 14px;
+            background: rgba(80, 50, 20, 0.9);
+            padding: 10px 16px;
+            border-radius: 8px;
+            max-width: 220px;
+            border: 3px solid #8b5e00;
+        }
+        
+        .tap-count {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 22px;
+            color: white;
+            text-shadow: 2px 2px 4px black;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        
+        <!-- Main Cookie Area -->
+        <div class="main-area">
+            <div class="title">COOKIE TAPER</div>
+            <div class="subtitle">GET GOOD AT TAPING • NO WIN • NO LOSE</div>
+            
+            <div id="cookie" class="cookie"></div>
+            
+            <div class="stats">
+                TAPS: <span id="taps">0</span>
+            </div>
+            <div class="stats money">
+                $<span id="money">0</span>
+            </div>
+            <div style="font-size:14px; color:#aa8866;">
+                Cookies/sec: <span id="cps">0</span>
+            </div>
+        </div>
+        
+        <!-- Upgrades Sidebar -->
+        <div class="sidebar">
+            <h3 style="margin-top:0; text-align:center;">UPGRADES</h3>
+            
+            <div class="upgrade" onclick="buyUpgrade('finger', 15)">
+                <strong>Better Finger</strong><br>
+                <small>+1 tap power • $15</small>
+            </div>
+            
+            <div class="upgrade" onclick="buyUpgrade('grandpa', 120)">
+                <strong>Caleb the Grandpa</strong><br>
+                <small>+4 cookies/sec • $120</small>
+            </div>
+            
+            <div class="upgrade" onclick="buyUpgrade('oven', 450)">
+                <strong>Auto Taper Oven</strong><br>
+                <small>+12 cookies/sec • $450</small>
+            </div>
+            
+            <div class="upgrade" onclick="buyUpgrade('speed', 800)">
+                <strong>Speed Taping Gloves</strong><br>
+                <small>Tap even faster • $800</small>
+            </div>
+            
+            <div class="upgrade" onclick="buyUpgrade('admin', 2500)">
+                <strong>ADMIN POWERS</strong><br>
+                <small>Instant money + chaos • $2500</small>
+            </div>
+            
+            <div style="margin-top: 30px; text-align: center;">
+                <button onclick="openSettings()">SETTINGS</button>
+                <button onclick="resetGame()">RESET</button>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Caleb the Grandpa floating text -->
+    <div id="caleb" class="caleb" style="display:none;">
+        "Back in my day we taped cookies with our bare hands!"
+    </div>
+    
+    <script>
+        // ==================== GAME STATE ====================
+        let taps = 0;
+        let money = 0;
+        let tapPower = 1;
+        let cookiesPerSecond = 0;
+        let totalTaps = 0;
+        
+        // Upgrades owned
+        let upgrades = {
+            finger: 0,
+            grandpa: 0,
+            oven: 0,
+            speed: 0,
+            admin: 0
+        };
+        
+        let lastCalebTime = 0;
+        
+        // ==================== ELEMENTS ====================
+        const cookie = document.getElementById('cookie');
+        const tapsEl = document.getElementById('taps');
+        const moneyEl = document.getElementById('money');
+        const cpsEl = document.getElementById('cps');
+        const calebEl = document.getElementById('caleb');
+        
+        // ==================== COOKIE TAP ====================
+        function tapCookie(event) {
+            taps += tapPower;
+            totalTaps += tapPower;
+            money += Math.floor(tapPower * 0.8);
+            
+            // Visual feedback
+            cookie.style.transform = 'scale(0.88)';
+            setTimeout(() => {
+                cookie.style.transform = 'scale(1)';
+            }, 60);
+            
+            // Floating tap number
+            createFloatingText(event, `+${tapPower}`);
+            
+            updateUI();
+            
+            // Random Caleb comment
+            if (Math.random() < 0.08 && Date.now() - lastCalebTime > 4000) {
+                showCalebComment();
+            }
+            
+            // Make it harder over time (cookie shrinks slightly)
+            if (totalTaps > 150) {
+                cookie.style.width = '260px';
+                cookie.style.height = '260px';
+            }
+            if (totalTaps > 400) {
+                cookie.style.width = '240px';
+                cookie.style.height = '240px';
+            }
+        }
+        
+        function createFloatingText(event, text) {
+            const float = document.createElement('div');
+            float.textContent = text;
+            float.style.position = 'absolute';
+            float.style.left = (event.clientX + (Math.random() * 40 - 20)) + 'px';
+            float.style.top = (event.clientY - 20) + 'px';
+            float.style.color = '#ffdd88';
+            float.style.fontSize = '22px';
+            float.style.pointerEvents = 'none';
+            float.style.zIndex = '999';
+            document.body.appendChild(float);
+            
+            setTimeout(() => {
+                float.style.transition = 'all 0.8s ease';
+                float.style.transform = 'translateY(-60px)';
+                float.style.opacity = '0';
+                
+                setTimeout(() => float.remove(), 800);
+            }, 10);
+        }
+        
+        // ==================== UPGRADES ====================
+        function buyUpgrade(type, cost) {
+            if (money < cost) {
+                alert("Not enough money, kid!");
+                return;
+            }
+            
+            money -= cost;
+            
+            if (type === 'finger') {
+                tapPower += 1;
+                upgrades.finger++;
+            } 
+            else if (type === 'grandpa') {
+                cookiesPerSecond += 4;
+                upgrades.grandpa++;
+                if (upgrades.grandpa === 1) {
+                    showCalebComment(true);
+                }
+            } 
+            else if (type === 'oven') {
+                cookiesPerSecond += 12;
+                upgrades.oven++;
+            } 
+            else if (type === 'speed') {
+                tapPower += 2;
+                upgrades.speed++;
+            } 
+            else if (type === 'admin') {
+                // ADMIN POWERS - chaos mode
+                money += 500;
+                tapPower += 5;
+                cookiesPerSecond += 20;
+                upgrades.admin++;
+                alert("ADMIN POWERS ACTIVATED!\nYou now tape like a legend.");
+            }
+            
+            updateUI();
+        }
+        
+        // ==================== CALEB THE GRANDPA ====================
+        function showCalebComment(firstTime = false) {
+            lastCalebTime = Date.now();
+            calebEl.style.display = 'block';
+            
+            const comments = [
+                "Back in my day we taped cookies with our bare hands!",
+                "You're getting pretty good at this, kid...",
+                "Don't forget to upgrade your finger strength!",
+                "I used to tape 500 cookies a minute in the war.",
+                "Speed is everything in the taping business.",
+                "These new auto-ovens are ruining the craft!"
+            ];
+            
+            if (firstTime) {
+                calebEl.innerHTML = "Caleb the Grandpa has joined the store!";
+            } else {
+                calebEl.innerHTML = comments[Math.floor(Math.random() * comments.length)];
+            }
+            
+            setTimeout(() => {
+                calebEl.style.display = 'none';
+            }, 3800);
+        }
+        
+        // ==================== SETTINGS ====================
+        function openSettings() {
+            const choice = prompt(
+                "COOKIE TAPER SETTINGS\n\n" +
+                "1. Change tap key (currently Space)\n" +
+                "2. Toggle Caleb comments\n" +
+                "3. Reset game\n\n" +
+                "Type a number:"
+            );
+            
+            if (choice === "3") {
+                if (confirm("Really reset everything?")) resetGame();
+            }
+        }
+        
+        // ==================== GAME LOOP ====================
+        function gameLoop() {
+            // Passive cookies from upgrades
+            if (cookiesPerSecond > 0) {
+                const gain = cookiesPerSecond / 10;
+                taps += gain;
+                money += Math.floor(gain * 0.7);
+            }
+            
+            updateUI();
+            
+            // Occasionally make it harder
+            if (totalTaps > 600 && Math.random() < 0.02) {
+                cookie.style.boxShadow = '0 0 30px #ffaa00, inset 0 0 40px rgba(139,94,0,0.8)';
+                setTimeout(() => {
+                    if (cookie) cookie.style.boxShadow = '0 0 40px #f4d03f, inset 0 0 60px rgba(139, 94, 0, 0.6), inset -40px -40px 60px rgba(255,255,255,0.3)';
+                }, 1200);
+            }
+        }
+        
+        function updateUI() {
+            tapsEl.textContent = Math.floor(taps);
+            moneyEl.textContent = Math.floor(money);
+            cpsEl.textContent = cookiesPerSecond;
+        }
+        
+        function resetGame() {
+            taps = 0;
+            money = 0;
+            tapPower = 1;
+            cookiesPerSecond = 0;
+            totalTaps = 0;
+            upgrades = { finger: 0, grandpa: 0, oven: 0, speed: 0, admin: 0 };
+            
+            cookie.style.width = '280px';
+            cookie.style.height = '280px';
+            
+            updateUI();
+        }
+        
+        // ==================== CONTROLS ====================
+        function setupControls() {
+            // Mouse click on cookie
+            cookie.addEventListener('click', tapCookie);
+            
+            // Spacebar tap
+            document.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    const rect = cookie.getBoundingClientRect();
+                    const fakeEvent = {
+                        clientX: rect.left + rect.width / 2 + (Math.random() * 60 - 30),
+                        clientY: rect.top + rect.height / 2 + (Math.random() * 60 - 30)
+                    };
+                    tapCookie(fakeEvent);
+                }
+            });
+            
+            // Touch support
+            cookie.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const rect = cookie.getBoundingClientRect();
+                const fakeEvent = {
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                };
+                tapCookie(fakeEvent);
+            });
+        }
+        
+        // ==================== INIT ====================
+        function init() {
+            setupControls();
+            
+            // Start passive income loop
+            setInterval(gameLoop, 100);
+            
+            // Welcome message
+            setTimeout(() => {
+                console.log('%c[Cookie Taper] Game ready. Tap the cookie!', 'color:#8b5e00');
+            }, 500);
+            
+            // Initial UI
+            updateUI();
+            
+            // Easter egg: click title for admin hint
+            document.querySelector('.title').addEventListener('click', () => {
+                if (money > 100) {
+                    money += 50;
+                    updateUI();
+                }
+            });
+        }
+        
+        // Boot the game
+        init();
+    </script>
+</body>
+</html>

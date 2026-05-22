@@ -1,700 +1,475 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Hoots World! - Makayla Ann Sherman</title>
-<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
-<style>
-  body { margin:0; background:#0a1f0a; color:#fff; font-family:Arial; }
-  canvas { display:block; margin:12px auto; border:6px solid #2a5a2a; border-radius:12px; }
-  .controls { text-align:center; margin-top:6px; }
-  button { 
-    background:#2a5a2a; color:#fff; border:2px solid #4a7a4a; 
-    padding:7px 12px; margin:2px; border-radius:7px; font-size:13px; cursor:pointer;
-  }
-  button:hover { background:#3a6a3a; }
-  .stat { display:inline-block; margin:0 8px; width:118px; text-align:left; }
-  .bar { background:#222; height:15px; border:2px solid #4a7a4a; border-radius:4px; overflow:hidden; }
-  .fill { height:100%; transition:width 0.3s; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cairo - 3D Roblox-Style Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 100;
+        }
+        #shop {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            z-index: 100;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 30px;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .player-name {
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
-<h1 style="text-align:center; color:#aaffaa">🦉 Hoots World! 🦉</h1>
-<p style="text-align:center; color:#88cc88">A Tamagotchi Adventure for Makayla Ann Sherman • Care for Hoot</p>
+    <div id="ui">
+        <div><strong>Cairo</strong> - 3D Fighting Game</div>
+        <div>Role: <span id="role">Loading...</span></div>
+        <div>Location: <span id="location">Home</span></div>
+        <div>Health: <span id="health">100</span></div>
+        <div>Coins: <span id="coins">100</span></div>
+        <div style="margin-top:10px; font-size:12px;">
+            WASD = Move | Mouse = Look | Click = Punch | E = Shop | T = Teleport
+        </div>
+    </div>
 
-<div class="controls">
-  <button onclick="feed()">🍃 Feed</button>
-  <button onclick="giveWater()">💧 Water</button>
-  <button onclick="putToSleep()">🛏️ Sleep</button>
-  <button onclick="petHoot()">🖐️ Pet</button>
-  <button onclick="playWithHoot()">🎾 Play</button>
-  <button onclick="singToHoot()">🎵 Sing</button>
-  <button onclick="groomHoot()">🛁 Bath</button>
-  <button onclick="tellStory()">📖 Story</button>
-  <button onclick="letFly()">🕊️ Fly</button>
-  <button onclick="roam()">🚶 Roam</button>
-  <button onclick="releaseOwl()">🌲 Release</button>
-  <button onclick="restartGame()">🔄 Restart</button>
-</div>
+    <div id="crosshair">+</div>
 
-<div style="text-align:center; margin:10px 0;">
-  <div class="stat"><b>Hunger</b><div class="bar"><div id="hungerBar" class="fill" style="width:75%; background:#ffaa44"></div></div></div>
-  <div class="stat"><b>Thirst</b><div class="bar"><div id="thirstBar" class="fill" style="width:75%; background:#44aaff"></div></div></div>
-  <div class="stat"><b>Energy</b><div class="bar"><div id="energyBar" class="fill" style="width:85%; background:#aaff44"></div></div></div>
-  <div class="stat"><b>Play</b><div class="bar"><div id="playBar" class="fill" style="width:70%; background:#ff66cc"></div></div></div>
-  <div class="stat"><b>Happiness</b><div class="bar"><div id="happinessBar" class="fill" style="width:78%; background:#ff44aa"></div></div></div>
-  <div class="stat"><b>Care</b><div class="bar"><div id="careBar" class="fill" style="width:12%; background:#aaffaa"></div></div></div>
-</div>
+    <div id="shop">
+        <h3>Shop</h3>
+        <button onclick="buyItem('Speed Boost')">Speed Boost (75 coins)</button><br>
+        <button onclick="buyItem('Troll Bomb')">Troll Bomb (50 coins)</button><br>
+        <button onclick="buyItem('Admin Powers')">Admin Powers (200 coins)</button><br>
+        <button onclick="closeShop()">Close</button>
+    </div>
 
-<p style="text-align:center; font-size:12px; color:#88aa88">
-  Keys: F=Feed • W=Water • S=Sleep • P=Pet • L=Play • G=Sing • B=Bath • T=Story • Space=Fly • R=Roam • C=Colors • ESC=Release
-</p>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ==================== THREE.JS SETUP ====================
+        let scene, camera, renderer;
+        let player, playerVelocity = new THREE.Vector3();
+        let keys = {};
+        let currentLocation = "Home";
+        let role = Math.random() > 0.5 ? "AJ (Good Guy)" : "Caleb (Bad Guy)";
+        let health = 100;
+        let coins = 100;
+        let canPunch = true;
 
-<script>
-let hoot = {
-  x: 480, y: 340, size: 66,
-  vx: 0, vy: 0,
-  flying: false, flyingTime: 0,
-  colorScheme: 0,
-  mood: "happy",
-  sleeping: false,
-  walking: false
-};
+        // Other players (AI characters)
+        let otherPlayers = [];
 
-let hunger = 75, thirst = 75, energy = 88, playfulness = 70, happiness = 78, careLevel = 12;
-let scene = "livingroom"; // livingroom, kitchen, bathroom, backyard
-let lastDecay = Date.now();
-let gameOver = false;
-let win = false;
-let villain = null;
-let particles = [];
-let eatingAnim = 0;
-let drinkingAnim = 0;
-let petAnim = 0;
-let storyAnim = 0;
-let bathAnim = 0;
-let singAnim = 0;
+        const locations = {
+            "Home": { x: 0, z: 0, color: 0x8B4513 },
+            "Boxing Ring": { x: 40, z: 0, color: 0xFF4500 },
+            "The Creator": { x: 80, z: 0, color: 0x00CED1 },
+            "School": { x: 120, z: 0, color: 0x4169E1 }
+        };
 
-function setup() {
-  createCanvas(960, 620);
-  hoot.x = width/2;
-  hoot.y = 360;
-}
+        // ==================== CHARACTER CREATION ====================
+        function createCharacter(isGoodGuy, name, x, z) {
+            const group = new THREE.Group();
 
-function draw() {
-  if (gameOver) { drawGameOver(); return; }
-  if (win) { drawWinScreen(); return; }
-  
-  // Slow decay
-  if (Date.now() - lastDecay > 4800) {
-    hunger = max(0, hunger - 0.6);
-    thirst = max(0, thirst - 0.6);
-    energy = max(0, energy - 0.35);
-    playfulness = max(0, playfulness - 0.45);
-    happiness = max(0, happiness - 0.3);
-    lastDecay = Date.now();
-    updateBars();
-    checkGameState();
-  }
-  
-  drawCurrentScene();
-  updateOwl();
-  drawHootWithClothes(hoot.x, hoot.y, hoot.size, hoot.colorScheme, hoot.mood, hoot.flying, hoot.sleeping);
-  updateParticles();
-  
-  if (villain) drawVillain();
-  
-  // Animations
-  drawEatingAnimation();
-  drawDrinkingAnimation();
-  drawPetAnimation();
-  drawStoryAnimation();
-  drawBathAnimation();
-  drawSingAnimation();
-  
-  fill(255);
-  textSize(16);
-  textAlign(LEFT);
-  text("Scene: " + getSceneName(), 25, 32);
-  text("Mood: " + hoot.mood.toUpperCase(), 25, 52);
-  
-  if (careLevel > 90) {
-    fill(255, 255, 150);
-    text("Ready to Release! (ESC)", width/2 - 130, 32);
-  }
-}
+            // Body color based on role
+            const bodyColor = isGoodGuy ? 0x00aa00 : 0xcc0000;
+            const accentColor = isGoodGuy ? 0x00ff00 : 0xff4444;
 
-function getSceneName() {
-  if (scene === "livingroom") return "🏠 Living Room";
-  if (scene === "kitchen") return "🍳 Kitchen";
-  if (scene === "bathroom") return "🛁 Bathroom";
-  if (scene === "backyard") return "🌳 Backyard";
-}
+            // Head
+            const head = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 1.2, 1.2),
+                new THREE.MeshLambertMaterial({ color: 0xffcc99 })
+            );
+            head.position.y = 4.2;
+            group.add(head);
 
-function drawCurrentScene() {
-  if (scene === "livingroom") drawLivingRoom();
-  else if (scene === "kitchen") drawKitchen();
-  else if (scene === "bathroom") drawBathroom();
-  else if (scene === "backyard") drawBackyard();
-}
+            // Body
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 2.5, 1.5),
+                new THREE.MeshLambertMaterial({ color: bodyColor })
+            );
+            body.position.y = 2.5;
+            group.add(body);
 
-function drawLivingRoom() {
-  background(70, 50, 40);
-  fill(190, 160, 130);
-  rect(30, 70, width-60, 390);
-  
-  // Carpet
-  fill(180, 70, 110);
-  rect(220, 380, 520, 150);
-  fill(70, 190, 230); rect(240, 395, 90, 55);
-  fill(255, 210, 60); rect(360, 410, 70, 75);
-  fill(130, 230, 90); rect(460, 395, 100, 45);
-  fill(190, 90, 210); rect(590, 405, 60, 70);
-  
-  // Couch
-  fill(80, 60, 120);
-  rect(80, 340, 220, 90);
-  fill(110, 85, 150);
-  rect(85, 300, 210, 50);
-  
-  // Window
-  fill(140, 200, 255);
-  rect(680, 110, 200, 160);
-  fill(40, 100, 40);
-  rect(685, 115, 190, 150);
-}
+            // Arms
+            const armMat = new THREE.MeshLambertMaterial({ color: bodyColor });
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2, 0.8), armMat);
+            leftArm.position.set(-1.3, 2.5, 0);
+            group.add(leftArm);
 
-function drawKitchen() {
-  background(95, 70, 55);
-  fill(220, 200, 170);
-  rect(30, 70, width-60, 390);
-  
-  // Counter
-  fill(160, 110, 80);
-  rect(40, 280, width-80, 80);
-  
-  // Stove
-  fill(60);
-  rect(120, 260, 160, 20);
-  fill(200, 80, 40);
-  ellipse(155, 270, 22, 22);
-  ellipse(245, 270, 22, 22);
-  
-  // Fridge
-  fill(230);
-  rect(750, 140, 130, 220);
-  fill(180);
-  rect(755, 145, 120, 100);
-  
-  // Table
-  fill(140, 90, 60);
-  rect(380, 320, 200, 30);
-  fill(120, 75, 50);
-  rect(390, 350, 20, 70);
-  rect(550, 350, 20, 70);
-}
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2, 0.8), armMat);
+            rightArm.position.set(1.3, 2.5, 0);
+            group.add(rightArm);
 
-function drawBathroom() {
-  background(200, 220, 230);
-  fill(180, 200, 210);
-  rect(30, 70, width-60, 390);
-  
-  // Bathtub
-  fill(230);
-  rect(120, 320, 280, 90, 20);
-  fill(200, 230, 255);
-  rect(130, 330, 260, 70, 15);
-  
-  // Sink
-  fill(220);
-  rect(680, 280, 160, 60);
-  fill(180, 210, 230);
-  rect(700, 290, 120, 40);
-  
-  // Mirror
-  fill(200, 220, 240);
-  rect(700, 120, 130, 110);
-  fill(100);
-  rect(705, 125, 120, 100);
-}
+            // Legs
+            const legMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2, 0.9), legMat);
+            leftLeg.position.set(-0.5, 0.8, 0);
+            group.add(leftLeg);
 
-function drawBackyard() {
-  background(60, 110, 70);
-  for (let i = 0; i < 10; i++) {
-    fill(50 + i*5, 100 + i*6, 60 + i*4);
-    rect(0, i * 45, width, 50);
-  }
-  
-  // Grass
-  fill(45, 120, 55);
-  rect(0, 340, width, 280);
-  
-  // Trees
-  for (let i = 0; i < 5; i++) {
-    fill(90, 60, 35);
-    rect(80 + i*190, 220, 28, 130);
-    fill(25, 95, 40);
-    ellipse(94 + i*190, 200, 85, 95);
-  }
-  
-  // Flowers
-  for (let i = 0; i < 12; i++) {
-    fill(random(200,255), random(80,180), random(80,160));
-    ellipse(50 + i*75, 380, 14, 14);
-  }
-}
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2, 0.9), legMat);
+            rightLeg.position.set(0.5, 0.8, 0);
+            group.add(rightLeg);
 
-function drawHootWithClothes(x, y, size, scheme, mood, flying, sleeping) {
-  push();
-  translate(x, y);
-  
-  let bodyColor, wingColor, beakColor, eyeColor, shirtColor, shoeColor;
-  
-  if (scheme === 0) { bodyColor = color(230,145,45); wingColor = color(180,100,30); beakColor = color(255,200,60); eyeColor = color(30,20,10); shirtColor = color(60,140,220); shoeColor = color(40,40,40); }
-  else if (scheme === 1) { bodyColor = color(255,140,200); wingColor = color(160,80,180); beakColor = color(255,220,230); eyeColor = color(40,10,50); shirtColor = color(220,60,140); shoeColor = color(80,30,60); }
-  else if (scheme === 2) { bodyColor = color(70,130,200); wingColor = color(30,40,80); beakColor = color(200,220,255); eyeColor = color(10,10,30); shirtColor = color(255,200,60); shoeColor = color(30,30,60); }
-  else if (scheme === 3) { bodyColor = color(220,60,80); wingColor = color(50,80,160); beakColor = color(255,200,210); eyeColor = color(20,10,40); shirtColor = color(60,200,120); shoeColor = color(30,30,30); }
-  else if (scheme === 4) { bodyColor = color(160,80,200); wingColor = color(240,200,60); beakColor = color(255,230,180); eyeColor = color(30,20,50); shirtColor = color(255,140,60); shoeColor = color(60,40,20); }
-  else if (scheme === 5) { bodyColor = color(255,210,70); wingColor = color(230,130,40); beakColor = color(255,240,200); eyeColor = color(40,25,10); shirtColor = color(80,160,220); shoeColor = color(50,50,50); }
-  else { bodyColor = color(60,180,120); wingColor = color(40,90,160); beakColor = color(200,255,220); eyeColor = color(10,30,40); shirtColor = color(200,80,160); shoeColor = color(40,80,40); }
-  
-  if (sleeping && (scene === "livingroom" || scene === "bathroom")) {
-    // Sleeping in bed
-    fill(bodyColor);
-    ellipse(180, 470, size*0.85, size*0.65);
-    fill(220, 180, 230);
-    rect(145, 455, size*1.05, 32);
-    fill(bodyColor);
-    ellipse(180, 445, size*0.8, size*0.6);
-    fill(255, 200, 60);
-    triangle(170, 440, 190, 440, 180, 453);
-    fill(255);
-    ellipse(168, 432, 11, 13);
-    ellipse(192, 432, 11, 13);
-    fill(30);
-    ellipse(168, 433, 5, 6);
-    ellipse(192, 433, 5, 6);
-    fill(255,255,200);
-    textSize(15);
-    text("z", 210, 428);
-    text("Z", 223, 415);
-  } else {
-    // Body
-    fill(bodyColor);
-    beginShape();
-    vertex(-size*0.42, -size*0.08);
-    bezierVertex(-size*0.58, size*0.48, size*0.58, size*0.48, size*0.42, -size*0.08);
-    endShape(CLOSE);
-    
-    // Head
-    fill(bodyColor);
-    ellipse(0, -size*0.32, size*1.1, size*0.9);
-    
-    // Ears
-    fill(wingColor);
-    triangle(-size*0.32, -size*0.65, -size*0.12, -size*0.32, -size*0.52, -size*0.32);
-    triangle(size*0.32, -size*0.65, size*0.12, -size*0.32, size*0.52, -size*0.32);
-    
-    // Wings
-    fill(wingColor);
-    if (flying) {
-      push(); rotate(-0.55); ellipse(-size*0.52, -size*0.08, size*0.32, size*0.85); pop();
-      push(); rotate(0.55); ellipse(size*0.52, -size*0.08, size*0.32, size*0.85); pop();
-    } else {
-      ellipse(-size*0.58, size*0.18, size*0.26, size*0.7);
-      ellipse(size*0.58, size*0.18, size*0.26, size*0.7);
-    }
-    
-    // Beak
-    fill(beakColor);
-    triangle(-size*0.17, -size*0.22, size*0.17, -size*0.22, 0, size*0.16);
-    
-    // Eyes
-    fill(255);
-    ellipse(-size*0.3, -size*0.38, size*0.3, size*0.36);
-    ellipse(size*0.3, -size*0.38, size*0.3, size*0.36);
-    fill(eyeColor);
-    let eyeOff = (mood === "sad") ? size*0.04 : 0;
-    ellipse(-size*0.3, -size*0.38 + eyeOff, size*0.17, size*0.2);
-    ellipse(size*0.3, -size*0.38 + eyeOff, size*0.17, size*0.2);
-    
-    // === CLOTHES & SHOES (to look like a real kid/person) ===
-    // Shirt
-    fill(shirtColor);
-    rect(-size*0.38, size*0.05, size*0.76, size*0.38, 6);
-    // Collar
-    fill(255);
-    triangle(-size*0.12, size*0.08, size*0.12, size*0.08, 0, size*0.22);
-    
-    // Shoes
-    fill(shoeColor);
-    ellipse(-size*0.26, size*0.72, size*0.32, size*0.18);
-    ellipse(size*0.26, size*0.72, size*0.32, size*0.18);
-    
-    // Little pants
-    fill(50, 70, 120);
-    rect(-size*0.22, size*0.38, size*0.18, size*0.35);
-    rect(size*0.04, size*0.38, size*0.18, size*0.35);
-  }
-  pop();
-}
+            // Name tag
+            const nameTag = document.createElement('div');
+            nameTag.className = 'player-name';
+            nameTag.textContent = name;
+            nameTag.style.position = 'absolute';
+            document.body.appendChild(nameTag);
 
-function updateOwl() {
-  if (hoot.flying) {
-    hoot.vx = sin(frameCount * 0.08) * 2.3;
-    hoot.vy = -1.9 + cos(frameCount * 0.06) * 0.5;
-    hoot.flyingTime--;
-    if (hoot.flyingTime <= 0) {
-      hoot.flying = false;
-      happiness = min(100, happiness + 13);
-      playfulness = min(100, playfulness + 10);
-      careLevel = min(100, careLevel + 3);
-      updateBars();
-    }
-  } else if (hoot.sleeping) {
-    hoot.vx = 0; hoot.vy = 0;
-  } else if (hoot.walking) {
-    hoot.vx = sin(frameCount * 0.12) * 1.8;
-    hoot.vy = cos(frameCount * 0.09) * 0.3;
-    if (abs(hoot.vx) > 1.2) hoot.walking = false;
-  } else {
-    hoot.vx = sin(frameCount * 0.025) * 0.5;
-    hoot.vy = cos(frameCount * 0.03) * 0.35;
-    if (scene === "backyard" && random() < 0.01) hoot.vy = -2.5;
-  }
-  
-  hoot.x += hoot.vx;
-  hoot.y += hoot.vy;
-  
-  let groundY = (scene === "backyard") ? 355 : 400;
-  if (hoot.y > groundY) { hoot.y = groundY; hoot.vy = 0; }
-  hoot.x = constrain(hoot.x, 70, width - 70);
-  
-  if (hunger < 22 || thirst < 22) hoot.mood = "sad";
-  else if (happiness > 72) hoot.mood = "happy";
-  else hoot.mood = "neutral";
-  
-  if ((hunger < 14 || thirst < 14) && !villain && random() < 0.08) {
-    villain = { x: random(120, width-120), y: 430, timer: 160 };
-  }
-}
+            group.position.set(x, 0, z);
+            group.userData = {
+                name: name,
+                isGoodGuy: isGoodGuy,
+                nameTag: nameTag,
+                health: isGoodGuy ? 100 : 80,
+                lastMove: Date.now()
+            };
 
-function updateParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    let p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life--;
-    p.vy += 0.08;
-    fill(p.col);
-    ellipse(p.x, p.y, p.size, p.size);
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
+            scene.add(group);
+            return group;
+        }
 
-function updateBars() {
-  document.getElementById("hungerBar").style.width = hunger + "%";
-  document.getElementById("thirstBar").style.width = thirst + "%";
-  document.getElementById("energyBar").style.width = energy + "%";
-  document.getElementById("playBar").style.width = playfulness + "%";
-  document.getElementById("happinessBar").style.width = happiness + "%";
-  document.getElementById("careBar").style.width = careLevel + "%";
-}
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
 
-function checkGameState() {
-  if (hunger <= 0 || thirst <= 0 || energy <= 0) gameOver = true;
-  if (villain) {
-    villain.timer--;
-    if (villain.timer <= 0 && (hunger < 10 || thirst < 10)) gameOver = true;
-  }
-}
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 18);
 
-function drawVillain() {
-  fill(40, 20, 10, 220);
-  ellipse(villain.x, villain.y - 18, 50, 36);
-  fill(60, 30, 15);
-  ellipse(villain.x - 16, villain.y - 23, 16, 20);
-  ellipse(villain.x + 16, villain.y - 23, 16, 20);
-  fill(200, 50, 30);
-  ellipse(villain.x, villain.y - 17, 11, 7);
-}
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-// === ACTION ANIMATIONS ===
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
 
-function drawEatingAnimation() {
-  if (eatingAnim <= 0) return;
-  eatingAnim--;
-  let bx = hoot.x;
-  let by = hoot.y - hoot.size * 0.2;
-  fill(255, 200, 80);
-  for (let i = 0; i < 4; i++) {
-    let p = (18 - eatingAnim) / 18;
-    ellipse(bx + random(-10,10)*(1-p), by - 22 + p*28, 6, 6);
-  }
-}
+            // Main Player
+            const isGood = role.includes("AJ");
+            player = createCharacter(isGood, "You (" + (isGood ? "AJ" : "Caleb") + ")", 0, 0);
 
-function drawDrinkingAnimation() {
-  if (drinkingAnim <= 0) return;
-  drinkingAnim--;
-  let bx = hoot.x;
-  let by = hoot.y - hoot.size * 0.16;
-  for (let i = 0; i < 5; i++) {
-    let p = (22 - drinkingAnim) / 22;
-    fill(70, 180, 255, 230);
-    ellipse(bx + random(-6,6)*(1-p), by - 16 + p*24, 5, 7);
-  }
-  if (drinkingAnim < 6) {
-    fill(100, 215, 255, 170);
-    ellipse(bx, by, 12, 8);
-  }
-}
+            // Create other players (AI)
+            createOtherPlayers();
 
-function drawPetAnimation() {
-  if (petAnim <= 0) return;
-  petAnim--;
-  // Hand petting
-  fill(255, 210, 180);
-  let handX = hoot.x + 25;
-  let handY = hoot.y - 35 + sin(frameCount * 0.3) * 4;
-  ellipse(handX, handY, 38, 26);
-  // Fingers
-  fill(255, 200, 170);
-  for (let i = -1; i <= 1; i++) {
-    ellipse(handX + i*9, handY - 12, 8, 16);
-  }
-}
+            // Create locations
+            createLocation("Home", 0, 0, 0x8B4513);
+            createLocation("Boxing Ring", 40, 0, 0xFF4500);
+            createLocation("The Creator", 80, 0, 0x00CED1);
+            createLocation("School", 120, 0, 0x4169E1);
 
-function drawStoryAnimation() {
-  if (storyAnim <= 0) return;
-  storyAnim--;
-  // Book in front of Hoot
-  fill(200, 60, 60);
-  rect(hoot.x - 28, hoot.y + 18, 56, 38);
-  fill(255, 240, 200);
-  rect(hoot.x - 24, hoot.y + 22, 48, 30);
-  fill(60);
-  textSize(11);
-  textAlign(CENTER);
-  text("Hoot's", hoot.x, hoot.y + 35);
-  text("Story", hoot.x, hoot.y + 47);
-}
+            // Teleport pads
+            createTeleportPad(15, 0, "Boxing Ring");
+            createTeleportPad(55, 0, "The Creator");
+            createTeleportPad(95, 0, "School");
+            createTeleportPad(-15, 0, "Home");
 
-function drawBathAnimation() {
-  if (bathAnim <= 0) return;
-  bathAnim--;
-  if (scene !== "bathroom") return;
-  // Bubbles and water
-  fill(120, 200, 255, 120);
-  for (let i = 0; i < 7; i++) {
-    let bx = hoot.x + random(-35, 35);
-    let by = hoot.y + 15 + random(-10, 20);
-    ellipse(bx, by, random(8,16), random(8,16));
-  }
-  fill(255, 255, 255, 80);
-  ellipse(hoot.x, hoot.y + 25, 55, 18);
-}
+            // Ground
+            const groundGeo = new THREE.PlaneGeometry(200, 200);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
 
-function drawSingAnimation() {
-  if (singAnim <= 0) return;
-  singAnim--;
-  // Music notes and chirps
-  fill(255, 240, 120);
-  for (let i = 0; i < 5; i++) {
-    let nx = hoot.x + random(-40, 40);
-    let ny = hoot.y - 50 - (singAnim % 30);
-    textSize(14);
-    text("♪", nx, ny);
-  }
-  fill(180, 220, 255);
-  for (let i = 0; i < 4; i++) {
-    let mx = hoot.x - 30 + i * 20;
-    let my = hoot.y - 65 + sin(frameCount * 0.2 + i) * 8;
-    ellipse(mx, my, 6, 6);
-  }
-}
+            // Event listeners
+            window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            window.addEventListener('click', handlePunch);
+            window.addEventListener('resize', onResize);
 
-// === ACTIONS ===
+            document.getElementById('role').textContent = role;
+            updateUI();
 
-function feed() {
-  if (gameOver || win) return;
-  hunger = min(100, hunger + 17);
-  happiness = min(100, happiness + 5);
-  careLevel = min(100, careLevel + 3);
-  eatingAnim = 18;
-  updateBars();
-}
+            animate();
+        }
 
-function giveWater() {
-  if (gameOver || win) return;
-  thirst = min(100, thirst + 19);
-  happiness = min(100, happiness + 4);
-  careLevel = min(100, careLevel + 2);
-  drinkingAnim = 22;
-  updateBars();
-}
+        function createOtherPlayers() {
+            // Create several AI players across different locations
+            const npcs = [
+                { name: "Liam", good: true, x: 5, z: -8 },
+                { name: "Zaire", good: false, x: 8, z: 6 },
+                { name: "Maya", good: true, x: 42, z: 5 },
+                { name: "Tyler", good: false, x: 38, z: -6 },
+                { name: "Sam", good: true, x: 82, z: 4 },
+                { name: "Jordan", good: false, x: 85, z: -5 }
+            ];
 
-function putToSleep() {
-  if (gameOver || win) return;
-  if (scene !== "livingroom" && scene !== "bathroom") {
-    scene = "livingroom";
-  }
-  hoot.sleeping = true;
-  energy = min(100, energy + 23);
-  happiness = min(100, happiness + 4);
-  careLevel = min(100, careLevel + 4);
-  setTimeout(() => { hoot.sleeping = false; }, 3800);
-  updateBars();
-}
+            npcs.forEach(npc => {
+                const char = createCharacter(npc.good, npc.name, npc.x, npc.z);
+                otherPlayers.push(char);
+            });
+        }
 
-function petHoot() {
-  if (gameOver || win) return;
-  happiness = min(100, happiness + 13);
-  careLevel = min(100, careLevel + 4);
-  petAnim = 26;
-  updateBars();
-}
+        function createLocation(name, x, z, color) {
+            const floor = new THREE.Mesh(
+                new THREE.BoxGeometry(30, 1, 30),
+                new THREE.MeshLambertMaterial({ color: color })
+            );
+            floor.position.set(x, 0.5, z);
+            scene.add(floor);
 
-function playWithHoot() {
-  if (gameOver || win) return;
-  playfulness = min(100, playfulness + 18);
-  happiness = min(100, happiness + 7);
-  energy = max(5, energy - 5);
-  careLevel = min(100, careLevel + 5);
-  hoot.flying = true;
-  hoot.flyingTime = 65;
-  updateBars();
-}
+            const wallMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
+            const walls = [
+                new THREE.Mesh(new THREE.BoxGeometry(30, 8, 1), wallMat),
+                new THREE.Mesh(new THREE.BoxGeometry(30, 8, 1), wallMat),
+                new THREE.Mesh(new THREE.BoxGeometry(1, 8, 30), wallMat),
+                new THREE.Mesh(new THREE.BoxGeometry(1, 8, 30), wallMat)
+            ];
+            walls[0].position.set(x, 4, z - 15);
+            walls[1].position.set(x, 4, z + 15);
+            walls[2].position.set(x - 15, 4, z);
+            walls[3].position.set(x + 15, 4, z);
+            walls.forEach(w => scene.add(w));
+        }
 
-function singToHoot() {
-  if (gameOver || win) return;
-  happiness = min(100, happiness + 12);
-  playfulness = min(100, playfulness + 8);
-  careLevel = min(100, careLevel + 3);
-  singAnim = 48;
-  updateBars();
-}
+        function createTeleportPad(x, z, targetLocation) {
+            const pad = new THREE.Mesh(
+                new THREE.CylinderGeometry(3, 3, 0.5, 32),
+                new THREE.MeshLambertMaterial({ color: 0xffff00 })
+            );
+            pad.position.set(x, 1, z);
+            pad.userData = { teleportTo: targetLocation };
+            scene.add(pad);
+        }
 
-function groomHoot() {
-  if (gameOver || win) return;
-  // Bath in bathroom
-  if (scene !== "bathroom") {
-    scene = "bathroom";
-    hoot.x = 280;
-    hoot.y = 380;
-  }
-  happiness = min(100, happiness + 14);
-  careLevel = min(100, careLevel + 6);
-  bathAnim = 55;
-  updateBars();
-}
+        function handlePunch() {
+            if (!canPunch) return;
+            canPunch = false;
+            setTimeout(() => canPunch = true, 600);
 
-function tellStory() {
-  if (gameOver || win) return;
-  happiness = min(100, happiness + 11);
-  energy = min(100, energy + 7);
-  careLevel = min(100, careLevel + 4);
-  storyAnim = 42;
-  updateBars();
-}
+            // Punch nearby AI players
+            otherPlayers.forEach(npc => {
+                const dist = player.position.distanceTo(npc.position);
+                if (dist < 6) {
+                    // Damage the NPC
+                    npc.userData.health -= role.includes("Caleb") ? 22 : 15;
+                    
+                    // Knockback
+                    const dir = new THREE.Vector3().subVectors(npc.position, player.position).normalize();
+                    npc.position.x += dir.x * 3;
+                    npc.position.z += dir.z * 3;
 
-function letFly() {
-  if (gameOver || win) return;
-  hoot.flying = true;
-  hoot.flyingTime = 90;
-  happiness = min(100, happiness + 10);
-  playfulness = min(100, playfulness + 9);
-  careLevel = min(100, careLevel + 4);
-  updateBars();
-}
+                    if (npc.userData.health <= 0) {
+                        // Respawn NPC
+                        npc.position.set(
+                            Math.random() * 30 + (currentLocation === "Home" ? 0 : 40),
+                            0,
+                            Math.random() * 20 - 10
+                        );
+                        npc.userData.health = npc.userData.isGoodGuy ? 100 : 80;
+                    }
+                }
+            });
 
-function roam() {
-  if (gameOver || win) return;
-  // Cycle through scenes
-  if (scene === "livingroom") scene = "kitchen";
-  else if (scene === "kitchen") scene = "bathroom";
-  else if (scene === "bathroom") scene = "backyard";
-  else scene = "livingroom";
-  
-  hoot.x = random(180, width - 180);
-  hoot.y = (scene === "backyard") ? 320 : 360;
-  hoot.walking = true;
-  happiness = min(100, happiness + 3);
-  playfulness = min(100, playfulness + 4);
-  careLevel = min(100, careLevel + 2);
-  villain = null;
-  updateBars();
-}
+            // Visual punch effect
+            const punchEffect = new THREE.Mesh(
+                new THREE.SphereGeometry(2),
+                new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.6 })
+            );
+            punchEffect.position.copy(player.position);
+            punchEffect.position.y += 2;
+            scene.add(punchEffect);
+            setTimeout(() => scene.remove(punchEffect), 150);
+        }
 
-function releaseOwl() {
-  if (gameOver || win) return;
-  if (careLevel >= 75) {
-    win = true;
-    hoot.flying = true;
-    hoot.vy = -4;
-    for (let i = 0; i < 28; i++) {
-      particles.push({
-        x: hoot.x + random(-35,35),
-        y: hoot.y + random(-25,25),
-        vx: random(-1.8,1.8),
-        vy: random(-2.8,-0.4),
-        size: random(7,14),
-        life: 85,
-        col: color(255, random(220,255), random(200,240))
-      });
-    }
-  } else {
-    happiness -= 7;
-    alert("Hoot needs more care first! (75+ Care Level)");
-  }
-}
+        function buyItem(item) {
+            const prices = {
+                "Speed Boost": 75,
+                "Troll Bomb": 50,
+                "Admin Powers": 200
+            };
+            
+            if (coins >= prices[item]) {
+                coins -= prices[item];
+                
+                if (item === "Speed Boost") {
+                    player.userData.speed = 0.7;
+                    setTimeout(() => { if (player) player.userData.speed = 0.35; }, 10000);
+                } else if (item === "Troll Bomb") {
+                    alert("Troll Bomb deployed! Nearby players got stunned (demo)");
+                    otherPlayers.forEach(npc => {
+                        if (npc.position.distanceTo(player.position) < 15) {
+                            npc.position.x += (Math.random() - 0.5) * 8;
+                            npc.position.z += (Math.random() - 0.5) * 8;
+                        }
+                    });
+                } else if (item === "Admin Powers") {
+                    alert("Admin powers activated! (You can now teleport freely with T)");
+                }
+                
+                updateUI();
+            } else {
+                alert("Not enough coins!");
+            }
+        }
 
-function restartGame() {
-  hunger = 75; thirst = 75; energy = 88; playfulness = 70; happiness = 78; careLevel = 12;
-  scene = "livingroom";
-  gameOver = false;
-  win = false;
-  villain = null;
-  hoot.x = width/2;
-  hoot.y = 360;
-  hoot.flying = false;
-  hoot.sleeping = false;
-  hoot.walking = false;
-  particles = [];
-  eatingAnim = drinkingAnim = petAnim = storyAnim = bathAnim = singAnim = 0;
-  updateBars();
-}
+        function updateUI() {
+            document.getElementById('location').textContent = currentLocation;
+            document.getElementById('health').textContent = Math.floor(health);
+            document.getElementById('coins').textContent = coins;
+        }
 
-function keyPressed() {
-  if (key === 'f' || key === 'F') feed();
-  if (key === 'w' || key === 'W') giveWater();
-  if (key === 's' || key === 'S') putToSleep();
-  if (key === 'p' || key === 'P') petHoot();
-  if (key === 'l' || key === 'L') playWithHoot();
-  if (key === 'g' || key === 'G') singToHoot();
-  if (key === 'b' || key === 'B') groomHoot();
-  if (key === 't' || key === 'T') tellStory();
-  if (key === ' ') letFly();
-  if (key === 'r' || key === 'R') roam();
-  if (keyCode === ESCAPE) releaseOwl();
-  if (key === 'c' || key === 'C') {
-    hoot.colorScheme = (hoot.colorScheme + 1) % 7;
-  }
-}
+        function updateNameTags() {
+            const allChars = [player, ...otherPlayers];
+            
+            allChars.forEach(char => {
+                if (!char.userData.nameTag) return;
+                
+                const vector = new THREE.Vector3();
+                vector.setFromMatrixPosition(char.matrixWorld);
+                vector.y += 6;
 
-function mousePressed() {
-  if (gameOver || win) {
-    restartGame();
-    return;
-  }
-  // Only interact with Hoot directly - no more accidental scene change
-  let d = dist(mouseX, mouseY, hoot.x, hoot.y);
-  if (d < hoot.size * 0.95) {
-    happiness = min(100, happiness + 8);
-    careLevel = min(100, careLevel + 2);
-    petAnim = 18;
-    updateBars();
-  }
-}
-</script>
+                vector.project(camera);
+
+                const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-vector.y * 0.5 + 0.5) * window.innerHeight;
+
+                const tag = char.userData.nameTag;
+                tag.style.left = x + 'px';
+                tag.style.top = y + 'px';
+                tag.style.display = (vector.z < 1) ? 'block' : 'none';
+            });
+        }
+
+        function checkTeleport() {
+            scene.children.forEach(obj => {
+                if (obj.userData && obj.userData.teleportTo) {
+                    const dist = player.position.distanceTo(obj.position);
+                    if (dist < 5) {
+                        const newLoc = obj.userData.teleportTo;
+                        if (newLoc !== currentLocation) {
+                            currentLocation = newLoc;
+                            const locData = locations[newLoc];
+                            player.position.set(locData.x + (Math.random() - 0.5) * 10, 2, locData.z + (Math.random() - 0.5) * 8);
+                            updateUI();
+                        }
+                    }
+                }
+            });
+        }
+
+        function moveAIPlayers() {
+            const now = Date.now();
+            
+            otherPlayers.forEach(npc => {
+                // Simple wandering AI
+                if (now - npc.userData.lastMove > 800) {
+                    npc.userData.lastMove = now;
+                    
+                    // Random movement
+                    npc.position.x += (Math.random() - 0.5) * 1.2;
+                    npc.position.z += (Math.random() - 0.5) * 1.2;
+                    
+                    // Keep them near their starting area
+                    const homeX = npc.position.x < 30 ? 0 : 
+                                  npc.position.x < 70 ? 40 : 
+                                  npc.position.x < 110 ? 80 : 120;
+                    
+                    if (Math.abs(npc.position.x - homeX) > 18) {
+                        npc.position.x = homeX + (Math.random() - 0.5) * 10;
+                    }
+                }
+                
+                // Keep them on the ground
+                npc.position.y = 0;
+            });
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Player movement
+            const speed = player.userData.speed || 0.35;
+            
+            if (keys['w']) player.position.z -= speed;
+            if (keys['s']) player.position.z += speed;
+            if (keys['a']) player.position.x -= speed;
+            if (keys['d']) player.position.x += speed;
+
+            // Camera follows player
+            camera.position.x = player.position.x;
+            camera.position.z = player.position.z + 18;
+            camera.lookAt(player.position.x, player.position.y + 3, player.position.z);
+
+            // "No Friends" debuff for Caleb
+            if (role.includes("Caleb") && !player.userData.speed) {
+                player.userData.speed = 0.28;
+            }
+
+            // Update AI players
+            moveAIPlayers();
+
+            // Update floating name tags
+            updateNameTags();
+
+            // Check teleports
+            checkTeleport();
+
+            renderer.render(scene, camera);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'e') {
+                const shop = document.getElementById('shop');
+                shop.style.display = shop.style.display === 'block' ? 'none' : 'block';
+            }
+            if (e.key.toLowerCase() === 't') {
+                const locNames = Object.keys(locations);
+                const currentIndex = locNames.indexOf(currentLocation);
+                const nextIndex = (currentIndex + 1) % locNames.length;
+                const nextLoc = locNames[nextIndex];
+                currentLocation = nextLoc;
+                const locData = locations[nextLoc];
+                player.position.set(locData.x, 2, locData.z);
+                updateUI();
+            }
+        });
+
+        function closeShop() {
+            document.getElementById('shop').style.display = 'none';
+        }
+
+        // Start the game
+        init();
+    </script>
 </body>
 </html>

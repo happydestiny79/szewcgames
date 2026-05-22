@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ SOPHIA — Construct in Space ✨</title>
+    <title>✨ Construct in Space ✨</title>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
@@ -103,8 +103,8 @@
 </head>
 <body>
     <div id="ui" class="ui">
-        <h1 class="title">SOPHIA</h1>
-        <p style="margin: 5px 0; font-size: 12px;">Construct in Space • 100 Levels</p>
+        <h1 class="title">CONSTRUCT IN SPACE</h1>
+        <p style="margin: 5px 0; font-size: 12px;">100 Levels • Build vs Destroy</p>
         
         <div id="menu">
             <button onclick="startGame()">START BUILDING</button>
@@ -153,10 +153,8 @@
         let planets = [];
         let particles = [];
         let achlyAnger = 0;
+        let score = 0;
         let lastDestroyTime = 0;
-        
-        // Realistic Planet Types
-        const PLANET_TYPES = ['rocky', 'gas', 'ice', 'lava', 'desert'];
         
         class House {
             constructor(x, y, isBeautiful = true) {
@@ -175,15 +173,18 @@
                 push();
                 translate(this.x, this.y);
                 
+                // Base
                 fill(this.color[0], this.color[1], this.color[2]);
                 rect(-this.size/2, -this.size/2, this.size, this.size * 0.8);
                 
+                // Roof
                 if (this.isBeautiful) {
                     fill(255, 200, 50);
                     triangle(-this.size/2 - 5, -this.size/2, 
                              this.size/2 + 5, -this.size/2, 
                              0, -this.size/2 - 18);
                     
+                    // Rainbow decorations
                     for (let i = 0; i < this.beautyLevel; i++) {
                         stroke(255, 100 + i*40, 200);
                         strokeWeight(3);
@@ -197,13 +198,16 @@
                              0, -this.size/2 - 12);
                 }
                 
+                // Windows
                 fill(255, 255, 200);
                 rect(-8, -this.size/4, 6, 6);
                 rect(4, -this.size/4, 6, 6);
                 
+                // Door
                 fill(40, 30, 20);
                 rect(-4, this.size/8, 8, 12);
                 
+                // Creepy effect when Achly is mad
                 if (achlyAnger > 40 && !this.isBeautiful) {
                     fill(255, 0, 0, 80);
                     ellipse(0, 0, this.size * 1.5);
@@ -249,271 +253,31 @@
             }
         }
         
-        // ==================== REALISTIC PLANET DRAWING ====================
-        
-        function drawRealisticPlanet(p) {
-            const type = p.type || 'rocky';
-            const cx = p.x;
-            const cy = p.y;
-            const r = p.size;
-            
-            // Base color
-            let baseColor = p.color;
-            
-            // === LIGHTING: Create 3D sphere effect ===
-            // Main body
-            fill(baseColor[0], baseColor[1], baseColor[2]);
-            ellipse(cx, cy, r * 2);
-            
-            // Light side (highlight)
-            fill(255, 255, 255, 45);
-            ellipse(cx - r * 0.25, cy - r * 0.3, r * 1.3);
-            
-            // Dark side (shadow)
-            fill(0, 0, 0, 55);
-            ellipse(cx + r * 0.35, cy + r * 0.25, r * 1.25);
-            
-            // === TYPE-SPECIFIC DETAILS ===
-            
-            if (type === 'rocky') {
-                // Craters
-                for (let i = 0; i < p.details.length; i++) {
-                    let d = p.details[i];
-                    fill(20, 15, 35, 180);
-                    ellipse(cx + d.x, cy + d.y, d.size);
-                    // Crater rim highlight
-                    fill(255, 255, 255, 35);
-                    ellipse(cx + d.x - 2, cy + d.y - 2, d.size * 0.6);
-                }
-                // Surface texture
-                stroke(0, 0, 0, 40);
-                strokeWeight(1.5);
-                for (let i = 0; i < 5; i++) {
-                    let angle = p.details[i % p.details.length].angle || random(TWO_PI);
-                    let len = random(r * 0.3, r * 0.6);
-                    line(cx + cos(angle) * r * 0.4, cy + sin(angle) * r * 0.4,
-                         cx + cos(angle) * len, cy + sin(angle) * len);
-                }
-                noStroke();
-            }
-            
-            else if (type === 'gas') {
-                // Gas giant bands
-                stroke(baseColor[0] * 0.6, baseColor[1] * 0.6, baseColor[2] * 0.6, 120);
-                strokeWeight(4);
-                for (let i = -2; i <= 2; i++) {
-                    let yOffset = i * (r * 0.22);
-                    arc(cx, cy + yOffset, r * 1.9, r * 0.55, PI * 0.1, PI * 0.9);
-                }
-                noStroke();
-                
-                // Big storm spot
-                if (p.hasStorm) {
-                    fill(200, 80, 40, 160);
-                    ellipse(cx + r * 0.3, cy - r * 0.1, r * 0.45, r * 0.3);
-                }
-            }
-            
-            else if (type === 'ice') {
-                // Icy sheen
-                fill(220, 240, 255, 70);
-                ellipse(cx - r * 0.2, cy - r * 0.25, r * 1.4);
-                
-                // Ice cracks
-                stroke(255, 255, 255, 80);
-                strokeWeight(1.5);
-                for (let i = 0; i < 6; i++) {
-                    let angle = (i * 1.1) % TWO_PI;
-                    line(cx, cy, cx + cos(angle) * r * 0.85, cy + sin(angle) * r * 0.85);
-                }
-                noStroke();
-            }
-            
-            else if (type === 'lava') {
-                // Lava glow
-                fill(255, 80, 30, 90);
-                ellipse(cx, cy, r * 1.7);
-                
-                // Lava cracks
-                stroke(255, 140, 0, 160);
-                strokeWeight(2.5);
-                for (let i = 0; i < 7; i++) {
-                    let angle = p.details[i % p.details.length].angle || random(TWO_PI);
-                    let len = random(r * 0.3, r * 0.75);
-                    line(cx + cos(angle) * r * 0.3, cy + sin(angle) * r * 0.3,
-                         cx + cos(angle) * len, cy + sin(angle) * len);
-                }
-                noStroke();
-            }
-            
-            else if (type === 'desert') {
-                // Sandy dunes
-                stroke(255, 220, 150, 70);
-                strokeWeight(3);
-                for (let i = -1; i <= 1; i++) {
-                    arc(cx, cy + i * 8, r * 1.6, r * 0.8, PI * 0.15, PI * 0.85);
-                }
-                noStroke();
-            }
-            
-            // === ATMOSPHERE GLOW ===
-            noFill();
-            stroke(baseColor[0], baseColor[1], baseColor[2], 35);
-            strokeWeight(r * 0.18);
-            ellipse(cx, cy, r * 2.25);
-            strokeWeight(1);
-            noStroke();
-            
-            // === RINGS (for some planets) ===
-            if (p.ring) {
-                stroke(255, 255, 255, 75);
-                strokeWeight(3);
-                ellipse(cx, cy, r * 2.35, r * 0.55);
-                
-                // Ring shadow on planet
-                fill(0, 0, 0, 60);
-                ellipse(cx + 8, cy + 3, r * 1.95, r * 0.38);
-                noStroke();
-            }
-            
-            // === MOONS ===
-            if (p.moons && p.moons.length > 0) {
-                for (let moon of p.moons) {
-                    let moonX = cx + cos(moon.angle) * (r * 1.6);
-                    let moonY = cy + sin(moon.angle) * (r * 1.6);
-                    
-                    fill(230, 230, 240);
-                    ellipse(moonX, moonY, moon.size);
-                    
-                    // Moon lighting
-                    fill(255, 255, 255, 40);
-                    ellipse(moonX - moon.size * 0.25, moonY - moon.size * 0.25, moon.size * 0.6);
-                }
-            }
-        }
-        
-        function drawMainPlanet() {
-            const cx = mainPlanet.x;
-            const cy = mainPlanet.y;
-            const r = mainPlanet.radius;
-            
-            // Deep space purple base
-            fill(35, 25, 70);
-            ellipse(cx, cy, r * 2);
-            
-            // Lighting
-            fill(255, 255, 255, 30);
-            ellipse(cx - r * 0.3, cy - r * 0.35, r * 1.5);
-            
-            fill(0, 0, 0, 50);
-            ellipse(cx + r * 0.3, cy + r * 0.25, r * 1.45);
-            
-            // Surface craters and ridges
-            stroke(60, 50, 90, 120);
-            strokeWeight(2);
-            for (let i = 0; i < 18; i++) {
-                let angle = (i * 0.9) % TWO_PI;
-                let dist = random(r * 0.4, r * 0.85);
-                let x = cx + cos(angle) * dist;
-                let y = cy + sin(angle) * dist * 0.85;
-                let size = random(8, 22);
-                fill(25, 20, 50, 160);
-                ellipse(x, y, size);
-            }
-            noStroke();
-            
-            // Mountain ridges
-            stroke(80, 70, 110, 90);
-            strokeWeight(3);
-            for (let i = 0; i < 5; i++) {
-                let angle = i * 1.3;
-                beginShape();
-                for (let j = 0; j < 6; j++) {
-                    let a = angle + j * 0.15;
-                    let d = r * (0.55 + sin(j) * 0.15);
-                    vertex(cx + cos(a) * d, cy + sin(a) * d * 0.85);
-                }
-                endShape();
-            }
-            noStroke();
-            
-            // Strong atmosphere layers
-            noFill();
-            stroke(120, 200, 255, 50);
-            strokeWeight(18);
-            ellipse(cx, cy, r * 2.22);
-            
-            stroke(180, 220, 255, 30);
-            strokeWeight(32);
-            ellipse(cx, cy, r * 2.35);
-            strokeWeight(1);
-            noStroke();
-            
-            // Horizon glow
-            fill(100, 180, 255, 18);
-            ellipse(cx, cy + r * 0.15, r * 2.05, r * 1.1);
-        }
-        
-        // ==================== SETUP & DRAW ====================
-        
         function setup() {
             createCanvas(900, 700);
             
-            // Stars
-            for (let i = 0; i < 220; i++) {
+            // Generate stars
+            for (let i = 0; i < 180; i++) {
                 stars.push({
                     x: random(width),
                     y: random(height),
-                    size: random(1, 3.8),
-                    brightness: random(160, 255)
+                    size: random(1, 3.5),
+                    brightness: random(150, 255)
                 });
             }
             
-            // === REALISTIC BACKGROUND PLANETS ===
-            planets = [];
-            for (let i = 0; i < 6; i++) {
-                const type = PLANET_TYPES[floor(random(PLANET_TYPES.length))];
-                const size = random(38, 82);
-                
-                let planet = {
-                    x: random(90, width - 90),
-                    y: random(70, height - 110),
-                    size: size,
-                    type: type,
-                    ring: random() > 0.65,
-                    hasStorm: type === 'gas' && random() > 0.5,
-                    moons: [],
-                    color: getPlanetColor(type),
-                    details: []
-                };
-                
-                // Generate craters / details
-                const detailCount = type === 'rocky' ? 7 : (type === 'lava' ? 6 : 4);
-                for (let j = 0; j < detailCount; j++) {
-                    planet.details.push({
-                        x: random(-size * 0.6, size * 0.6),
-                        y: random(-size * 0.6, size * 0.6),
-                        size: random(4, 12),
-                        angle: random(TWO_PI)
-                    });
-                }
-                
-                // Add moons to some planets
-                if (random() > 0.55) {
-                    const moonCount = floor(random(1, 3));
-                    for (let m = 0; m < moonCount; m++) {
-                        planet.moons.push({
-                            angle: random(TWO_PI),
-                            size: random(5, 11),
-                            speed: random(0.008, 0.018)
-                        });
-                    }
-                }
-                
-                planets.push(planet);
+            // Generate planets in background
+            for (let i = 0; i < 5; i++) {
+                planets.push({
+                    x: random(100, width - 100),
+                    y: random(80, height - 120),
+                    size: random(35, 75),
+                    color: [random(80,180), random(60,160), random(120,220)],
+                    ring: random() > 0.6
+                });
             }
             
-            // Main planet
+            // Main planet (play area)
             window.mainPlanet = {
                 x: width/2,
                 y: height/2 + 40,
@@ -521,42 +285,49 @@
             };
         }
         
-        function getPlanetColor(type) {
-            if (type === 'rocky') return [random(90,140), random(80,130), random(110,160)];
-            if (type === 'gas') return [random(140,200), random(130,190), random(160,220)];
-            if (type === 'ice') return [random(180,230), random(200,240), random(230,255)];
-            if (type === 'lava') return [random(130,180), random(40,90), random(30,70)];
-            if (type === 'desert') return [random(200,240), random(170,210), random(100,150)];
-            return [150, 150, 180];
-        }
-        
         function draw() {
-            background(4, 0, 22);
+            background(5, 0, 25);
             
-            // Stars with twinkling
+            // Draw distant stars
             for (let star of stars) {
                 fill(star.brightness);
                 noStroke();
                 ellipse(star.x, star.y, star.size);
-                if (frameCount % 35 < 6) {
-                    fill(255, 255, 255, 70);
-                    ellipse(star.x, star.y, star.size * 2.8);
+                
+                // Twinkle
+                if (frameCount % 40 < 8) {
+                    fill(255, 255, 255, 80);
+                    ellipse(star.x, star.y, star.size * 2.5);
                 }
             }
             
-            // Draw realistic background planets
+            // Draw background planets
             for (let p of planets) {
-                // Update moon angles
-                if (p.moons) {
-                    for (let moon of p.moons) {
-                        moon.angle += moon.speed;
-                    }
+                fill(p.color[0], p.color[1], p.color[2], 180);
+                ellipse(p.x, p.y, p.size);
+                
+                if (p.ring) {
+                    stroke(255, 255, 255, 60);
+                    noFill();
+                    ellipse(p.x, p.y, p.size * 1.6, p.size * 0.4);
+                    noStroke();
                 }
-                drawRealisticPlanet(p);
             }
             
-            // Draw beautiful main planet
-            drawMainPlanet();
+            // Draw main planet surface
+            fill(40, 30, 80);
+            ellipse(mainPlanet.x, mainPlanet.y, mainPlanet.radius * 2);
+            
+            // Planet atmosphere glow
+            noFill();
+            stroke(100, 200, 255, 40);
+            strokeWeight(12);
+            ellipse(mainPlanet.x, mainPlanet.y, mainPlanet.radius * 2.15);
+            strokeWeight(1);
+            
+            // Ground details
+            fill(60, 50, 100);
+            arc(mainPlanet.x, mainPlanet.y + 60, mainPlanet.radius * 1.9, 140, PI, TWO_PI);
             
             // Draw houses
             for (let house of houses) {
@@ -564,24 +335,26 @@
                 house.update();
             }
             
-            // Particles
+            // Draw particles
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].update();
                 particles[i].draw();
                 if (particles[i].life <= 0) particles.splice(i, 1);
             }
             
-            // Characters
+            // Draw characters
             drawSofia();
             if (achlyAnger > 15 || selectedCharacter === 'achly') {
                 drawAchly();
             }
             
+            // Game logic
             if (gameState === 'playing') {
                 updateGame();
                 drawUI();
             }
             
+            // Creepy vignette when Achly is very mad
             if (achlyAnger > 55) {
                 drawCreepyVignette();
             }
@@ -591,16 +364,20 @@
             let x = mainPlanet.x - 140;
             let y = mainPlanet.y - 60;
             
+            // Body - rainbow shirt
             fill(255, 100, 200);
             rect(x - 12, y + 15, 24, 32);
             
+            // Rainbow stripes
             fill(255, 200, 50); rect(x - 11, y + 18, 22, 6);
             fill(100, 255, 150); rect(x - 11, y + 25, 22, 6);
             fill(100, 180, 255); rect(x - 11, y + 32, 22, 6);
             
+            // Head
             fill(255, 220, 185);
             ellipse(x, y, 26, 26);
             
+            // Blue eyes
             fill(30, 120, 255);
             ellipse(x - 6, y - 2, 6, 8);
             ellipse(x + 6, y - 2, 6, 8);
@@ -608,15 +385,19 @@
             ellipse(x - 5, y - 3, 2, 3);
             ellipse(x + 7, y - 3, 2, 3);
             
+            // Brown hair
             fill(80, 50, 30);
             arc(x, y - 2, 28, 28, PI, TWO_PI);
             
+            // Green necklace
             fill(50, 255, 120);
             ellipse(x, y + 22, 8, 8);
             
+            // Blue skirt
             fill(30, 120, 220);
             rect(x - 10, y + 45, 20, 18);
             
+            // Label
             fill(0, 255, 200);
             textSize(11);
             textAlign(CENTER);
@@ -628,20 +409,25 @@
             let x = mainPlanet.x + 150;
             let y = mainPlanet.y - 50 - anger * 20;
             
+            // Red shirt
             fill(220, 30, 60);
             rect(x - 11, y + 18, 22, 30);
             
+            // Head
             fill(255, 210, 180);
             ellipse(x, y, 24, 24);
             
+            // Black hair
             fill(20);
             arc(x, y, 26, 28, PI, TWO_PI);
             rect(x - 13, y - 5, 26, 18);
             
+            // Angry eyes
             fill(255, 50, 50);
             rect(x - 8, y - 4, 5, 3);
             rect(x + 3, y - 4, 5, 3);
             
+            // Diamond earring
             fill(200, 230, 255);
             beginShape();
             vertex(x - 14, y + 8);
@@ -650,14 +436,17 @@
             vertex(x - 18, y + 14);
             endShape(CLOSE);
             
+            // Orange skirt
             fill(255, 140, 0);
             rect(x - 9, y + 46, 18, 16);
             
+            // Label
             fill(255, 80, 80);
             textSize(11);
             textAlign(CENTER);
             text("ACHLY", x, y + 75);
             
+            // Anger aura
             if (anger > 0.4) {
                 stroke(255, 0, 0, 100 + anger * 80);
                 noFill();
@@ -672,6 +461,7 @@
                 ellipse(width/2, height/2, width * 1.4 - i * 40, height * 1.4 - i * 40);
             }
             
+            // Creepy text
             if (frameCount % 60 < 30) {
                 fill(255, 0, 50, 120);
                 textSize(14);
@@ -681,8 +471,10 @@
         }
         
         function updateGame() {
+            // Remove dead houses
             for (let i = houses.length - 1; i >= 0; i--) {
                 if (houses[i].health <= 0) {
+                    // Death particles
                     for (let j = 0; j < 12; j++) {
                         particles.push(new Particle(houses[i].x, houses[i].y, 'destroy'));
                     }
@@ -690,15 +482,20 @@
                 }
             }
             
+            // Achly's destruction AI
             let now = millis();
             let destroyInterval = max(1800 - achlyAnger * 12, 450);
             
             if (now - lastDestroyTime > destroyInterval && houses.length > 0) {
+                // Achly targets a random house
                 let targetIndex = floor(random(houses.length));
                 let target = houses[targetIndex];
                 
+                // Destroy or damage
                 if (selectedCharacter === 'achly' || random() < 0.7) {
                     target.health -= random(35, 70);
+                    
+                    // Destruction particles
                     for (let j = 0; j < 8; j++) {
                         particles.push(new Particle(target.x, target.y, 'destroy'));
                     }
@@ -708,6 +505,7 @@
                 achlyAnger = min(achlyAnger + 1.5, 100);
             }
             
+            // Check win/lose conditions
             let beautifulHouses = houses.filter(h => h.isBeautiful).length;
             let requiredHouses = min(3 + Math.floor(level / 3), 12);
             
@@ -715,17 +513,26 @@
                 `Houses: ${beautifulHouses}/${requiredHouses}`;
             
             if (beautifulHouses >= requiredHouses) {
+                // Level complete!
                 levelComplete();
             }
             
+            // Game over if too many houses destroyed
             if (houses.length < requiredHouses * 0.3 && level > 1) {
                 gameOver();
+            }
+            
+            // Increase difficulty
+            if (achlyAnger > 70 && level < 100) {
+                // Creepy mode intensifies
             }
         }
         
         function drawUI() {
+            // Level display
             document.getElementById('level-num').innerHTML = level;
             
+            // Anger meter (subtle)
             if (achlyAnger > 25) {
                 fill(255, 50, 50, 150);
                 textSize(10);
@@ -736,7 +543,12 @@
         
         function selectCharacter(char) {
             selectedCharacter = char;
-            document.querySelectorAll('.char-card').forEach(el => el.style.boxShadow = 'none');
+            
+            // Highlight selection
+            document.querySelectorAll('.char-card').forEach(el => {
+                el.style.boxShadow = 'none';
+            });
+            
             let card = document.querySelector(char === 'sofia' ? '.sofia' : '.achly');
             if (card) card.style.boxShadow = '0 0 25px ' + (char === 'sofia' ? '#00ffcc' : '#ff3366');
         }
@@ -747,11 +559,13 @@
             houses = [];
             particles = [];
             achlyAnger = 0;
+            score = 0;
             
             document.getElementById('menu').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
             document.getElementById('level-display').style.display = 'block';
             
+            // Spawn initial houses
             spawnInitialHouses();
         }
         
@@ -773,6 +587,7 @@
         function buildHouse() {
             if (gameState !== 'playing') return;
             
+            // Place a beautiful house near center of planet
             let angle = random(TWO_PI);
             let dist = random(50, mainPlanet.radius - 25);
             let x = mainPlanet.x + cos(angle) * dist;
@@ -781,10 +596,12 @@
             let house = new House(x, y, true);
             houses.push(house);
             
+            // Beautiful particles
             for (let i = 0; i < 15; i++) {
                 particles.push(new Particle(x, y, 'build'));
             }
             
+            // Sofia improves things
             if (selectedCharacter === 'sofia') {
                 achlyAnger = max(achlyAnger - 8, 0);
             }
@@ -793,6 +610,7 @@
         function destroyHouse() {
             if (gameState !== 'playing' || houses.length === 0) return;
             
+            // Achly destroys a random house
             let idx = floor(random(houses.length));
             let target = houses[idx];
             
@@ -808,16 +626,19 @@
         function mousePressed() {
             if (gameState !== 'playing') return;
             
+            // Click to build on planet surface
             let d = dist(mouseX, mouseY, mainPlanet.x, mainPlanet.y);
             if (d < mainPlanet.radius - 10) {
                 if (selectedCharacter === 'sofia') {
                     let house = new House(mouseX, mouseY, true);
                     houses.push(house);
+                    
                     for (let i = 0; i < 12; i++) {
                         particles.push(new Particle(mouseX, mouseY, 'build'));
                     }
                     achlyAnger = max(achlyAnger - 5, 0);
                 } else {
+                    // Achly mode: click to destroy
                     for (let i = houses.length - 1; i >= 0; i--) {
                         if (dist(mouseX, mouseY, houses[i].x, houses[i].y) < 35) {
                             houses[i].health -= 90;
@@ -841,9 +662,19 @@
                 return;
             }
             
+            // Clear some particles
             particles = [];
+            
+            // Add more houses for next level
             spawnInitialHouses();
             
+            // Show level up message
+            fill(0, 255, 200);
+            textSize(28);
+            textAlign(CENTER);
+            text("LEVEL " + level + "!", width/2, height/2 - 80);
+            
+            // Make it creepier every 10 levels
             if (level % 10 === 0) {
                 achlyAnger += 15;
             }
@@ -857,6 +688,7 @@
             textSize(32);
             textAlign(CENTER);
             text("ACHLY WINS...", width/2, height/2);
+            
             textSize(16);
             text("The planet is in ruins...", width/2, height/2 + 50);
             
@@ -885,6 +717,7 @@
             }, 4000);
         }
         
+        // Keyboard shortcuts
         function keyPressed() {
             if (gameState === 'playing') {
                 if (key === 'b' || key === 'B') buildHouse();
@@ -900,6 +733,7 @@
             }
         }
         
+        // Auto-increase anger over time (creepy progression)
         setInterval(() => {
             if (gameState === 'playing') {
                 achlyAnger = min(achlyAnger + 0.8, 100);
