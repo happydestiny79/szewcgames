@@ -223,7 +223,7 @@
                 
                 <div style="margin-top: 12px;">
                     <button onclick="startTutorial()">TUTORIAL</button>
-                    <button onclick="goAdventuring()">GO ADVENTURING</button>
+                    <button id="adventure-btn" onclick="goAdventuring()">GO ADVENTURING</button>
                     <button onclick="fightBoss()">FIGHT GREAT ORG</button>
                 </div>
                 
@@ -264,10 +264,10 @@
         let monstersInBiome = 0;
         let biomeIndex = 0;
         let tutorialStep = 0;
+        let isAdventuringLocked = false;
         
         let biomes = ["Forest", "Swamp", "Volcano", "Ice Peaks", "Acid Wastes"];
         
-        // Weapons
         let weapons = {
             stick: { name: "Stick", damage: 14, price: 100, owned: false },
             bat: { name: "Bat", damage: 22, price: 180, owned: false },
@@ -280,7 +280,6 @@
         let currentMonster = null;
         let bossHP = 420;
         
-        // ==================== LOGGING ====================
         function log(message, type = "normal") {
             const logDiv = document.getElementById("log");
             const entry = document.createElement("div");
@@ -311,6 +310,11 @@
             document.getElementById("hookshot-status").textContent = hasHookshot ? "YES" : "NO";
             document.getElementById("name-input").value = playerName;
             
+            const advBtn = document.getElementById("adventure-btn");
+            if (advBtn) {
+                advBtn.disabled = (gameState === "fighting" || gameState === "boss_fight" || isAdventuringLocked);
+            }
+            
             renderInventory();
         }
         
@@ -327,12 +331,10 @@
             bodyColor = document.getElementById("body-color").value;
         }
         
-        // ==================== INVENTORY ====================
         function renderInventory() {
             const container = document.getElementById("inventory-list");
             container.innerHTML = "";
             
-            // Fists / Equipped
             if (equippedWeapon) {
                 const equippedDiv = document.createElement("div");
                 equippedDiv.className = "inventory-item equipped";
@@ -348,7 +350,6 @@
                 container.appendChild(fistsDiv);
             }
             
-            // Owned weapons
             inventory.forEach(weaponId => {
                 if (equippedWeapon && equippedWeapon.id === weaponId) return;
                 
@@ -363,26 +364,13 @@
                 `;
                 container.appendChild(div);
             });
-            
-            if (inventory.length === 0 && !equippedWeapon) {
-                const empty = document.createElement("div");
-                empty.style.fontSize = "10px";
-                empty.style.color = "#666";
-                empty.innerHTML = "No weapons yet. Buy some!";
-                container.appendChild(empty);
-            }
         }
         
         function equipWeapon(weaponId) {
             const w = weapons[weaponId];
             if (!w || !w.owned) return;
             
-            equippedWeapon = {
-                id: weaponId,
-                name: w.name,
-                damage: w.damage
-            };
-            
+            equippedWeapon = { id: weaponId, name: w.name, damage: w.damage };
             log(`Equipped ${w.name}!`);
             updateUI();
         }
@@ -403,7 +391,6 @@
                 log(`You already own the ${w.name}!`);
                 return;
             }
-            
             if (coins < w.price) {
                 log("Not enough coins!");
                 return;
@@ -418,7 +405,6 @@
             if (!equippedWeapon) {
                 equipWeapon(type);
             }
-            
             updateUI();
         }
         
@@ -434,114 +420,88 @@
             
             coins -= 250;
             hasHookshot = true;
-            
             log("Hookshot acquired! You can now travel to new biomes.", "loot");
             updateUI();
         }
         
-        // ==================== IMPROVED TUTORIAL ====================
+        // ==================== TUTORIAL ====================
         function startTutorial() {
             const tutorialBox = document.getElementById("tutorial-box");
             tutorialBox.style.display = "block";
+            tutorialStep = 0;
             
-            if (tutorialStep === 0) {
-                tutorialBox.innerHTML = `
-                    <div class="tutorial-step">
-                        <strong>STEP 1: WELCOME</strong><br>
-                        You are Maddox Wade, a legless gorilla with green eyes.<br>
-                        Your goal: Kill monsters, get stronger, and defeat the Great Org.<br><br>
-                        <button onclick="nextTutorialStep()">NEXT</button>
-                    </div>
-                `;
-            }
+            tutorialBox.innerHTML = `
+                <div class="tutorial-step">
+                    <strong>STEP 1: WELCOME</strong><br>
+                    You are Maddox Wade, a legless gorilla.<br>
+                    Goal: Kill monsters and defeat the Great Org.<br><br>
+                    <button onclick="nextTutorialStep()">NEXT</button>
+                </div>
+            `;
         }
         
         function nextTutorialStep() {
             const tutorialBox = document.getElementById("tutorial-box");
             tutorialStep++;
             
-            if (tutorialStep === 1) {
-                tutorialBox.innerHTML = `
-                    <div class="tutorial-step">
-                        <strong>STEP 2: BUY &amp; EQUIP WEAPONS</strong><br>
-                        Go to the right panel and buy a weapon (start with the Stick).<br>
-                        Then click EQUIP on it so you actually use it in combat.<br><br>
-                        <button onclick="nextTutorialStep()">NEXT</button>
-                    </div>
-                `;
-            } else if (tutorialStep === 2) {
-                tutorialBox.innerHTML = `
-                    <div class="tutorial-step">
-                        <strong>STEP 3: GO ADVENTURING</strong><br>
-                        Press "GO ADVENTURING" to explore the current biome.<br>
-                        You will randomly find monsters to fight.<br>
-                        Keep adventuring until you encounter one.<br><br>
-                        <button onclick="nextTutorialStep()">NEXT</button>
-                    </div>
-                `;
-            } else if (tutorialStep === 3) {
-                tutorialBox.innerHTML = `
-                    <div class="tutorial-step">
-                        <strong>STEP 4: FIGHTING</strong><br>
-                        When a monster appears, click the canvas or press F to attack.<br>
-                        Your equipped weapon determines how much damage you do.<br><br>
-                        <button onclick="nextTutorialStep()">NEXT</button>
-                    </div>
-                `;
-            } else if (tutorialStep === 4) {
-                tutorialBox.innerHTML = `
-                    <div class="tutorial-step">
-                        <strong>STEP 5: HOOKSHOT &amp; NEW BIOMES</strong><br>
-                        Buy the Hookshot (250 coins) to unlock new biomes.<br>
-                        Harder biomes = better loot but stronger monsters.<br><br>
-                        <button onclick="nextTutorialStep()">NEXT</button>
-                    </div>
-                `;
-            } else if (tutorialStep === 5) {
-                tutorialBox.innerHTML = `
-                    <div class="tutorial-step">
-                        <strong>STEP 6: THE GREAT ORG</strong><br>
-                        After killing 10+ monsters, fight the final boss.<br>
-                        Bring your best weapon and lots of coins!<br><br>
-                        <button onclick="finishTutorial()">I'M READY!</button>
-                    </div>
-                `;
+            const steps = [
+                `<strong>STEP 2: BUY &amp; EQUIP</strong><br>
+                Buy a weapon on the right panel.<br>
+                Then click EQUIP so you use it.<br><br>
+                <button onclick="nextTutorialStep()">NEXT</button>`,
+                
+                `<strong>STEP 3: GO ADVENTURING</strong><br>
+                Press GO ADVENTURING to find monsters.<br>
+                Keep clicking until one appears.<br><br>
+                <button onclick="nextTutorialStep()">NEXT</button>`,
+                
+                `<strong>STEP 4: FIGHT</strong><br>
+                Click the canvas or press F to attack.<br>
+                Watch the monster's HP bar on screen.<br><br>
+                <button onclick="nextTutorialStep()">NEXT</button>`,
+                
+                `<strong>STEP 5: HOOKSHOT</strong><br>
+                Buy the Hookshot to unlock new biomes.<br>
+                Harder biomes = better rewards.<br><br>
+                <button onclick="nextTutorialStep()">NEXT</button>`,
+                
+                `<strong>STEP 6: FINAL BOSS</strong><br>
+                After 10+ kills, fight the Great Org.<br>
+                Bring your strongest weapon!<br><br>
+                <button onclick="finishTutorial()">I'M READY!</button>`
+            ];
+            
+            if (tutorialStep <= 5) {
+                tutorialBox.innerHTML = `<div class="tutorial-step">${steps[tutorialStep-1]}</div>`;
             }
         }
         
         function finishTutorial() {
             document.getElementById("tutorial-box").style.display = "none";
-            tutorialStep = 0;
-            log("Tutorial complete! Go buy a weapon and start adventuring.");
+            log("Tutorial complete! Buy a weapon and start adventuring.");
         }
         
-        // ==================== ADVENTURING & COMBAT (FIXED) ====================
+        // ==================== FIXED ADVENTURING & COMBAT ====================
         function goAdventuring() {
-            if (gameState === "fighting" || gameState === "boss_fight") {
-                log("You're already in combat!");
+            if (gameState === "fighting" || gameState === "boss_fight" || isAdventuringLocked) {
                 return;
             }
             
+            isAdventuringLocked = true;
             gameState = "adventuring";
             monstersInBiome++;
             
-            log(`You venture deeper into the ${currentBiome}...`);
+            log(`Exploring the ${currentBiome}...`);
+            updateUI();
             
-            // Higher chance in deeper biomes
-            let encounterChance = 0.45 + (monstersInBiome * 0.08);
-            if (currentBiome === "Acid Wastes") encounterChance += 0.15;
-            encounterChance = Math.min(encounterChance, 0.92);
-            
+            // Very reliable encounter rate
             setTimeout(() => {
-                if (gameState !== "adventuring") return;
-                
-                if (Math.random() < encounterChance) {
+                if (gameState === "adventuring") {
                     startMonsterEncounter();
-                } else {
-                    log("You didn't find any monsters this time. Try again.");
-                    gameState = "idle";
                 }
-            }, 650);
+                isAdventuringLocked = false;
+                updateUI();
+            }, 450);
         }
         
         function startMonsterEncounter() {
@@ -554,72 +514,59 @@
             log(`A wild ${currentMonster.name} appears!`);
             
             if (!equippedWeapon) {
-                log("You're fighting with just your fists!");
+                log("Fighting with your fists!");
             } else {
-                log(`Using your ${equippedWeapon.name}.`);
+                log(`Using ${equippedWeapon.name}.`);
             }
             
-            setTimeout(() => {
-                if (gameState === "fighting" && currentMonster) {
-                    log(`[${currentMonster.name} HP: ${currentMonster.hp}]`);
-                }
-            }, 500);
+            updateUI();
         }
         
         function getMonstersForBiome() {
-            if (currentBiome === "Forest") {
-                return [
-                    { name: "Slime Rat", hp: 42, damage: 7 },
-                    { name: "Thorn Boar", hp: 58, damage: 10 }
-                ];
-            } else if (currentBiome === "Swamp") {
-                return [
-                    { name: "Acid Spider", hp: 50, damage: 12 },
-                    { name: "Mud Gator", hp: 75, damage: 14 }
-                ];
-            } else if (currentBiome === "Volcano") {
-                return [
-                    { name: "Lava Boar", hp: 82, damage: 16 },
-                    { name: "Ember Wolf", hp: 65, damage: 18 }
-                ];
-            } else if (currentBiome === "Ice Peaks") {
-                return [
-                    { name: "Frost Boar", hp: 90, damage: 15 },
-                    { name: "Ice Serpent", hp: 60, damage: 20 }
-                ];
-            } else if (currentBiome === "Acid Wastes") {
-                return [
-                    { name: "Toxic Crawler", hp: 78, damage: 19 },
-                    { name: "Corrosive Slime", hp: 105, damage: 13 }
-                ];
-            }
-            return [{ name: "Wild Rat", hp: 40, damage: 7 }];
+            if (currentBiome === "Forest") return [
+                { name: "Slime Rat", hp: 45, damage: 7 },
+                { name: "Thorn Boar", hp: 60, damage: 10 }
+            ];
+            if (currentBiome === "Swamp") return [
+                { name: "Acid Spider", hp: 52, damage: 12 },
+                { name: "Mud Gator", hp: 78, damage: 14 }
+            ];
+            if (currentBiome === "Volcano") return [
+                { name: "Lava Boar", hp: 85, damage: 16 },
+                { name: "Ember Wolf", hp: 68, damage: 18 }
+            ];
+            if (currentBiome === "Ice Peaks") return [
+                { name: "Frost Boar", hp: 95, damage: 15 },
+                { name: "Ice Serpent", hp: 62, damage: 20 }
+            ];
+            if (currentBiome === "Acid Wastes") return [
+                { name: "Toxic Crawler", hp: 82, damage: 19 },
+                { name: "Corrosive Slime", hp: 110, damage: 13 }
+            ];
+            return [{ name: "Wild Rat", hp: 45, damage: 7 }];
         }
         
         function performAttack() {
             if (!currentMonster || gameState !== "fighting") return;
             
-            let damage = 8; // fists default
+            let damage = equippedWeapon ? equippedWeapon.damage : 8;
             
+            // Biome bonuses
             if (equippedWeapon) {
-                damage = equippedWeapon.damage;
-                
-                // Weapon bonuses per biome
                 if (equippedWeapon.id === "boxing_glove" && currentBiome === "Swamp") damage += 7;
                 if (equippedWeapon.id === "pipe" && currentBiome === "Volcano") damage += 8;
                 if (equippedWeapon.id === "bat" && currentBiome === "Ice Peaks") damage += 9;
             }
-            
-            // Acid Wastes penalty
-            if (currentBiome === "Acid Wastes") damage = Math.floor(damage * 0.82);
+            if (currentBiome === "Acid Wastes") damage = Math.floor(damage * 0.85);
             
             currentMonster.hp -= damage;
-            log(`You hit the ${currentMonster.name} for ${damage} damage!`);
+            log(`Hit ${currentMonster.name} for ${damage} damage!`);
             
             if (currentMonster.hp <= 0) {
+                // Victory
                 kills++;
-                let reward = Math.floor(Math.random() * 60) + 52;
-                if (currentBiome === "Acid Wastes") reward += 35;
+                let reward = Math.floor(Math.random() * 55) + 55;
+                if (currentBiome === "Acid Wastes") reward += 40;
                 
                 coins += reward;
                 log(`Defeated ${currentMonster.name}! +${reward} coins`, "loot");
@@ -627,8 +574,7 @@
                 gameState = "idle";
                 currentMonster = null;
                 
-                // Chance to unlock next biome if you have hookshot
-                if (hasHookshot && Math.random() < 0.5 && biomeIndex < biomes.length - 1) {
+                if (hasHookshot && Math.random() < 0.55 && biomeIndex < biomes.length - 1) {
                     biomeIndex++;
                     currentBiome = biomes[biomeIndex];
                     monstersInBiome = 0;
@@ -636,46 +582,41 @@
                 }
                 
                 if (kills >= 10) {
-                    log("You're strong enough to challenge the GREAT ORG!", "boss");
+                    log("You're ready to fight the GREAT ORG!", "boss");
                 }
                 
                 updateUI();
             } else {
+                // Monster attacks
                 let monsterDamage = currentMonster.damage;
-                if (currentBiome === "Acid Wastes") monsterDamage += 6;
+                if (currentBiome === "Acid Wastes") monsterDamage += 5;
                 
-                log(`The ${currentMonster.name} hits you for ${monsterDamage} damage!`);
+                log(`${currentMonster.name} hits you for ${monsterDamage} damage!`);
                 
-                if (Math.random() < 0.2 && kills > 5) {
+                // Much lower death chance
+                if (Math.random() < 0.08 && kills > 4) {
                     log("You died in battle...", "death");
-                    coins = Math.max(0, Math.floor(coins * 0.5));
+                    coins = Math.max(0, Math.floor(coins * 0.6));
                     gameState = "idle";
                     currentMonster = null;
                     updateUI();
                     return;
                 }
-                
-                setTimeout(() => {
-                    if (gameState === "fighting" && currentMonster) {
-                        log(`[${currentMonster.name} HP: ${currentMonster.hp}]`);
-                    }
-                }, 700);
             }
         }
         
-        // ==================== BOSS ====================
         function fightBoss() {
             if (kills < 10) {
-                log("You need at least 10 monster kills to face the Great Org!");
+                log("Need at least 10 kills to fight the Great Org!");
                 return;
             }
             
             if (gameState === "boss_fight") {
-                let damage = equippedWeapon ? equippedWeapon.damage + 9 : 15;
+                let damage = equippedWeapon ? equippedWeapon.damage + 10 : 16;
                 
                 if (equippedWeapon) {
-                    if (equippedWeapon.id === "pipe") damage += 14;
-                    if (equippedWeapon.id === "boxing_glove") damage += 10;
+                    if (equippedWeapon.id === "pipe") damage += 15;
+                    if (equippedWeapon.id === "boxing_glove") damage += 11;
                 }
                 
                 bossHP -= damage;
@@ -683,8 +624,7 @@
                 
                 if (bossHP <= 0) {
                     log("🎉 YOU DEFEATED THE GREAT ORG! 🎉", "boss");
-                    log("The wastelands are free. You are a legend!", "boss");
-                    coins += 700;
+                    coins += 750;
                     kills += 10;
                     gameState = "idle";
                     bossHP = 420;
@@ -695,9 +635,9 @@
                 const bossDamage = 26;
                 log(`The Great Org spits ACID for ${bossDamage} damage!`, "boss");
                 
-                if (Math.random() < 0.3) {
+                if (Math.random() < 0.32) {
                     log("You were melted by the Great Org's acid...", "death");
-                    coins = Math.max(0, Math.floor(coins * 0.3));
+                    coins = Math.max(0, Math.floor(coins * 0.35));
                     gameState = "idle";
                     bossHP = 420;
                     updateUI();
@@ -705,19 +645,17 @@
                 }
                 
                 log(`Great Org HP: ${bossHP}`, "boss");
-                
             } else {
                 gameState = "boss_fight";
                 bossHP = 420;
                 log("=== FINAL BOSS: THE GREAT ORG ===", "boss");
-                log("A massive, disgusting Shrek-like creature towers before you.");
-                log("It spits acid and violently defends itself.");
+                log("A massive, disgusting creature towers before you.");
                 log("Make sure you have a strong weapon equipped!");
                 log(`Great Org HP: ${bossHP}`, "boss");
             }
         }
         
-        // ==================== p5.js VISUALS (WITH WEAPONS IN HAND) ====================
+        // ==================== p5.js DRAWING ====================
         let gorillaX, gorillaY;
         let armAngle = 0;
         
@@ -732,21 +670,19 @@
                 const logDiv = document.getElementById("log");
                 logDiv.innerHTML = "";
                 log("Welcome to Animal Company!");
-                log("Buy a weapon from the right panel → Equip it → Go Adventuring!");
+                log("Buy & equip a weapon → Go Adventuring → Fight!");
                 updateUI();
             }, 400);
         }
         
         function draw() {
             background(15, 25, 15);
-            
             drawBiomeBackground();
             drawGorilla();
             
             if (currentMonster && gameState === "fighting") {
                 drawMonster();
             }
-            
             if (gameState === "boss_fight") {
                 drawGreatOrg();
             }
@@ -756,7 +692,7 @@
             textAlign(CENTER);
             
             if (gameState === "idle") {
-                text("Buy weapons • Equip them • Go Adventuring", width/2, height - 28);
+                text("Buy weapons • Equip • Go Adventuring", width/2, height - 28);
             } else if (gameState === "fighting") {
                 text("Click canvas or press F to attack!", width/2, height - 28);
             } else if (gameState === "boss_fight") {
@@ -806,13 +742,11 @@
             push();
             translate(gorillaX, gorillaY);
             
-            // Body
             fill(bodyColor);
             stroke(30);
             strokeWeight(3);
             ellipse(0, 0, 140, 110);
             
-            // Green eyes
             fill(0, 255, 80);
             ellipse(-35, -20, 28, 28);
             ellipse(35, -20, 28, 28);
@@ -825,29 +759,24 @@
             line(-48, -35, -22, -38);
             line(22, -38, 48, -35);
             
-            // Arms with animation
             stroke(bodyColor);
             strokeWeight(18);
             armAngle = sin(frameCount * 0.08) * 0.4;
             
-            // Left arm
             push();
             rotate(-0.8 + armAngle);
             line(-50, 10, -95, 55);
             pop();
             
-            // Right arm (holds weapon)
             push();
             rotate(0.8 - armAngle);
             line(50, 10, 95, 55);
             
-            // Draw equipped weapon in hand
             if (equippedWeapon) {
                 drawWeaponInHand(equippedWeapon.id);
             }
             pop();
             
-            // Hookshot on back (if owned)
             if (hasHookshot) {
                 stroke(180);
                 strokeWeight(6);
@@ -856,7 +785,6 @@
                 ellipse(68, 28, 14, 14);
             }
             
-            // Chest gadget
             fill(80);
             rect(-25, 15, 50, 25, 5);
             fill(0, 255, 0);
@@ -872,29 +800,26 @@
         
         function drawWeaponInHand(weaponId) {
             push();
-            translate(95, 55); // End of the arm
+            translate(95, 55);
             rotate(0.6);
             
             if (weaponId === "stick") {
                 stroke(139, 90, 43);
                 strokeWeight(6);
                 line(0, 0, 45, -25);
-            } 
-            else if (weaponId === "bat") {
+            } else if (weaponId === "bat") {
                 stroke(60, 40, 20);
                 strokeWeight(9);
                 line(0, 0, 50, -20);
                 fill(80, 50, 20);
                 ellipse(52, -22, 16, 16);
-            } 
-            else if (weaponId === "pipe") {
+            } else if (weaponId === "pipe") {
                 stroke(120);
                 strokeWeight(8);
                 line(0, 0, 48, -18);
                 fill(100);
                 ellipse(50, -20, 12, 12);
-            } 
-            else if (weaponId === "boxing_glove") {
+            } else if (weaponId === "boxing_glove") {
                 fill(180, 30, 30);
                 stroke(80, 10, 10);
                 strokeWeight(3);
@@ -902,13 +827,12 @@
                 fill(220, 50, 50);
                 ellipse(38, -18, 12, 10);
             }
-            
             pop();
         }
         
         function drawMonster() {
             push();
-            translate(width * 0.75, height * 0.45);
+            translate(width * 0.75, height * 0.42);
             
             fill(80, 120, 60);
             stroke(30);
@@ -916,9 +840,6 @@
             
             if (currentMonster.name.includes("Rat") || currentMonster.name.includes("Crawler")) {
                 ellipse(0, 0, 70, 50);
-                fill(40, 90, 30);
-                ellipse(-15, -5, 20, 15);
-                ellipse(15, -5, 20, 15);
             } else if (currentMonster.name.includes("Boar")) {
                 fill(100, 80, 60);
                 ellipse(0, 0, 90, 60);
@@ -928,21 +849,22 @@
             } else if (currentMonster.name.includes("Spider")) {
                 fill(30, 100, 40);
                 ellipse(0, 0, 60, 50);
-                fill(0, 255, 100);
-                ellipse(-20, -10, 15, 15);
-                ellipse(20, -10, 15, 15);
             } else {
                 fill(40, 40, 50);
                 ellipse(0, 0, 80, 55);
-                fill(255, 0, 0);
-                ellipse(-20, -8, 12, 12);
-                ellipse(20, -8, 12, 12);
             }
             
+            // Visible HP bar
             fill(0);
-            rect(-50, -50, 100, 12);
+            rect(-55, -55, 110, 14);
             fill(0, 255, 0);
-            rect(-48, -48, map(currentMonster.hp, 0, currentMonster.maxHP, 0, 96), 8);
+            let hpPercent = currentMonster.hp / currentMonster.maxHP;
+            rect(-53, -53, 106 * hpPercent, 10);
+            
+            fill(255);
+            textSize(10);
+            textAlign(CENTER);
+            text(`${currentMonster.hp} / ${currentMonster.maxHP}`, 0, -42);
             
             pop();
         }
@@ -979,7 +901,6 @@
             pop();
         }
         
-        // ==================== INPUT ====================
         function mousePressed() {
             if (gameState === "fighting" && currentMonster) {
                 performAttack();
@@ -1000,7 +921,7 @@
                     goAdventuring();
                 }
             }
-            if (key === 'e' || key === 'E' && hasHookshot) {
+            if ((key === 'e' || key === 'E') && hasHookshot) {
                 if (biomeIndex < biomes.length - 1) {
                     biomeIndex++;
                     currentBiome = biomes[biomeIndex];
@@ -1018,7 +939,7 @@
             }
         }
         
-        setInterval(updateUI, 2000);
+        setInterval(updateUI, 1500);
     </script>
 </body>
 </html>
