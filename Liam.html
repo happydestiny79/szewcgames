@@ -11,24 +11,25 @@
 </head>
 <body>
 <h1 style="text-align:center">Avatar the Creator - Liam (Jake the Air Avatar)</h1>
-<p style="text-align:center">Stop the cosmic event! Fight spirits and villains in New York at midnight.</p>
+<p style="text-align:center">Stop the cosmic event! Fight spirits in New York at midnight.</p>
 
 <script>
 let jake, spirits = [], buildings = [], platforms = [];
 let health = 100;
 let score = 0;
+let totalSpirits = 0;
 let gameState = "start";
-let totalSpirits = 0;        // cumulative spirits defeated
-let boss = null;             // boss object when active
+let boss = null;
+
 let musicEnabled = true;
 let audioContext, musicOsc, musicGain;
 
 function setup() {
   createCanvas(1050, 550);
   
-  jake = { x: 200, y: 380, size: 50, vy: 0, onGround: true, airBending: false };
+  jake = { x: 200, y: 380, vy: 0, onGround: true, airBending: 0 };
   
-  // New York buildings
+  // Buildings
   for (let i = 0; i < 8; i++) {
     buildings.push({
       x: i * 120,
@@ -37,12 +38,11 @@ function setup() {
     });
   }
   
-  // Platforms / bricks on buildings for vertical gameplay
+  // Platforms
   platforms = [];
   for (let b of buildings) {
-    // Add 1-2 platforms per building at different heights
-    let numPlatforms = floor(random(1, 3));
-    for (let p = 0; p < numPlatforms; p++) {
+    let num = floor(random(1, 3));
+    for (let p = 0; p < num; p++) {
       platforms.push({
         x: b.x + random(10, b.w - 40),
         y: 350 - b.h + random(30, b.h - 50),
@@ -53,7 +53,297 @@ function setup() {
   }
 }
 
-// Simple chiptune background music
+function draw() {
+  background(10, 10, 30);
+  
+  // Sky
+  fill(20, 20, 60);
+  rect(0, 0, width, 350);
+  
+  // Stars
+  fill(255);
+  for (let i = 0; i < 40; i++) {
+    ellipse((i * 23) % width, (i * 17) % 300, 2, 2);
+  }
+  
+  // Buildings
+  fill(30);
+  for (let b of buildings) {
+    rect(b.x, 350 - b.h, b.w, b.h);
+    fill(255, 255, 150, 180);
+    for (let wy = 0; wy < b.h - 30; wy += 25) {
+      for (let wx = 8; wx < b.w - 15; wx += 20) {
+        rect(b.x + wx, 350 - b.h + wy, 8, 8);
+      }
+    }
+    fill(30);
+  }
+  
+  // Ground
+  fill(40);
+  rect(0, 450, width, 100);
+  
+  // Platforms
+  fill(120, 80, 50);
+  stroke(80, 50, 30);
+  strokeWeight(2);
+  for (let p of platforms) {
+    rect(p.x, p.y, p.w, p.h);
+    line(p.x, p.y + 6, p.x + p.w, p.y + 6);
+  }
+  noStroke();
+  
+  if (gameState === "start") {
+    fill(255);
+    textSize(36);
+    textAlign(CENTER);
+    text("JAKE THE AIR AVATAR", width/2, 150);
+    textSize(20);
+    text("Press SPACE to begin", width/2, 200);
+    text("Controls: ← →   SPACE = Jump   Z = Air Blast   X = Flight   M = Music", width/2, 250);
+  } else if (gameState === "play") {
+    drawGame();
+  } else if (gameState === "win") {
+    fill(100, 255, 150);
+    textSize(42);
+    textAlign(CENTER);
+    text("YOU STOPPED THE COSMIC EVENT!", width/2, height/2);
+    textSize(20);
+    text("Score: " + score + "  |  Press R to restart", width/2, height/2 + 50);
+  } else if (gameState === "lose") {
+    fill(255, 80, 80);
+    textSize(48);
+    textAlign(CENTER);
+    text("GAME OVER", width/2, height/2 - 30);
+    textSize(22);
+    fill(255);
+    text("You ran out of health!", width/2, height/2 + 20);
+    textSize(18);
+    text("Spirits Defeated: " + score + "  |  Press R to restart", width/2, height/2 + 60);
+  }
+}
+
+function drawGame() {
+  // Jake character
+  push();
+  translate(jake.x, jake.y);
+  fill(80, 180, 255);
+  ellipse(0, 10, 28, 35);
+  fill(255, 220, 180);
+  ellipse(0, -8, 22, 22);
+  fill(150, 220, 255, 150);
+  ellipse(0, -12, 26, 18);
+  fill(30);
+  ellipse(-6, -10, 4, 4);
+  ellipse(6, -10, 4, 4);
+  
+  if (jake.airBending > 0) {
+    noFill();
+    stroke(100, 220, 255, 120);
+    strokeWeight(2);
+    ellipse(0, 0, 50, 50);
+    strokeWeight(1);
+  }
+  pop();
+  
+  fill(255);
+  textSize(12);
+  textAlign(CENTER);
+  text("JAKE", jake.x, jake.y + 40);
+  
+  // Spirits
+  for (let s of spirits) {
+    push();
+    translate(s.x, s.y);
+    fill(180, 140, 255, 180);
+    ellipse(0, 5, 26, 32);
+    fill(160, 120, 230);
+    ellipse(0, -6, 20, 20);
+    noFill();
+    stroke(200, 180, 255, 80);
+    strokeWeight(3);
+    ellipse(0, 0, 38, 42);
+    strokeWeight(1);
+    fill(255, 200, 255);
+    ellipse(-5, -8, 3, 3);
+    ellipse(5, -8, 3, 3);
+    pop();
+    fill(255);
+    textSize(9);
+    textAlign(CENTER);
+    text("SPIRIT", s.x, s.y + 30);
+  }
+  
+  // Boss
+  if (boss) {
+    push();
+    translate(boss.x, boss.y);
+    fill(40, 20, 80);
+    ellipse(0, 10, boss.size, boss.size * 1.1);
+    fill(60, 30, 100);
+    ellipse(0, -15, 55, 50);
+    fill(30, 10, 50);
+    triangle(-25, -35, -15, -55, -5, -35);
+    triangle(25, -35, 15, -55, 5, -35);
+    fill(255, 50, 50);
+    ellipse(-15, -18, 10, 10);
+    ellipse(15, -18, 10, 10);
+    
+    fill(255, 0, 0);
+    rect(-40, -70, 80, 8);
+    fill(0, 255, 100);
+    rect(-40, -70, 80 * (boss.health / boss.maxHealth), 8);
+    pop();
+    
+    fill(255);
+    textSize(14);
+    textAlign(CENTER);
+    text("COSMIC BOSS", boss.x, boss.y + 70);
+  }
+  
+  // HUD
+  fill(255);
+  textSize(18);
+  textAlign(LEFT);
+  text("Health: " + health, 50, 50);
+  text("Spirits: " + score + " / 200", 50, 80);
+  text("Total: " + totalSpirits, 50, 105);
+  if (boss) {
+    textSize(16);
+    fill(255, 100, 100);
+    text("BOSS: " + boss.health, width - 200, 50);
+  }
+  textSize(12);
+  fill(200);
+  text("M = Music", width - 100, height - 20);
+  
+  updateGame();
+}
+
+function updateGame() {
+  // Gravity + platform collision
+  jake.vy += 0.8;
+  jake.y += jake.vy;
+  
+  jake.onGround = false;
+  for (let p of platforms) {
+    if (jake.x + 15 > p.x && jake.x - 15 < p.x + p.w &&
+        jake.y + 20 > p.y && jake.y - 20 < p.y + p.h) {
+      if (jake.vy > 0) {
+        jake.y = p.y - 20;
+        jake.vy = 0;
+        jake.onGround = true;
+      }
+    }
+  }
+  
+  if (jake.y > 400) {
+    jake.y = 400;
+    jake.vy = 0;
+    jake.onGround = true;
+  }
+  
+  // Spirits movement & collision
+  for (let i = spirits.length - 1; i >= 0; i--) {
+    let s = spirits[i];
+    s.x -= 2;
+    
+    if (dist(jake.x, jake.y, s.x, s.y) < 45) {
+      health -= (s.isBossMinion ? 15 : 8);
+      spirits.splice(i, 1);
+      score++;
+      totalSpirits++;
+      if (health <= 0) gameState = "lose";
+    }
+    
+    if (s.x < -30) spirits.splice(i, 1);
+  }
+  
+  // Boss logic
+  if (totalSpirits >= 200 && !boss) {
+    health = 300;
+    boss = { x: width + 80, y: 280, health: 500, maxHealth: 500, size: 90 };
+  }
+  
+  if (boss) {
+    boss.x -= 1.2;
+    if (frameCount % 60 === 0) {
+      spirits.push({ x: boss.x, y: boss.y + random(-40, 40), isBossMinion: true });
+    }
+    
+    if (dist(jake.x, jake.y, boss.x, boss.y) < 70) {
+      health -= 25;
+      if (health <= 0) gameState = "lose";
+    }
+    
+    if (jake.airBending > 0 && abs(boss.x - jake.x) < 140) {
+      boss.health -= 3;
+      if (boss.health <= 0) {
+        score += 50;
+        totalSpirits += 50;
+        boss = null;
+      }
+    }
+    
+    if (boss && boss.x < -100) boss = null;
+  }
+  
+  // Spawn normal spirits
+  if (!boss && frameCount % 45 === 0 && spirits.length < 6) {
+    spirits.push({ x: width + 30, y: random(200, 380) });
+  }
+  
+  // Cooldown
+  if (jake.airBending > 0) jake.airBending--;
+}
+
+function keyPressed() {
+  if (gameState === "start" && key === ' ') {
+    gameState = "play";
+    health = 100;
+    score = 0;
+    totalSpirits = 0;
+    boss = null;
+    spirits = [];
+    startMusic();
+  }
+  
+  if (gameState === "play") {
+    if (keyCode === LEFT_ARROW) jake.x -= 25;
+    if (keyCode === RIGHT_ARROW) jake.x += 25;
+    
+    if (key === ' ' && jake.onGround) {
+      jake.vy = -19;
+      jake.onGround = false;
+    }
+    
+    if (key === 'z' || key === 'Z') {
+      jake.airBending = 15;
+      for (let i = spirits.length - 1; i >= 0; i--) {
+        if (abs(spirits[i].x - jake.x) < 120) {
+          spirits.splice(i, 1);
+          score++;
+          totalSpirits++;
+        }
+      }
+    }
+    
+    if (key === 'x' || key === 'X') {
+      jake.vy = -8;
+      jake.airBending = 20;
+    }
+    
+    if (key === 'm' || key === 'M') {
+      toggleMusic();
+    }
+  }
+  
+  if ((gameState === "win" || gameState === "lose") && key === 'r') {
+    gameState = "start";
+  }
+}
+
+// Music
 function startMusic() {
   if (!musicEnabled) return;
   try {
@@ -94,374 +384,6 @@ function toggleMusic() {
     musicGain.gain.value = musicEnabled ? 0.08 : 0;
   }
 }
-
-
-function draw() {
-  background(10, 10, 30);
-  
-  // Night sky
-  fill(20, 20, 60);
-  rect(0, 0, width, 350);
-  
-  // Stars
-  fill(255);
-  for (let i = 0; i < 40; i++) {
-    ellipse((i * 23) % width, (i * 17) % 300, 2, 2);
-  }
-  
-  // Buildings
-  fill(30);
-  for (let b of buildings) {
-    rect(b.x, 350 - b.h, b.w, b.h);
-    // Windows
-    fill(255, 255, 150, 180);
-    for (let wy = 0; wy < b.h - 30; wy += 25) {
-      for (let wx = 8; wx < b.w - 15; wx += 20) {
-        rect(b.x + wx, 350 - b.h + wy, 8, 8);
-      }
-    }
-    fill(30);
-  }
-  
-  // Ground
-  fill(40);
-  rect(0, 450, width, 100);
-  
-  // Platforms / bricks
-  fill(120, 80, 50);
-  stroke(80, 50, 30);
-  strokeWeight(2);
-  for (let p of platforms) {
-    rect(p.x, p.y, p.w, p.h);
-    // Brick lines
-    stroke(80, 50, 30);
-    line(p.x, p.y + 6, p.x + p.w, p.y + 6);
-  }
-  noStroke();
-  
-  if (gameState === "start") {
-    fill(255);
-    textSize(36);
-    textAlign(CENTER);
-    text("JAKE THE AIR AVATAR", width/2, 150);
-    textSize(20);
-    text("Press SPACE to begin fighting spirits", width/2, 200);
-    text("Controls: ← →   SPACE = Jump   Z = Air Blast   X = Flight", width/2, 250);
-  } else if (gameState === "play") {
-    drawGame();
-  } else if (gameState === "win") {
-    fill(100, 255, 150);
-    textSize(42);
-    textAlign(CENTER);
-    text("YOU STOPPED THE COSMIC EVENT!", width/2, height/2);
-    textSize(20);
-    text("Score: " + score + "  |  Press R to restart", width/2, height/2 + 50);
-  } else if (gameState === "lose") {
-    fill(255, 80, 80);
-    textSize(48);
-    textAlign(CENTER);
-    text("GAME OVER", width/2, height/2 - 30);
-    textSize(22);
-    fill(255);
-    text("You ran out of health!", width/2, height/2 + 20);
-    textSize(18);
-    text("Spirits Defeated: " + score + "  |  Press R to restart", width/2, height/2 + 60);
-  }
-}
-
-// Simple chiptune background music
-}
-
-    musicGain.gain.value = musicEnabled ? 0.08 : 0;
-  }
-}
-
-
-function drawGame() {
-  // Jake - character style (air avatar)
-  push();
-  translate(jake.x, jake.y);
-  
-  // Body robe
-  fill(80, 180, 255);
-  ellipse(0, 10, 28, 35);
-  
-  // Head
-  fill(255, 220, 180);
-  ellipse(0, -8, 22, 22);
-  
-  // Air glow hair
-  fill(150, 220, 255, 150);
-  ellipse(0, -12, 26, 18);
-  
-  // Eyes
-  fill(30);
-  ellipse(-6, -10, 4, 4);
-  ellipse(6, -10, 4, 4);
-  
-  // Air bending aura
-  if (jake.airBending > 0) {
-    noFill();
-    stroke(100, 220, 255, 120);
-    strokeWeight(2);
-    ellipse(0, 0, 50, 50);
-    strokeWeight(1);
-  }
-  
-  pop();
-  
-  // Label
-  fill(255);
-  textSize(12);
-  textAlign(CENTER);
-  text("JAKE", jake.x, jake.y + 40);
-  
-  // Air bending effect
-  if (jake.airBending) {
-    noFill();
-    stroke(150, 220, 255, 180);
-    strokeWeight(3);
-    ellipse(jake.x, jake.y, jake.size * 1.8, jake.size * 1.8);
-    strokeWeight(1);
-  }
-  
-  // Spirits - ghostly characters
-  for (let s of spirits) {
-    push();
-    translate(s.x, s.y);
-    
-    // Ghostly body
-    fill(180, 140, 255, 180);
-    ellipse(0, 5, 26, 32);
-    
-    // Hooded head
-    fill(160, 120, 230);
-    ellipse(0, -6, 20, 20);
-    
-    // Ethereal glow
-    noFill();
-    stroke(200, 180, 255, 80);
-    strokeWeight(3);
-    ellipse(0, 0, 38, 42);
-    strokeWeight(1);
-    
-    // Eyes (menacing)
-    fill(255, 200, 255);
-    ellipse(-5, -8, 3, 3);
-    ellipse(5, -8, 3, 3);
-    
-    pop();
-    
-    fill(255);
-    textSize(9);
-    textAlign(CENTER);
-    text("SPIRIT", s.x, s.y + 30);
-  }
-  
-  // Draw Boss
-  if (boss) {
-    push();
-    translate(boss.x, boss.y);
-    
-    // Massive boss body
-    fill(40, 20, 80);
-    ellipse(0, 10, boss.size, boss.size * 1.1);
-    
-    // Boss head
-    fill(60, 30, 100);
-    ellipse(0, -15, 55, 50);
-    
-    // Horns
-    fill(30, 10, 50);
-    triangle(-25, -35, -15, -55, -5, -35);
-    triangle(25, -35, 15, -55, 5, -35);
-    
-    // Glowing eyes
-    fill(255, 50, 50);
-    ellipse(-15, -18, 10, 10);
-    ellipse(15, -18, 10, 10);
-    
-    // Health bar
-    fill(255, 0, 0);
-    rect(-40, -70, 80, 8);
-    fill(0, 255, 100);
-    rect(-40, -70, 80 * (boss.health / boss.maxHealth), 8);
-    
-    pop();
-    
-    fill(255);
-    textSize(14);
-    textAlign(CENTER);
-    text("COSMIC BOSS", boss.x, boss.y + 70);
-  }
-  
-  // HUD
-  fill(255);
-  textSize(18);
-  textAlign(LEFT);
-  text("Health: " + health, 50, 50);
-  text("Spirits Defeated: " + score + " / 200", 50, 80);
-  text("Total: " + totalSpirits, 50, 105);
-  if (boss) {
-    textSize(16);
-    fill(255, 100, 100);
-    text("BOSS HEALTH: " + boss.health, width - 250, 50);
-  }
-  textSize(12);
-  fill(200);
-  text("M = toggle music", width - 150, height - 20);
-  
-  // Update
-  updateGame();
-}
-
-function updateGame() {
-  // Gravity
-  jake.vy += 0.8;
-  jake.y += jake.vy;
-  
-  // Platform collision
-  jake.onGround = false;
-  for (let p of platforms) {
-    if (jake.x + 15 > p.x && jake.x - 15 < p.x + p.w &&
-        jake.y + 20 > p.y && jake.y - 20 < p.y + p.h) {
-      if (jake.vy > 0) {  // falling onto platform
-        jake.y = p.y - 20;
-        jake.vy = 0;
-        jake.onGround = true;
-      }
-    }
-  }
-  
-  // Ground collision
-  if (jake.y > 400) {
-    jake.y = 400;
-    jake.vy = 0;
-    jake.onGround = true;
-  }
-  
-  // Move spirits
-  for (let i = spirits.length - 1; i >= 0; i--) {
-    let s = spirits[i];
-    s.x -= 2;
-    
-    // Collision with Jake
-    if (dist(jake.x, jake.y, s.x, s.y) < 45) {
-      health -= (s.isBossMinion ? 15 : 8);
-      spirits.splice(i, 1);
-      score++;
-      totalSpirits++;
-      if (health <= 0) gameState = "lose";
-    }
-    
-    if (s.x < -30) spirits.splice(i, 1);
-  }
-  
-  // Boss collision
-  if (boss) {
-    if (dist(jake.x, jake.y, boss.x, boss.y) < 70) {
-      health -= 25;
-      if (health <= 0) gameState = "lose";
-    }
-    
-    // Air blast damages boss
-    if (jake.airBending > 0 && abs(boss.x - jake.x) < 140) {
-      boss.health -= 3;
-      if (boss.health <= 0) {
-        score += 50;
-        totalSpirits += 50;
-        boss = null;
-      }
-    }
-    
-    if (boss && boss.x < -100) boss = null;
-  }
-  
-  // Spawn new spirits or boss
-  if (totalSpirits >= 200 && !boss) {
-    // Spawn the boss! Give player more health for the fight
-    health = 300;
-    boss = {
-      x: width + 80,
-      y: 280,
-      health: 500,
-      maxHealth: 500,
-      size: 90
-    };
-  }
-  
-  if (!boss && frameCount % 45 === 0 && spirits.length < 6) {
-    spirits.push({ x: width + 30, y: random(200, 380) });
-  }
-  
-  // Boss movement
-  if (boss) {
-    boss.x -= 1.2;
-    // Simple boss attack pattern
-    if (frameCount % 60 === 0) {
-      spirits.push({ x: boss.x, y: boss.y + random(-40, 40), isBossMinion: true });
-    }
-  }
-  
-  // Air bending cooldown
-  if (jake.airBending) jake.airBending--;
-}
-
-function keyPressed() {
-  if (gameState === "start" && key === ' ') {
-    gameState = "play";
-    health = 100;
-    score = 0;
-    totalSpirits = 0;
-    boss = null;
-    spirits = [];
-    startMusic();
-  }
-  
-  if (gameState === "play") {
-    if (keyCode === LEFT_ARROW) jake.x -= 25;
-    if (keyCode === RIGHT_ARROW) jake.x += 25;
-    
-    if (key === ' ' && jake.onGround) {
-      jake.vy = -19;  // Higher jump for reaching high enemies
-      jake.onGround = false;
-    }
-    
-    if (key === 'z' || key === 'Z') {
-      // Air Blast
-      jake.airBending = 15;
-      for (let i = spirits.length - 1; i >= 0; i--) {
-        if (abs(spirits[i].x - jake.x) < 120) {
-          spirits.splice(i, 1);
-          score++;
-          totalSpirits++;
-        }
-      }
-    }
-    
-    if (key === 'x' || key === 'X') {
-      // Flight mode
-      jake.vy = -8;
-      jake.airBending = 20;
-    }
-    
-    if (key === 'm' || key === 'M') {
-      toggleMusic();
-    }
-  }
-  
-  if ((gameState === "win" || gameState === "lose") && key === 'r') {
-    gameState = "start";
-  }
-}
-
-// Simple chiptune background music
-}
-
-    musicGain.gain.value = musicEnabled ? 0.08 : 0;
-  }
-}
-
 </script>
 </body>
 </html>
