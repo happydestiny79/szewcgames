@@ -96,12 +96,14 @@
     .big-btn.purple { background: #7c3aed; }
     .big-btn.yellow { background: #ca8a04; }
     .big-btn.rose { background: #be123c; }
+    .big-btn.teal { background: #0d9488; }
     
     .nav-buttons {
       display: flex;
       gap: 12px;
       justify-content: center;
       margin-top: 24px;
+      flex-wrap: wrap;
     }
     
     .nav-btn {
@@ -115,6 +117,7 @@
     
     .secret-btn { background: #6366f1; color: white; }
     .redcarpet-btn { background: #b91c1c; color: white; }
+    .music-btn { background: #166534; color: white; }
     
     .result-stars {
       font-size: 3.5rem;
@@ -124,15 +127,6 @@
     }
     
     .hidden { display: none; }
-    
-    .label {
-      position: absolute;
-      font-size: 0.75rem;
-      color: #71717a;
-      background: #27272a;
-      padding: 2px 8px;
-      border-radius: 6px;
-    }
   </style>
 </head>
 <body>
@@ -159,9 +153,7 @@
         
         <!-- Character -->
         <div class="character-area">
-          <div class="character" id="character">
-            <!-- Character is built with CSS + JS -->
-          </div>
+          <div class="character" id="character"></div>
         </div>
         
         <div class="button-row">
@@ -174,18 +166,21 @@
         <div class="nav-buttons">
           <button onclick="goToSecret()" class="nav-btn secret-btn">🪄 Secret Room</button>
           <button onclick="goToRedCarpet()" class="nav-btn redcarpet-btn">🚶 Red Carpet</button>
+          <button onclick="toggleMusic()" class="nav-btn music-btn" id="music-btn">🎵 Music</button>
         </div>
       </div>
       
       <!-- Secret Room -->
       <div id="secret-screen" class="hidden">
         <h2 style="text-align: center; color: #e0e7ff;">✨ Secret Room ✨</h2>
-        <p class="info-text">Special bonus items only found here!</p>
+        <p class="info-text">Extra special hair &amp; dress colors!</p>
         
-        <div style="display: flex; justify-content: center; gap: 20px; margin: 30px 0;">
-          <button onclick="equipSecret(3)" class="big-btn yellow">👑 Floating Tiara</button>
-          <button onclick="equipSecret(1)" class="big-btn yellow">✨ Magic Slippers</button>
-          <button onclick="equipSecret(2)" class="big-btn yellow">🌟 Glowing Sash</button>
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 20px 0;">
+          <button onclick="equipSecretHair(0)" class="big-btn teal">💜 Purple Hair</button>
+          <button onclick="equipSecretHair(1)" class="big-btn pink">💗 Pink Hair</button>
+          <button onclick="equipSecretHair(2)" class="big-btn yellow">🧡 Orange Hair</button>
+          <button onclick="equipSecretDress(0)" class="big-btn teal">🌈 Rainbow Dress</button>
+          <button onclick="equipSecretDress(1)" class="big-btn pink">✨ Sparkle Dress</button>
         </div>
         
         <div class="character-area">
@@ -246,14 +241,15 @@
     
     let stars = 0;
     let prize = '';
+    let musicPlaying = false;
+    let audioContext;
+    let musicInterval;
     
-    const outfits = {
-      tops: ['Classic PJ Top', 'Sparkly PJ Top', 'Rainbow PJ Top', 'Heart PJ Top'],
-      bottoms: ['Fuzzy PJ Pants', 'Star PJ Pants', 'Stripe PJ Pants', 'Polka PJ Shorts'],
-      accessories: ['None', 'Golden Necklace', 'Sparkly Earrings', 'Cute Headband', 'Magic Bracelet'],
-      hairs: ['Long Straight', 'Long Wavy', 'Long Curly', 'Long with Bows'],
-      specials: ['None', 'Magic Slippers', 'Glowing Sash', 'Floating Tiara']
-    };
+    const topColors = ['#c084fc', '#f472b6', '#fb923c', '#a78bfa', '#67e8f9', '#f472b6'];
+    const bottomColors = ['#7c3aed', '#e879f9', '#f59e0b', '#c026d3', '#0ea5e9', '#be123c'];
+    const hairColors = ['#581c87', '#831843', '#713f12', '#4c1d95', '#166534', '#9f1239'];
+    const secretHairColors = ['#7c3aed', '#db2777', '#ea580c'];
+    const secretDressColors = ['linear-gradient(#c084fc, #f472b6, #fb923c)', '#fef08c'];
     
     function updateCharacter(containerId = 'character') {
       const container = document.getElementById(containerId);
@@ -269,14 +265,12 @@
       shadow.style.cssText = 'position:absolute; bottom:20px; left:50%; transform:translateX(-50%); width:110px; height:22px; background:rgba(0,0,0,0.35); border-radius:50%;';
       container.appendChild(shadow);
       
-      // Body - Pajama Top
-      const topColors = ['#c084fc', '#f472b6', '#fb923c', '#a78bfa'];
+      // Pajama Top
       const bodyTop = document.createElement('div');
       bodyTop.style.cssText = `position:absolute; top:95px; left:50%; transform:translateX(-50%); width:88px; height:95px; background:${topColors[currentOutfit.top]}; border-radius:18px;`;
       container.appendChild(bodyTop);
       
       // Pajama Bottom
-      const bottomColors = ['#7c3aed', '#e879f9', '#f59e0b', '#c026d3'];
       const bodyBottom = document.createElement('div');
       bodyBottom.style.cssText = `position:absolute; top:185px; left:50%; transform:translateX(-50%); width:82px; height:95px; background:${bottomColors[currentOutfit.bottom]}; border-radius:14px;`;
       container.appendChild(bodyBottom);
@@ -287,12 +281,10 @@
       container.appendChild(head);
       
       // Long Hair
-      const hairColors = ['#581c87', '#831843', '#713f12', '#4c1d95'];
       const hairBack = document.createElement('div');
-      hairBack.style.cssText = `position:absolute; top:48px; left:50%; transform:translateX(-50%); width:82px; height:95px; background:${hairColors[currentOutfit.hair]}; border-radius:50%; z-index: -1;`;
+      hairBack.style.cssText = `position:absolute; top:48px; left:50%; transform:translateX(-50%); width:82px; height:95px; background:${hairColors[currentOutfit.hair]}; border-radius:50%; z-index:-1;`;
       container.appendChild(hairBack);
       
-      // Hair strands
       const leftStrand = document.createElement('div');
       leftStrand.style.cssText = `position:absolute; top:52px; left:38px; width:14px; height:85px; background:${hairColors[currentOutfit.hair]}; border-radius:999px;`;
       container.appendChild(leftStrand);
@@ -316,11 +308,11 @@
       container.appendChild(smile);
       
       // Accessories
-      if (currentOutfit.accessory === 1) { // Necklace
+      if (currentOutfit.accessory === 1) {
         const necklace = document.createElement('div');
         necklace.style.cssText = 'position:absolute; top:138px; left:50%; transform:translateX(-50%); width:18px; height:18px; background:#fbbf24; border-radius:50%; border:3px solid #fcd9c0;';
         container.appendChild(necklace);
-      } else if (currentOutfit.accessory === 2) { // Earrings
+      } else if (currentOutfit.accessory === 2) {
         const e1 = document.createElement('div');
         e1.style.cssText = 'position:absolute; top:95px; left:42px; width:10px; height:10px; background:#f472b6; border-radius:50%;';
         container.appendChild(e1);
@@ -328,18 +320,18 @@
         e2.style.left = 'auto';
         e2.style.right = '42px';
         container.appendChild(e2);
-      } else if (currentOutfit.accessory === 3) { // Headband
+      } else if (currentOutfit.accessory === 3) {
         const headband = document.createElement('div');
         headband.style.cssText = 'position:absolute; top:48px; left:50%; transform:translateX(-50%); width:68px; height:10px; background:#c026d3; border-radius:999px;';
         container.appendChild(headband);
-      } else if (currentOutfit.accessory === 4) { // Bracelet
+      } else if (currentOutfit.accessory === 4) {
         const bracelet = document.createElement('div');
         bracelet.style.cssText = 'position:absolute; top:175px; left:42px; width:9px; height:26px; background:#67e8f9; border-radius:999px;';
         container.appendChild(bracelet);
       }
       
       // Special items
-      if (currentOutfit.special === 1) { // Magic Slippers
+      if (currentOutfit.special === 1) {
         const s1 = document.createElement('div');
         s1.style.cssText = 'position:absolute; top:278px; left:58px; width:26px; height:14px; background:#fbbf24; border-radius:6px;';
         container.appendChild(s1);
@@ -347,11 +339,11 @@
         s2.style.left = 'auto';
         s2.style.right = '58px';
         container.appendChild(s2);
-      } else if (currentOutfit.special === 2) { // Glowing Sash
+      } else if (currentOutfit.special === 2) {
         const sash = document.createElement('div');
         sash.style.cssText = 'position:absolute; top:180px; left:50%; transform:translateX(-50%); width:78px; height:14px; background:rgba(254,249,138,0.9); border-radius:999px;';
         container.appendChild(sash);
-      } else if (currentOutfit.special === 3) { // Floating Tiara
+      } else if (currentOutfit.special === 3) {
         const tiara = document.createElement('div');
         tiara.style.cssText = 'position:absolute; top:32px; left:50%; transform:translateX(-50%); width:42px; height:22px; background:#fef08c; border-radius:999px;';
         container.appendChild(tiara);
@@ -359,16 +351,28 @@
     }
     
     function changeItem(type) {
-      if (type === 'top') currentOutfit.top = (currentOutfit.top + 1) % outfits.tops.length;
-      if (type === 'bottom') currentOutfit.bottom = (currentOutfit.bottom + 1) % outfits.bottoms.length;
-      if (type === 'accessory') currentOutfit.accessory = (currentOutfit.accessory + 1) % outfits.accessories.length;
-      if (type === 'hair') currentOutfit.hair = (currentOutfit.hair + 1) % outfits.hairs.length;
+      if (type === 'top') currentOutfit.top = (currentOutfit.top + 1) % topColors.length;
+      if (type === 'bottom') currentOutfit.bottom = (currentOutfit.bottom + 1) % bottomColors.length;
+      if (type === 'accessory') currentOutfit.accessory = (currentOutfit.accessory + 1) % 5;
+      if (type === 'hair') currentOutfit.hair = (currentOutfit.hair + 1) % hairColors.length;
       
       updateCharacter('character');
     }
     
-    function equipSecret(specialIndex) {
-      currentOutfit.special = specialIndex;
+    function equipSecretHair(index) {
+      currentOutfit.hair = index + 3; // Use secret hair colors
+      if (currentOutfit.hair >= hairColors.length) currentOutfit.hair = 0;
+      updateCharacter('secret-character');
+    }
+    
+    function equipSecretDress(index) {
+      if (index === 0) {
+        currentOutfit.top = 0;
+        currentOutfit.bottom = 1;
+      } else {
+        currentOutfit.top = 1;
+        currentOutfit.bottom = 2;
+      }
       updateCharacter('secret-character');
     }
     
@@ -394,7 +398,7 @@
     
     function getJudged() {
       let score = 2;
-      if (currentOutfit.hair === 2 || currentOutfit.hair === 3) score += 1;
+      if (currentOutfit.hair >= 3) score += 1.5;
       if (currentOutfit.accessory !== 0) score += 1;
       if (currentOutfit.special !== 0) score += 1.5;
       if (currentOutfit.top === 1 || currentOutfit.top === 2) score += 0.5;
@@ -440,15 +444,71 @@
       updateCharacter('character');
     }
     
-    // Initialize
+    // Simple playful music using Web Audio API
+    function toggleMusic() {
+      const btn = document.getElementById('music-btn');
+      
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      if (!musicPlaying) {
+        musicPlaying = true;
+        btn.textContent = '🔇 Stop Music';
+        btn.style.background = '#854d0e';
+        
+        let note = 0;
+        const melody = [523, 659, 784, 659, 523, 659, 784, 880]; // C D E F G A B C
+        
+        musicInterval = setInterval(() => {
+          if (!musicPlaying) return;
+          
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          
+          oscillator.type = 'sine';
+          oscillator.frequency.value = melody[note % melody.length];
+          
+          gain.gain.value = 0.08;
+          
+          const filter = audioContext.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 1200;
+          
+          oscillator.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioContext.destination);
+          
+          oscillator.start();
+          setTimeout(() => {
+            gain.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+            setTimeout(() => oscillator.stop(), 500);
+          }, 280);
+          
+          note++;
+        }, 380);
+        
+      } else {
+        musicPlaying = false;
+        btn.textContent = '🎵 Music';
+        btn.style.background = '#166534';
+        clearInterval(musicInterval);
+      }
+    }
+    
     function init() {
       updateCharacter('character');
       
-      // Make sure all screens are hidden except dressup
       document.getElementById('secret-screen').classList.add('hidden');
       document.getElementById('redcarpet-screen').classList.add('hidden');
       document.getElementById('result-screen').classList.add('hidden');
       document.getElementById('dressup-screen').classList.remove('hidden');
+      
+      // Auto-start hint
+      setTimeout(() => {
+        const btn = document.getElementById('music-btn');
+        if (btn) btn.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.3)';
+      }, 1800);
     }
     
     window.onload = init;
