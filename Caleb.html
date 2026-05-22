@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caleb Camper - VRMMA (Non-VR Prototype)</title>
+    <title>Caleb Camper - VRMMA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
     <style>
         body {
@@ -19,39 +19,32 @@
         }
         canvas {
             border: 6px solid #ffcc00;
-            box-shadow: 0 0 40px #ffaa00, inset 0 0 20px rgba(255,255,255,0.1);
+            box-shadow: 0 0 40px #ffaa00;
         }
         .info {
             position: absolute;
             top: 15px;
             left: 15px;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.9);
             padding: 18px;
             border-radius: 12px;
             font-size: 13px;
             border: 2px solid #ffcc00;
             z-index: 10;
         }
-        .info h2 {
-            margin: 0 0 8px 0;
-            color: #ffcc00;
-            font-size: 18px;
-        }
     </style>
 </head>
 <body>
     <div class="info">
-        <h2>CALEB CAMPER MMA</h2>
-        <p><strong>Controls:</strong></p>
-        <p>WASD / Arrows — Move smoothly</p>
-        <p>SPACE — Punch</p>
-        <p>Q — Kick</p>
-        <p><strong>Level 1:</strong> Connor McGregor</p>
-        <p style="margin-top:10px; font-size:11px; color:#aaa;">
-            Use the ropes to bounce and gain momentum!
+        <h2 style="margin:0 0 8px 0; color:#ffcc00;">CALEB CAMPER MMA</h2>
+        <p><strong>WASD/Arrows</strong> — Move</p>
+        <p><strong>SPACE</strong> — Punch &nbsp;&nbsp; <strong>Q</strong> — Kick</p>
+        <p><strong>E</strong> — Open Upgrade Menu</p>
+        <p style="margin-top:10px; font-size:12px; color:#ffcc00;">
+            Win levels to earn coins and buy Super Strength!
         </p>
     </div>
-    
+
     <script>
         let player;
         let opponent;
@@ -69,20 +62,20 @@
         
         let playerAttacking = false;
         let opponentAttacking = false;
-        let attackAnimTimer = 0;
+
+        // NEW: Economy & Upgrades
+        let coins = 0;
+        let superStrengthLevel = 0;
+        let menuOpen = false;
 
         function setup() {
             createCanvas(900, 650);
             
             player = {
-                x: 220,
-                y: 380,
-                vx: 0,
-                vy: 0,
-                size: 48,
-                speed: 4.5,
-                color: '#1e90ff',
-                facing: 1
+                x: 220, y: 380,
+                vx: 0, vy: 0,
+                size: 48, speed: 4.5,
+                color: '#1e90ff', facing: 1
             };
             
             resetOpponent();
@@ -91,14 +84,10 @@
         function resetOpponent() {
             let data = getOpponentData(level);
             opponent = {
-                x: 620,
-                y: 380,
-                vx: 0,
-                vy: 0,
-                size: 50,
-                speed: data.speed,
-                color: data.color,
-                name: data.name,
+                x: 620, y: 380,
+                vx: 0, vy: 0,
+                size: 50, speed: data.speed,
+                color: data.color, name: data.name,
                 power: data.power,
                 attackRate: data.attackRate,
                 health: data.health,
@@ -110,87 +99,48 @@
 
         function getOpponentData(lvl) {
             if (lvl === 1) {
-                return {
-                    name: "Connor McGregor",
-                    color: '#3a3a3a',
-                    speed: 3.2,
-                    health: 100,
-                    power: 14,
-                    attackRate: 1350,
-                    style: "beginner"
-                };
+                return { name: "Connor McGregor", color: '#3a3a3a', speed: 3.2, health: 100, power: 14, attackRate: 1350, style: "beginner" };
             } else if (lvl === 2) {
-                return {
-                    name: "Connor Gregor",
-                    color: '#555555',
-                    speed: 3.8,
-                    health: 125,
-                    power: 24,
-                    attackRate: 1100,
-                    style: "strong"
-                };
+                return { name: "Connor Gregor", color: '#555555', speed: 3.8, health: 125, power: 24, attackRate: 1100, style: "strong" };
             } else if (lvl === 3) {
-                return {
-                    name: "Connor McGregor V2",
-                    color: '#8b0000',
-                    speed: 4.5,
-                    health: 145,
-                    power: 27,
-                    attackRate: 850,
-                    style: "fast"
-                };
+                return { name: "Connor McGregor V2", color: '#8b0000', speed: 4.5, health: 145, power: 27, attackRate: 850, style: "fast" };
             } else {
-                return {
-                    name: "Kallen Sadie (V3)",
-                    color: '#cc0000',
-                    speed: 5.2,
-                    health: 190,
-                    power: 32,
-                    attackRate: 650,
-                    style: "pro"
-                };
+                return { name: "Kallen Sadie (V3)", color: '#cc0000', speed: 5.2, health: 190, power: 32, attackRate: 650, style: "pro" };
             }
         }
 
         function draw() {
             background(25, 25, 45);
-            
             drawArena();
             drawCrowd();
             
-            // Update movement
-            if (gameState === "playing") {
+            if (gameState === "playing" && !menuOpen) {
                 handlePlayerMovement();
                 handleOpponentAI();
             }
             
-            // Apply rope bounce physics
             applyRopeBounce(player);
             applyRopeBounce(opponent);
             
-            // Draw fighters
             drawFighter(player, true);
             drawFighter(opponent, false);
             
-            // Update and draw attacks
             updateAttacks();
             drawAttacks();
-            
-            // Update particles
             updateParticles();
-            
-            // Health bars
             drawHealthBars();
+            
+            // Coins display
+            fill(255, 215, 0);
+            textSize(20);
+            textAlign(LEFT);
+            text("COINS: " + coins, 30, 115);
             
             // Level text
             fill(255);
             textSize(22);
-            textAlign(LEFT);
             text("LEVEL " + level, 30, 55);
-            textSize(14);
-            text(opponent.name, 30, 75);
             
-            // Game state messages
             if (gameState !== "playing") {
                 fill(255, 215, 0);
                 textSize(52);
@@ -199,67 +149,51 @@
                     text("VICTORY!", width/2, height/2 - 20);
                     textSize(22);
                     fill(255);
-                    text("Press ENTER to fight the next opponent", width/2, height/2 + 40);
+                    text("Press ENTER for next fight", width/2, height/2 + 40);
                 } else {
                     text("K.O.", width/2, height/2 - 20);
                     textSize(22);
                     fill(255);
-                    text("Press R to restart from Level 1", width/2, height/2 + 40);
+                    text("Press R to restart", width/2, height/2 + 40);
                 }
             }
             
-            // Attack animation timer
-            if (playerAttacking) {
-                attackAnimTimer++;
-                if (attackAnimTimer > 12) {
-                    playerAttacking = false;
-                    attackAnimTimer = 0;
-                }
+            // Draw upgrade menu
+            if (menuOpen) {
+                drawUpgradeMenu();
             }
         }
 
         function drawArena() {
-            // Canvas floor with texture
             fill(160, 130, 90);
             rect(80, 260, 740, 280);
             
-            // Canvas texture lines
             stroke(140, 110, 70);
             strokeWeight(1);
             for (let i = 0; i < 12; i++) {
                 line(90, 270 + i * 22, 800, 270 + i * 22);
             }
             
-            // Ring posts (thick metal)
             noStroke();
             fill(40);
-            rect(75, 250, 22, 300);   // left post
-            rect(803, 250, 22, 300);  // right post
-            
-            // Top of posts
+            rect(75, 250, 22, 300);
+            rect(803, 250, 22, 300);
             fill(60);
             rect(70, 245, 32, 18);
             rect(798, 245, 32, 18);
             
-            // Ropes - 3 levels with thickness
             stroke(220, 220, 220);
             strokeWeight(7);
-            
-            // Top rope
             line(95, 285, 805, 285);
-            // Middle rope
             line(95, 325, 805, 325);
-            // Bottom rope
             line(95, 365, 805, 365);
             
-            // Rope highlights
             stroke(255);
             strokeWeight(2);
             line(95, 282, 805, 282);
             line(95, 322, 805, 322);
             line(95, 362, 805, 362);
             
-            // Corner padding
             noStroke();
             fill(80);
             rect(85, 270, 25, 100);
@@ -267,37 +201,19 @@
         }
 
         function drawCrowd() {
-            // Dark audience area
             fill(15, 15, 35);
             rect(0, 0, width, 255);
             
-            // Multiple rows of crowd
             for (let row = 0; row < 4; row++) {
                 for (let i = 0; i < 18; i++) {
                     let x = 25 + i * 50 + (row % 2) * 15;
                     let y = 40 + row * 55;
-                    
-                    // Head
-                    fill(220 + random(-30, 30), 180 + random(-40, 20), 140 + random(-30, 30));
+                    fill(220 + random(-30,30), 180 + random(-40,20), 140 + random(-30,30));
                     ellipse(x, y, 22, 22);
-                    
-                    // Body / waving arms
-                    fill(40 + random(0, 80), 30, 80 + random(0, 60));
+                    fill(40 + random(0,80), 30, 80 + random(0,60));
                     rect(x - 10, y + 10, 20, 28);
-                    
-                    // Occasional arm movement
-                    if (frameCount % 18 < 9 && random() > 0.6) {
-                        stroke(255, 200, 100);
-                        strokeWeight(3);
-                        line(x + 10, y + 15, x + 25 + sin(frameCount * 0.3) * 8, y + 5);
-                        noStroke();
-                    }
                 }
             }
-            
-            // Spotlights
-            fill(255, 255, 200, 25);
-            triangle(200, 0, 450, 255, 700, 0);
         }
 
         function drawFighter(fighter, isPlayer) {
@@ -307,74 +223,49 @@
             
             let isAttacking = isPlayer ? playerAttacking : opponentAttacking;
             
-            // Shadow
             fill(0, 0, 0, 60);
             ellipse(0, 35, fighter.size * 0.9, 12);
             
-            // Legs
             fill(fighter.color);
             rect(-8, 8, 8, 28);
             rect(2, 8, 8, 28);
             
-            // Shorts
             fill(isPlayer ? '#003366' : '#220000');
             rect(-12, 5, 24, 16);
             
-            // Torso
             fill(fighter.color);
             rect(-14, -22, 28, 30);
             
-            // Head
             fill(230, 200, 175);
             ellipse(0, -32, 26, 28);
             
-            // Hair / beard depending on opponent
             if (!isPlayer) {
                 if (level === 1) {
-                    // Connor McGregor - black hair + beard
-                    fill(20);
-                    arc(0, -35, 26, 18, PI, TWO_PI);
-                    rect(-6, -28, 12, 8); // beard
+                    fill(20); arc(0, -35, 26, 18, PI, TWO_PI); rect(-6, -28, 12, 8);
                 } else if (level === 2) {
-                    // Connor Gregor - grey afro
-                    fill(120);
-                    ellipse(0, -38, 30, 22);
-                    fill(80);
-                    ellipse(0, -36, 22, 16);
+                    fill(120); ellipse(0, -38, 30, 22); fill(80); ellipse(0, -36, 22, 16);
                 } else if (level === 3) {
-                    // V2 - more aggressive look
-                    fill(20);
-                    arc(0, -34, 28, 20, PI, TWO_PI);
-                    fill(180, 0, 0);
-                    rect(-3, -30, 6, 10);
+                    fill(20); arc(0, -34, 28, 20, PI, TWO_PI); fill(180,0,0); rect(-3, -30, 6, 10);
                 } else {
-                    // Kallen Sadie - professional look
-                    fill(30);
-                    rect(-10, -42, 20, 12);
-                    fill(200, 180, 160);
-                    ellipse(0, -32, 24, 24);
+                    fill(30); rect(-10, -42, 20, 12); fill(200,180,160); ellipse(0, -32, 24, 24);
                 }
             }
             
-            // Eyes
             fill(0);
             ellipse(6, -33, 5, 5);
             ellipse(-6, -33, 5, 5);
             
-            // Attacking arm (punch)
             if (isAttacking) {
                 fill(230, 200, 175);
                 rect(12, -18, 22, 8);
                 fill(200, 180, 160);
                 ellipse(36, -14, 14, 14);
             } else {
-                // Normal arms
                 fill(230, 200, 175);
                 rect(12, -18, 10, 8);
                 rect(-22, -18, 10, 8);
             }
             
-            // Gloves
             fill(isPlayer ? '#ffaa00' : '#aa0000');
             if (isAttacking) {
                 ellipse(36, -14, 16, 16);
@@ -382,143 +273,90 @@
                 ellipse(20, -14, 14, 14);
                 ellipse(-20, -14, 14, 14);
             }
-            
             pop();
         }
 
         function handlePlayerMovement() {
             let speed = player.speed;
             
-            // Smooth velocity-based movement
-            if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) { // A
-                player.vx = -speed;
-                player.facing = -1;
-            } else if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) { // D
-                player.vx = speed;
-                player.facing = 1;
-            } else {
-                player.vx *= 0.78; // friction
-            }
+            if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) { player.vx = -speed; player.facing = -1; }
+            else if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) { player.vx = speed; player.facing = 1; }
+            else { player.vx *= 0.78; }
             
-            if (keyIsDown(UP_ARROW) || keyIsDown(87)) { // W
-                player.vy = -speed * 0.85;
-            } else if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) { // S
-                player.vy = speed * 0.85;
-            } else {
-                player.vy *= 0.78;
-            }
+            if (keyIsDown(UP_ARROW) || keyIsDown(87)) { player.vy = -speed * 0.85; }
+            else if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) { player.vy = speed * 0.85; }
+            else { player.vy *= 0.78; }
             
-            // Apply velocity
             player.x += player.vx;
             player.y += player.vy;
             
-            // Ring boundaries
             player.x = constrain(player.x, 140, 760);
             player.y = constrain(player.y, 310, 500);
         }
 
         function applyRopeBounce(fighter) {
             let bounceForce = 7.5;
-            
-            // Left rope bounce
-            if (fighter.x < 145 && fighter.vx < 0) {
-                fighter.vx = bounceForce;
-                fighter.x = 145;
-                createHitParticles(fighter.x, fighter.y, 8);
-            }
-            
-            // Right rope bounce
-            if (fighter.x > 755 && fighter.vx > 0) {
-                fighter.vx = -bounceForce;
-                fighter.x = 755;
-                createHitParticles(fighter.x, fighter.y, 8);
-            }
-            
-            // Top rope bounce (less common)
-            if (fighter.y < 315 && fighter.vy < 0) {
-                fighter.vy = bounceForce * 0.6;
-                fighter.y = 315;
-            }
-            
-            // Bottom rope bounce
-            if (fighter.y > 495 && fighter.vy > 0) {
-                fighter.vy = -bounceForce * 0.6;
-                fighter.y = 495;
-            }
+            if (fighter.x < 145 && fighter.vx < 0) { fighter.vx = bounceForce; fighter.x = 145; createHitParticles(fighter.x, fighter.y, 8); }
+            if (fighter.x > 755 && fighter.vx > 0) { fighter.vx = -bounceForce; fighter.x = 755; createHitParticles(fighter.x, fighter.y, 8); }
+            if (fighter.y < 315 && fighter.vy < 0) { fighter.vy = bounceForce * 0.6; fighter.y = 315; }
+            if (fighter.y > 495 && fighter.vy > 0) { fighter.vy = -bounceForce * 0.6; fighter.y = 495; }
         }
 
         function handleOpponentAI() {
-            let data = getOpponentData(level);
             let distToPlayer = dist(opponent.x, opponent.y, player.x, player.y);
+            let data = getOpponentData(level);
             
-            // Different AI styles per level
-            if (data.style === "beginner") {
-                // Basic following
-                if (opponent.x > player.x + 70) opponent.vx = -opponent.speed;
-                else if (opponent.x < player.x - 70) opponent.vx = opponent.speed;
+            // === FIX: Stop moving when close to prevent sticking ===
+            let stopDistance = 95;
+            
+            if (distToPlayer > stopDistance) {
+                if (opponent.x > player.x + 60) opponent.vx = -opponent.speed;
+                else if (opponent.x < player.x - 60) opponent.vx = opponent.speed;
                 else opponent.vx *= 0.6;
-                
-            } else if (data.style === "strong") {
-                // Strong - charges and pushes
-                if (distToPlayer < 180) {
-                    opponent.vx = (player.x > opponent.x) ? opponent.speed * 1.3 : -opponent.speed * 1.3;
-                } else {
-                    opponent.vx *= 0.7;
+            } else {
+                // When close, slow down and slightly push away
+                opponent.vx *= 0.4;
+                if (distToPlayer < 55) {
+                    let push = (opponent.x > player.x) ? 1.8 : -1.8;
+                    opponent.vx = push;
+                    player.vx = -push * 0.6;
                 }
-                
-            } else if (data.style === "fast") {
-                // Fast and aggressive
-                if (distToPlayer < 220) {
-                    opponent.vx = (player.x > opponent.x) ? opponent.speed * 1.4 : -opponent.speed * 1.4;
-                }
-                opponent.vx *= 0.9;
-                
-            } else if (data.style === "pro") {
-                // Pro fighter - smart movement + rope usage
-                if (distToPlayer < 160) {
-                    opponent.vx = (player.x > opponent.x) ? opponent.speed * 1.2 : -opponent.speed * 1.2;
-                } else {
-                    // Occasionally use ropes
-                    if (random() < 0.02) {
-                        opponent.vx = (opponent.x < 400) ? 6 : -6;
-                    }
-                }
-                opponent.vx *= 0.85;
             }
             
-            // Apply velocity
+            // Special behaviors
+            if (data.style === "strong" && distToPlayer < 170) {
+                opponent.vx = (player.x > opponent.x) ? opponent.speed * 1.1 : -opponent.speed * 1.1;
+            }
+            if (data.style === "fast") {
+                opponent.vx *= 0.92;
+            }
+            if (data.style === "pro" && random() < 0.015) {
+                opponent.vx = (opponent.x < 400) ? 5.5 : -5.5;
+            }
+            
             opponent.x += opponent.vx;
             opponent.y += opponent.vy;
             opponent.vy *= 0.85;
             
-            // Keep in ring
             opponent.x = constrain(opponent.x, 140, 760);
             opponent.y = constrain(opponent.y, 310, 500);
             
-            // Attack logic
-            if (millis() - lastOpponentAttack > opponent.attackRate && distToPlayer < 130) {
+            if (millis() - lastOpponentAttack > opponent.attackRate && distToPlayer < 125) {
                 performOpponentAttack();
             }
             
-            // Update facing
             opponent.facing = player.x > opponent.x ? 1 : -1;
         }
 
         function performOpponentAttack() {
             let dir = player.x > opponent.x ? 1 : -1;
-            let power = opponent.power;
-            
             opponentPunches.push({
-                x: opponent.x + dir * 25,
-                y: opponent.y - 10,
-                vx: dir * 9,
-                vy: random(-1.5, 1.5),
-                damage: power
+                x: opponent.x + dir * 25, y: opponent.y - 10,
+                vx: dir * 9, vy: random(-1.5, 1.5),
+                damage: opponent.power
             });
-            
             opponentAttacking = true;
             lastOpponentAttack = millis();
-            
             setTimeout(() => { opponentAttacking = false; }, 280);
         }
 
@@ -526,67 +364,52 @@
             // Player punches
             for (let i = punches.length - 1; i >= 0; i--) {
                 let p = punches[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vx *= 0.98;
+                p.x += p.vx; p.y += p.vy; p.vx *= 0.98;
                 
                 if (dist(p.x, p.y, opponent.x, opponent.y) < opponent.size * 0.7) {
-                    opponentHealth -= p.damage || 13;
+                    let damage = p.damage || 13;
+                    damage += superStrengthLevel * 1.4; // Super Strength bonus
+                    opponentHealth -= damage;
                     createHitParticles(opponent.x, opponent.y - 15, 12);
                     punches.splice(i, 1);
-                    
                     if (opponentHealth <= 0) gameState = "win";
                 }
-                
                 if (p.x < 100 || p.x > width - 100) punches.splice(i, 1);
             }
             
             // Opponent punches
             for (let i = opponentPunches.length - 1; i >= 0; i--) {
                 let p = opponentPunches[i];
-                p.x += p.vx;
-                p.y += p.vy;
+                p.x += p.vx; p.y += p.vy;
                 
                 if (dist(p.x, p.y, player.x, player.y) < player.size * 0.7) {
                     playerHealth -= p.damage || opponent.power;
                     createHitParticles(player.x, player.y - 20, 10);
                     opponentPunches.splice(i, 1);
-                    
                     if (playerHealth <= 0) gameState = "lose";
                 }
-                
                 if (p.x < 100 || p.x > width - 100) opponentPunches.splice(i, 1);
             }
         }
 
         function drawAttacks() {
-            // Player attacks (yellow/orange)
             noStroke();
             for (let p of punches) {
-                fill(255, 200, 50);
-                ellipse(p.x, p.y, 16);
-                fill(255, 255, 200);
-                ellipse(p.x, p.y, 8);
+                fill(255, 200, 50); ellipse(p.x, p.y, 16);
+                fill(255, 255, 200); ellipse(p.x, p.y, 8);
             }
-            
-            // Opponent attacks (red)
             for (let p of opponentPunches) {
-                fill(255, 40, 40);
-                ellipse(p.x, p.y, 16);
-                fill(255, 180, 180);
-                ellipse(p.x, p.y, 8);
+                fill(255, 40, 40); ellipse(p.x, p.y, 16);
+                fill(255, 180, 180); ellipse(p.x, p.y, 8);
             }
         }
 
         function createHitParticles(x, y, count) {
             for (let i = 0; i < count; i++) {
                 particles.push({
-                    x: x,
-                    y: y,
-                    vx: random(-4, 4),
-                    vy: random(-5, -1),
-                    life: random(18, 32),
-                    size: random(4, 8)
+                    x: x, y: y,
+                    vx: random(-4, 4), vy: random(-5, -1),
+                    life: random(18, 32), size: random(4, 8)
                 });
             }
         }
@@ -594,16 +417,9 @@
         function updateParticles() {
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.2;
-                p.life--;
-                p.vx *= 0.96;
-                
+                p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--; p.vx *= 0.96;
                 if (p.life <= 0) particles.splice(i, 1);
             }
-            
-            // Draw particles
             noStroke();
             for (let p of particles) {
                 fill(255, 220, 100, p.life * 8);
@@ -612,52 +428,105 @@
         }
 
         function drawHealthBars() {
-            // Player
-            fill(30);
-            rect(25, 95, 160, 22);
-            fill(0, 220, 80);
-            rect(27, 97, playerHealth * 1.55, 18);
-            fill(255);
-            textSize(13);
-            text("CALEB", 28, 92);
+            fill(30); rect(25, 95, 160, 22);
+            fill(0, 220, 80); rect(27, 97, playerHealth * 1.55, 18);
+            fill(255); textSize(13); text("CALEB", 28, 92);
             
-            // Opponent
-            fill(30);
-            rect(715, 95, 160, 22);
-            fill(220, 40, 40);
-            rect(717, 97, opponentHealth * 1.55, 18);
+            fill(30); rect(715, 95, 160, 22);
+            fill(220, 40, 40); rect(717, 97, opponentHealth * 1.55, 18);
+            fill(255); textAlign(RIGHT); text(opponent.name, 872, 92); textAlign(LEFT);
+        }
+
+        // ==================== UPGRADE MENU ====================
+        function drawUpgradeMenu() {
+            // Dark overlay
+            fill(0, 0, 0, 200);
+            rect(0, 0, width, height);
+            
+            // Menu box
+            fill(30, 30, 50);
+            stroke(255, 200, 50);
+            strokeWeight(4);
+            rect(200, 120, 500, 420, 15);
+            
+            noStroke();
+            fill(255, 215, 0);
+            textSize(32);
+            textAlign(CENTER);
+            text("SUPER STRENGTH", width/2, 175);
+            
             fill(255);
-            textAlign(RIGHT);
-            text(opponent.name, 872, 92);
-            textAlign(LEFT);
+            textSize(18);
+            text("Current Level: " + superStrengthLevel + " / 50", width/2, 215);
+            text("Your Coins: " + coins, width/2, 245);
+            
+            // Price calculation
+            let nextLevel = superStrengthLevel + 1;
+            let price = 100 + (superStrengthLevel * 50);
+            
+            if (superStrengthLevel < 50) {
+                fill(200, 255, 200);
+                textSize(20);
+                text("Next Upgrade: Level " + nextLevel, width/2, 300);
+                text("Cost: " + price + " coins", width/2, 330);
+                
+                // Buy button area
+                fill(40, 120, 40);
+                rect(width/2 - 100, 360, 200, 50, 10);
+                fill(255);
+                textSize(22);
+                text("BUY UPGRADE", width/2, 395);
+            } else {
+                fill(255, 200, 100);
+                textSize(24);
+                text("MAX LEVEL REACHED!", width/2, 340);
+            }
+            
+            fill(180);
+            textSize(14);
+            text("Press E to close menu", width/2, 520);
+        }
+
+        function mousePressed() {
+            if (!menuOpen) return;
+            
+            let price = 100 + (superStrengthLevel * 50);
+            
+            // Buy button click area
+            if (mouseX > width/2 - 100 && mouseX < width/2 + 100 &&
+                mouseY > 360 && mouseY < 410 &&
+                superStrengthLevel < 50 && coins >= price) {
+                
+                coins -= price;
+                superStrengthLevel++;
+                
+                // Visual feedback
+                createHitParticles(width/2, 380, 25);
+            }
         }
 
         function keyPressed() {
-            if (gameState === "playing") {
-                // Punch
+            if (key === 'e' || key === 'E') {
+                menuOpen = !menuOpen;
+            }
+            
+            if (gameState === "playing" && !menuOpen) {
                 if (key === ' ' && millis() - lastPlayerAttack > 380) {
                     let dir = opponent.x > player.x ? 1 : -1;
                     punches.push({
-                        x: player.x + dir * 30,
-                        y: player.y - 8,
-                        vx: dir * 11,
-                        vy: 0,
-                        damage: 13
+                        x: player.x + dir * 30, y: player.y - 8,
+                        vx: dir * 11, vy: 0, damage: 13
                     });
                     playerAttacking = true;
                     lastPlayerAttack = millis();
                     setTimeout(() => { playerAttacking = false; }, 220);
                 }
                 
-                // Kick
                 if ((key === 'q' || key === 'Q') && millis() - lastPlayerAttack > 620) {
                     let dir = opponent.x > player.x ? 1 : -1;
                     punches.push({
-                        x: player.x + dir * 25,
-                        y: player.y + 5,
-                        vx: dir * 8.5,
-                        vy: random(-2.5, 2.5),
-                        damage: 18
+                        x: player.x + dir * 25, y: player.y + 5,
+                        vx: dir * 8.5, vy: random(-2.5, 2.5), damage: 18
                     });
                     playerAttacking = true;
                     lastPlayerAttack = millis();
@@ -665,8 +534,8 @@
                 }
             }
             
-            // Level progression
             if (gameState === "win" && keyCode === ENTER) {
+                coins += 30;                    // Reward coins
                 level++;
                 playerHealth = 100;
                 resetOpponent();
@@ -676,7 +545,6 @@
                 particles = [];
             }
             
-            // Restart
             if (gameState === "lose" && (key === 'r' || key === 'R')) {
                 level = 1;
                 playerHealth = 100;

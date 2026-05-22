@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jaylen - Minecraft Family Edition</title>
+    <title>Jaylen - Minecraft Family Life</title>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -11,7 +11,7 @@
         body {
             margin: 0;
             padding: 0;
-            background: #0f0f23;
+            background: #0a0a1f;
             color: #fff;
             font-family: 'Press Start 2P', system-ui;
             overflow: hidden;
@@ -21,18 +21,13 @@
             display: block;
             margin: 0 auto;
             border: 8px solid #4a9c6d;
-            border-radius: 8px;
-            box-shadow: 0 0 40px rgba(74, 156, 109, 0.6);
+            box-shadow: 0 0 50px rgba(74, 156, 109, 0.7);
         }
         
-        /* Title Screen */
-        #title-screen {
+        #title-screen, #role-screen {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(#0f0f23, #1a1a3a);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -40,292 +35,163 @@
             z-index: 100;
         }
         
-        #title-screen h1 {
-            font-size: 48px;
-            color: #4ecdc4;
-            text-shadow: 4px 4px 0 #000;
-            margin-bottom: 60px;
+        #title-screen {
+            background: linear-gradient(#0a0a1f, #15153a);
         }
+        
+        #role-screen {
+            background: rgba(0,0,0,0.95);
+            display: none;
+        }
+        
+        h1 { font-size: 52px; color: #4ecdc4; text-shadow: 4px 4px 0 #000; margin-bottom: 50px; }
         
         .menu-button {
-            background: #4a9c6d;
-            color: white;
-            border: 6px solid #fff;
-            padding: 20px 60px;
-            font-family: 'Press Start 2P', system-ui;
-            font-size: 24px;
-            cursor: pointer;
-            margin: 12px;
-            transition: all 0.1s;
-            min-width: 320px;
+            background: #4a9c6d; color: white; border: 6px solid #fff;
+            padding: 18px 55px; font-size: 22px; cursor: pointer; margin: 10px;
         }
-        
-        .menu-button:hover {
-            background: #6bb88a;
-            transform: scale(1.05);
-        }
-        
-        /* Role Selection */
-        #role-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.92);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-        }
-        
-        #role-screen h2 {
-            font-size: 28px;
-            margin-bottom: 40px;
-            color: #ffe66d;
-        }
+        .menu-button:hover { background: #6bb88a; transform: scale(1.05); }
         
         .role-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            max-width: 900px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 1100px;
         }
         
         .role-button {
-            background: #2a2a4a;
-            border: 5px solid #4a9c6d;
-            color: white;
-            padding: 25px 20px;
-            font-family: 'Press Start 2P', system-ui;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.1s;
-            text-align: center;
+            background: #2a2a4a; border: 5px solid #4a9c6d; color: white;
+            padding: 22px 15px; font-size: 16px; cursor: pointer; text-align: center;
         }
+        .role-button:hover { background: #4a9c6d; border-color: #fff; }
+        .role-button .emoji { font-size: 38px; display: block; margin-bottom: 8px; }
         
-        .role-button:hover {
-            background: #4a9c6d;
-            border-color: #fff;
-            transform: translateY(-4px);
-        }
-        
-        .role-button .emoji {
-            font-size: 42px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        
-        /* Game HUD */
-        #game-hud {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.9);
-            border: 4px solid #4a9c6d;
-            padding: 12px 30px;
-            display: none;
-            z-index: 50;
-            font-size: 13px;
-        }
-        
-        .hud-stats {
-            display: flex;
-            gap: 40px;
-            align-items: center;
-        }
-        
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        #hud {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); border: 4px solid #4a9c6d;
+            padding: 10px 25px; font-size: 13px; display: none; z-index: 50;
         }
         
         .log {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 340px;
-            height: 200px;
-            background: rgba(0,0,0,0.92);
-            border: 4px solid #4a9c6d;
-            padding: 12px;
-            overflow-y: auto;
-            font-size: 11px;
-            line-height: 1.5;
-            z-index: 50;
-            display: none;
+            position: absolute; bottom: 15px; right: 15px;
+            width: 320px; height: 190px; background: rgba(0,0,0,0.92);
+            border: 4px solid #4a9c6d; padding: 10px; overflow-y: auto;
+            font-size: 11px; display: none; z-index: 50;
         }
         
-        .minecraft-text {
-            text-shadow: 3px 3px 0 #000;
-        }
-        
-        .hidden {
-            display: none !important;
+        .controls {
+            position: absolute; bottom: 15px; left: 15px;
+            background: rgba(0,0,0,0.85); border: 3px solid #4a9c6d;
+            padding: 10px; font-size: 11px; display: none; z-index: 50;
         }
     </style>
 </head>
 <body>
     <!-- Title Screen -->
     <div id="title-screen">
-        <h1 class="minecraft-text">🟩 MINECRAFT FAMILY</h1>
-        <button class="menu-button" onclick="startGame()">START</button>
+        <h1>🟩 JAYLEN'S LIFE</h1>
+        <button class="menu-button" onclick="startGame()">START GAME</button>
         <button class="menu-button" onclick="showSettings()">SETTINGS</button>
     </div>
     
-    <!-- Role Selection Screen -->
+    <!-- Role Selection -->
     <div id="role-screen">
-        <h2>Choose Your Role</h2>
+        <h2 style="color:#ffe66d; margin-bottom:30px;">Choose Your Role</h2>
         <div class="role-grid">
-            <button class="role-button" onclick="selectRole('Baby')">
-                <span class="emoji">👶</span>
-                Baby
-            </button>
-            <button class="role-button" onclick="selectRole('Toddler')">
-                <span class="emoji">🧒</span>
-                Toddler
-            </button>
-            <button class="role-button" onclick="selectRole('Kid')">
-                <span class="emoji">👦</span>
-                Kid
-            </button>
-            <button class="role-button" onclick="selectRole('Teenager')">
-                <span class="emoji">🧑</span>
-                Teenager
-            </button>
-            <button class="role-button" onclick="selectRole('Parent')">
-                <span class="emoji">👨</span>
-                Parent
-            </button>
-            <button class="role-button" onclick="selectRole('Senior Citizen')">
-                <span class="emoji">👴</span>
-                Senior Citizen
+            <button class="role-button" onclick="selectRole('Baby')"><span class="emoji">👶</span>Baby</button>
+            <button class="role-button" onclick="selectRole('Toddler')"><span class="emoji">🧒</span>Toddler</button>
+            <button class="role-button" onclick="selectRole('Kid')"><span class="emoji">👦</span>Kid</button>
+            <button class="role-button" onclick="selectRole('Teenager')"><span class="emoji">🧑</span>Teenager</button>
+            <button class="role-button" onclick="selectRole('Parent')"><span class="emoji">👨</span>Parent</button>
+            <button class="role-button" onclick="selectRole('Senior Citizen')"><span class="emoji">👴</span>Senior</button>
+            <button class="role-button" onclick="selectRole('Random')" style="border-color:#ff9ff3; grid-column: span 2;">
+                <span class="emoji">🎲</span>Random Role
             </button>
         </div>
     </div>
     
-    <!-- Game HUD -->
-    <div id="game-hud">
-        <div class="hud-stats">
-            <div class="stat">
-                <span id="role-display">Baby</span>
-            </div>
-            <div class="stat">
-                Age: <span id="age-display">0</span>
-            </div>
-            <div class="stat">
-                Energy: <span id="energy-display">100</span>%
-            </div>
-            <div class="stat">
-                Hunger: <span id="hunger-display">20</span>%
-            </div>
-            <div class="stat">
-                Happiness: <span id="happiness-display">80</span>%
-            </div>
-        </div>
+    <!-- HUD -->
+    <div id="hud">
+        <span id="role-hud"></span> | Age: <span id="age-hud">0</span> 
+        | Energy: <span id="energy-hud">100</span>% 
+        | Hunger: <span id="hunger-hud">30</span>% 
+        | Happiness: <span id="happiness-hud">70</span>%
     </div>
     
     <!-- Log -->
     <div class="log" id="log"></div>
+    
+    <!-- Controls Help -->
+    <div class="controls" id="controls">
+        <strong>Controls:</strong><br>
+        Arrow Keys / WASD = Move<br>
+        E = Interact | F = Eat | S = Sleep<br>
+        Click NPCs to talk/play
+    </div>
 
     <script>
-        let role = "Baby";
-        let age = 0;
-        let energy = 100;
-        let hunger = 20;
-        let happiness = 80;
+        let role = "Kid";
+        let age = 10;
+        let energy = 80;
+        let hunger = 35;
+        let happiness = 70;
         let day = 1;
-        let steveX = 360;
-        let steveY = 300;
-        let parentX = 180;
-        let parentY = 280;
         let gameStarted = false;
+        let location = "outside";
+        
+        let player = { x: 400, y: 320 };
+        let family = [];
+        let cars = [];
+        let houses = [];
         
         const roleColors = {
-            "Baby": "#ff9ff3",
-            "Toddler": "#feca57",
-            "Kid": "#48dbfb",
-            "Teenager": "#ff6b6b",
-            "Parent": "#1dd1a1",
-            "Senior Citizen": "#a55eea"
+            "Baby": "#ff9ff3", "Toddler": "#feca57", "Kid": "#48dbfb",
+            "Teenager": "#ff6b6b", "Parent": "#1dd1a1", "Senior Citizen": "#a55eea"
         };
         
-        function addLog(message, color = "#fff") {
-            const logDiv = document.getElementById("log");
-            const entry = document.createElement("div");
-            entry.style.color = color;
-            entry.innerHTML = `[Day ${day}] ${message}`;
-            logDiv.appendChild(entry);
-            logDiv.scrollTop = logDiv.scrollHeight;
-            
-            if (logDiv.children.length > 14) {
-                logDiv.removeChild(logDiv.children[1]);
-            }
+        function addLog(msg, color = "#fff") {
+            const log = document.getElementById("log");
+            const div = document.createElement("div");
+            div.style.color = color;
+            div.innerHTML = `[Day ${day}] ${msg}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+            if (log.children.length > 15) log.removeChild(log.children[1]);
         }
         
         function updateHUD() {
-            document.getElementById("role-display").innerText = role;
-            document.getElementById("role-display").style.color = roleColors[role];
-            document.getElementById("age-display").innerText = age;
-            document.getElementById("energy-display").innerText = Math.floor(energy);
-            document.getElementById("hunger-display").innerText = Math.floor(hunger);
-            document.getElementById("happiness-display").innerText = Math.floor(happiness);
-            
-            // Color feedback
-            const energyEl = document.getElementById("energy-display");
-            energyEl.style.color = energy > 60 ? "#4ecdc4" : energy > 30 ? "#ffe66d" : "#ff6b6b";
-            
-            const hungerEl = document.getElementById("hunger-display");
-            hungerEl.style.color = hunger > 70 ? "#ff6b6b" : hunger > 40 ? "#ffe66d" : "#4ecdc4";
+            document.getElementById("role-hud").innerText = role;
+            document.getElementById("role-hud").style.color = roleColors[role] || "#fff";
+            document.getElementById("age-hud").innerText = age;
+            document.getElementById("energy-hud").innerText = Math.floor(energy);
+            document.getElementById("hunger-hud").innerText = Math.floor(hunger);
+            document.getElementById("happiness-hud").innerText = Math.floor(happiness);
         }
         
-        function selectRole(selectedRole) {
-            role = selectedRole;
-            
-            // Set starting stats based on role
-            if (role === "Baby") {
-                age = 0;
-                energy = 60;
-                hunger = 45;
-                happiness = 75;
-            } else if (role === "Toddler") {
-                age = 2;
-                energy = 75;
-                hunger = 30;
-                happiness = 80;
-            } else if (role === "Kid") {
-                age = 7;
-                energy = 85;
-                hunger = 25;
-                happiness = 70;
-            } else if (role === "Teenager") {
-                age = 14;
-                energy = 70;
-                hunger = 35;
-                happiness = 55;
-            } else if (role === "Parent") {
-                age = 32;
-                energy = 80;
-                hunger = 20;
-                happiness = 85;
-            } else if (role === "Senior Citizen") {
-                age = 72;
-                energy = 55;
-                hunger = 30;
-                happiness = 90;
+        function selectRole(selected) {
+            if (selected === "Random") {
+                const roles = ["Baby", "Toddler", "Kid", "Teenager", "Parent", "Senior Citizen"];
+                selected = roles[Math.floor(Math.random() * roles.length)];
             }
             
-            // Hide role screen and show game
+            role = selected;
+            
+            if (role === "Baby") { age = 0; energy = 55; hunger = 50; happiness = 75; }
+            else if (role === "Toddler") { age = 3; energy = 70; hunger = 35; happiness = 80; }
+            else if (role === "Kid") { age = 9; energy = 85; hunger = 25; happiness = 72; }
+            else if (role === "Teenager") { age = 15; energy = 65; hunger = 40; happiness = 58; }
+            else if (role === "Parent") { age = 35; energy = 78; hunger = 22; happiness = 82; }
+            else if (role === "Senior Citizen") { age = 68; energy = 50; hunger = 32; happiness = 88; }
+            
             document.getElementById("role-screen").style.display = "none";
-            document.getElementById("game-hud").style.display = "block";
+            document.getElementById("hud").style.display = "block";
             document.getElementById("log").style.display = "block";
+            document.getElementById("controls").style.display = "block";
             
             gameStarted = true;
-            addLog(`You are now a ${role}!`, roleColors[role]);
-            addLog("Click on objects in the house to interact.", "#ffe66d");
+            location = "house";
+            player.x = 280;
+            player.y = 280;
+            
+            addLog(`You spawned as a ${role}!`, roleColors[role]);
+            addLog("Use arrow keys to move. Press E near objects.", "#ffe66d");
             updateHUD();
         }
         
@@ -335,311 +201,364 @@
         }
         
         function showSettings() {
-            const settingsMsg = "Settings coming soon!\n\n- Sound: On\n- Difficulty: Normal\n- Respawn at 100 years old";
-            alert(settingsMsg);
+            alert("Settings:\n- World Size: Large\n- Family Members: 4\n- Cars: Moving\n- School: Available");
+        }
+        
+        function createWorld() {
+            // Family members
+            family = [
+                { name: "Steve", x: 180, y: 240, type: "dad", color: "#4a9c6d" },
+                { name: "Mom", x: 520, y: 260, type: "mom", color: "#e67e22" },
+                { name: "Sam", x: 340, y: 310, type: "sibling", color: "#9b59b6" },
+                { name: "Friend", x: 620, y: 380, type: "friend", color: "#3498db" }
+            ];
+            
+            // Cars on road
+            cars = [
+                { x: 120, y: 520, speed: 1.8, dir: 1 },
+                { x: 680, y: 560, speed: 2.3, dir: -1 },
+                { x: 300, y: 540, speed: 1.5, dir: 1 }
+            ];
+            
+            // Houses
+            houses = [
+                { x: 80, y: 180, w: 140, h: 110 },
+                { x: 580, y: 160, w: 150, h: 120 },
+                { x: 240, y: 80, w: 120, h: 95 }
+            ];
         }
         
         function performAction(action) {
-            let message = "";
-            let color = "#fff";
+            let msg = "";
+            let col = "#fff";
             
-            switch(action) {
-                case "feed":
-                    hunger = Math.max(0, hunger - 30);
-                    happiness += 10;
-                    energy += 8;
-                    message = role === "Baby" || role === "Toddler" 
-                        ? "Your parent fed you pumpkin pie!" 
-                        : "You ate some steak and bread.";
-                    color = "#feca57";
-                    break;
-                    
-                case "sleep":
-                    energy = Math.min(100, energy + 45);
-                    day++;
-                    message = `You slept well. Day ${day} begins.`;
-                    color = "#a55eea";
-                    happiness += 5;
-                    break;
-                    
-                case "play":
-                    happiness += 22;
-                    energy -= 18;
-                    message = "You had fun playing!";
-                    color = "#4ecdc4";
-                    break;
-                    
-                case "homework":
-                    if (role === "Kid" || role === "Teenager") {
-                        energy -= 18;
-                        happiness -= 8;
-                        message = "You finished your homework.";
-                    } else {
-                        message = "You're not in school right now.";
-                        color = "#aaa";
-                    }
-                    break;
-                    
-                case "bad":
-                    if (role === "Kid" || role === "Teenager") {
-                        happiness -= 20;
-                        message = "You did something naughty... Steve is disappointed.";
-                        color = "#ff6b6b";
-                    } else {
-                        message = "You decide to behave.";
-                        color = "#aaa";
-                    }
-                    break;
-                    
-                case "grow":
-                    age += 5;
-                    if (age >= 100) {
-                        dieAndRespawn();
-                        return;
-                    }
-                    message = `You are now ${age} years old.`;
-                    color = "#ffe66d";
-                    break;
+            if (action === "fridge" || action === "eat") {
+                hunger = Math.max(0, hunger - 28);
+                energy += 12;
+                happiness += 6;
+                msg = "You ate from the fridge!";
+                col = "#f1c40f";
+            } 
+            else if (action === "sleep") {
+                energy = Math.min(100, energy + 42);
+                day++;
+                msg = `You slept. Day ${day} started.`;
+                col = "#9b59b6";
+            } 
+            else if (action === "school") {
+                if (role === "Kid" || role === "Teenager") {
+                    energy -= 15;
+                    happiness += 8;
+                    msg = "You went to school and learned!";
+                } else {
+                    msg = "You visited the school.";
+                }
+                col = "#3498db";
+            } 
+            else if (action === "play") {
+                happiness += 18;
+                energy -= 12;
+                msg = "You played with family!";
+                col = "#2ecc71";
+            } 
+            else if (action === "talk") {
+                happiness += 10;
+                msg = "You talked with family.";
+                col = "#e74c3c";
             }
             
-            // Clamp values
             energy = Math.max(0, Math.min(100, energy));
             hunger = Math.max(0, Math.min(100, hunger));
             happiness = Math.max(0, Math.min(100, happiness));
             
-            if (message) addLog(message, color);
+            if (msg) addLog(msg, col);
             updateHUD();
-            
-            // Random events
-            if (Math.random() < 0.12) randomEvent();
-        }
-        
-        function randomEvent() {
-            const events = [
-                { text: "Steve brought home diamonds!", color: "#48dbfb" },
-                { text: "A creeper exploded nearby!", color: "#ff6b6b" },
-                { text: "You found a cute stray cat.", color: "#feca57" },
-                { text: "It started raining outside.", color: "#a55eea" },
-                { text: "Your family had dinner together.", color: "#ff9ff3" }
-            ];
-            const e = events[Math.floor(Math.random() * events.length)];
-            addLog(e.text, e.color);
-        }
-        
-        function dieAndRespawn() {
-            addLog("You lived to 100 years old!", "#ff6b6b");
-            addLog("You passed away peacefully...", "#ff6b6b");
-            
-            setTimeout(() => {
-                addLog("Respawning as a new baby...", "#4ecdc4");
-                role = "Baby";
-                age = 0;
-                energy = 60;
-                hunger = 45;
-                happiness = 75;
-                day = 1;
-                steveX = 360;
-                steveY = 300;
-                parentX = 180;
-                parentY = 280;
-                updateHUD();
-            }, 2800);
-        }
-        
-        function setup() {
-            createCanvas(800, 560);
-            textFont("Press Start 2P");
-        }
-        
-        function draw() {
-            background(25, 55, 85);
-            
-            // House walls
-            fill(160, 110, 60);
-            rect(60, 90, 680, 380);
-            
-            // Floor
-            fill(110, 75, 45);
-            rect(60, 400, 680, 70);
-            
-            // Window
-            fill(135, 206, 250);
-            rect(120, 130, 140, 110);
-            stroke(255);
-            strokeWeight(4);
-            line(190, 130, 190, 240);
-            line(120, 185, 260, 185);
-            noStroke();
-            
-            // Bed
-            fill(120, 60, 20);
-            rect(560, 340, 150, 55);
-            fill(255, 180, 200);
-            rect(565, 335, 140, 22);
-            
-            // Table
-            fill(90, 60, 30);
-            rect(220, 360, 110, 18);
-            
-            // Bookshelf
-            fill(70, 45, 25);
-            rect(100, 300, 70, 90);
-            fill(255, 220, 180);
-            rect(108, 310, 25, 18);
-            rect(108, 335, 25, 18);
-            rect(108, 360, 25, 18);
-            
-            // Draw characters
-            drawSteve(steveX, steveY, role);
-            drawParent(parentX, parentY);
-            
-            // Role label above player
-            if (gameStarted) {
-                fill(roleColors[role]);
-                textSize(13);
-                textAlign(CENTER);
-                text(role.toUpperCase(), steveX, steveY - 50);
-            }
-            
-            // Subtle movement
-            if (frameCount % 50 === 0 && gameStarted) {
-                steveX += random(-4, 4);
-                steveY += random(-2, 2);
-                parentX += random(-3, 3);
-            }
-            
-            // Boundaries
-            steveX = constrain(steveX, 140, 620);
-            steveY = constrain(steveY, 220, 390);
-            parentX = constrain(parentX, 100, 320);
-            parentY = constrain(parentY, 240, 380);
-            
-            // Status text
-            if (gameStarted) {
-                fill(255);
-                textSize(12);
-                textAlign(CENTER);
-                text(`Age: ${age}  •  ${role}`, width/2, 35);
-            }
-        }
-        
-        function drawSteve(x, y, currentRole) {
-            push();
-            translate(x, y);
-            
-            // Head
-            fill(255, 218, 185);
-            rect(-13, -32, 26, 26);
-            
-            // Hair
-            fill(20, 20, 20);
-            rect(-15, -35, 30, 10);
-            
-            // Eyes
-            fill(255);
-            rect(-8, -24, 6, 6);
-            rect(3, -24, 6, 6);
-            fill(0);
-            rect(-6, -23, 3, 3);
-            rect(5, -23, 3, 3);
-            
-            // Blue shirt
-            fill(65, 105, 225);
-            rect(-15, -5, 30, 24);
-            
-            // Black pants
-            fill(25);
-            rect(-13, 19, 26, 22);
-            
-            // Arms
-            fill(255, 218, 185);
-            rect(-22, -3, 9, 20);
-            rect(13, -3, 9, 20);
-            
-            // Role accessories
-            if (currentRole === "Baby") {
-                fill(255, 182, 193);
-                ellipse(0, -40, 20, 12);
-            } else if (currentRole === "Teenager") {
-                fill(40);
-                rect(-5, -40, 10, 7);
-            } else if (currentRole === "Parent") {
-                fill(139, 90, 43);
-                rect(-12, -42, 24, 9);
-            } else if (currentRole === "Senior Citizen") {
-                fill(200);
-                rect(-14, -38, 28, 8); // White hair
-            }
-            
-            pop();
-        }
-        
-        function drawParent(x, y) {
-            push();
-            translate(x, y);
-            
-            fill(255, 218, 185);
-            rect(-12, -28, 24, 24);
-            
-            fill(101, 67, 33);
-            rect(-14, -31, 28, 9);
-            
-            fill(0);
-            rect(-6, -20, 4, 4);
-            rect(3, -20, 4, 4);
-            
-            fill(34, 139, 34);
-            rect(-14, -3, 28, 22);
-            
-            fill(60);
-            rect(-12, 19, 24, 18);
-            
-            pop();
-        }
-        
-        // Clickable interactions
-        function mousePressed() {
-            if (!gameStarted) return;
-            
-            // Bed area
-            if (mouseX > 560 && mouseX < 710 && mouseY > 340 && mouseY < 395) {
-                performAction("sleep");
-                return;
-            }
-            
-            // Table area (eat)
-            if (mouseX > 220 && mouseX < 330 && mouseY > 360 && mouseY < 378) {
-                performAction("feed");
-                return;
-            }
-            
-            // Bookshelf (homework)
-            if (mouseX > 100 && mouseX < 170 && mouseY > 300 && mouseY < 390) {
-                performAction("homework");
-                return;
-            }
-            
-            // Random play click
-            if (mouseX > 300 && mouseX < 500 && mouseY > 250 && mouseY < 350) {
-                performAction("play");
-                return;
-            }
-            
-            // Right click area for "bad stuff"
-            if (mouseX > 600 && mouseButton === RIGHT) {
-                performAction("bad");
-            }
         }
         
         function keyPressed() {
             if (!gameStarted) return;
             
-            if (key === 'f' || key === 'F') performAction("feed");
+            let speed = 6;
+            if (keyCode === UP_ARROW || key === 'w' || key === 'W') player.y -= speed;
+            if (keyCode === DOWN_ARROW || key === 's' || key === 'S') player.y += speed;
+            if (keyCode === LEFT_ARROW || key === 'a' || key === 'A') player.x -= speed;
+            if (keyCode === RIGHT_ARROW || key === 'd' || key === 'D') player.x += speed;
+            
+            // Enter / Exit house
+            if (key === 'e' || key === 'E') {
+                if (location === "house" && player.x > 200 && player.x < 320 && player.y < 180) {
+                    location = "outside";
+                    player.x = 400;
+                    player.y = 450;
+                    addLog("You went outside.", "#4ecdc4");
+                } 
+                else if (location === "outside" && player.x > 340 && player.x < 460 && player.y > 420 && player.y < 480) {
+                    location = "house";
+                    player.x = 280;
+                    player.y = 240;
+                    addLog("You entered the house.", "#4ecdc4");
+                }
+                else if (location === "outside" && player.x > 620 && player.x < 750 && player.y > 200 && player.y < 300) {
+                    // Go to school
+                    location = "school";
+                    player.x = 200;
+                    player.y = 300;
+                    addLog("You arrived at school!", "#3498db");
+                }
+            }
+            
+            // Quick actions
+            if (key === 'f' || key === 'F') performAction("eat");
             if (key === 's' || key === 'S') performAction("sleep");
-            if (key === 'p' || key === 'P') performAction("play");
-            if (key === 'h' || key === 'H') performAction("homework");
-            if (key === 'b' || key === 'B') performAction("bad");
-            if (key === 'g' || key === 'G') performAction("grow");
+        }
+        
+        function mousePressed() {
+            if (!gameStarted) return;
+            
+            // Click on family members
+            for (let f of family) {
+                let d = dist(player.x, player.y, f.x, f.y);
+                if (d < 60) {
+                    performAction("talk");
+                    addLog(`You played with ${f.name}!`, "#ff9ff3");
+                    happiness = Math.min(100, happiness + 15);
+                    updateHUD();
+                    return;
+                }
+            }
+            
+            // Click on fridge area
+            if (location === "house" && mouseX > 420 && mouseX < 490 && mouseY > 200 && mouseY < 260) {
+                performAction("fridge");
+            }
+            
+            // Click on bed
+            if (location === "house" && mouseX > 80 && mouseX < 180 && mouseY > 280 && mouseY < 360) {
+                performAction("sleep");
+            }
+            
+            // Click school door
+            if (location === "outside" && mouseX > 620 && mouseX < 750 && mouseY > 200 && mouseY < 300) {
+                location = "school";
+                player.x = 200;
+                player.y = 300;
+                addLog("You entered the school.", "#3498db");
+            }
+        }
+        
+        function setup() {
+            createCanvas(900, 620);
+            textFont("Press Start 2P");
+            createWorld();
+        }
+        
+        function draw() {
+            background(30, 60, 90);
+            
+            if (!gameStarted) {
+                fill(255);
+                textSize(18);
+                textAlign(CENTER);
+                text("Press START to begin your life!", width/2, height/2);
+                return;
+            }
+            
+            // ========== OUTSIDE WORLD ==========
+            if (location === "outside") {
+                // Grass
+                fill(34, 139, 34);
+                rect(0, 0, width, height);
+                
+                // Road
+                fill(60);
+                rect(0, 480, width, 140);
+                fill(255);
+                for (let i = 0; i < 10; i++) {
+                    rect(30 + i * 95, 545, 60, 8);
+                }
+                
+                // Houses
+                for (let h of houses) {
+                    fill(139, 90, 43);
+                    rect(h.x, h.y, h.w, h.h);
+                    fill(200, 150, 100);
+                    triangle(h.x - 10, h.y, h.x + h.w/2, h.y - 40, h.x + h.w + 10, h.y);
+                    fill(80, 50, 20);
+                    rect(h.x + 20, h.y + 50, 30, 50); // door
+                }
+                
+                // School
+                fill(70, 130, 180);
+                rect(620, 180, 160, 130);
+                fill(255);
+                textSize(11);
+                text("SCHOOL", 700, 250);
+                fill(139, 90, 43);
+                rect(680, 310, 40, 60); // door
+                
+                // Castle (far away)
+                fill(120);
+                rect(50, 60, 100, 90);
+                fill(100);
+                rect(70, 30, 20, 40);
+                rect(100, 20, 20, 50);
+                
+                // Moving cars
+                for (let c of cars) {
+                    fill(200, 50, 50);
+                    rect(c.x, c.y, 70, 35);
+                    fill(255);
+                    rect(c.x + 10, c.y + 5, 20, 12);
+                    rect(c.x + 40, c.y + 5, 20, 12);
+                    c.x += c.speed * c.dir;
+                    if (c.x > width + 50) c.x = -80;
+                    if (c.x < -80) c.x = width + 50;
+                }
+                
+                // Family members outside
+                for (let f of family) {
+                    fill(f.color);
+                    ellipse(f.x, f.y, 22, 22);
+                    fill(255);
+                    textSize(9);
+                    textAlign(CENTER);
+                    text(f.name, f.x, f.y - 20);
+                    
+                    // Simple wandering
+                    if (frameCount % 40 === 0) {
+                        f.x += random(-12, 12);
+                        f.y += random(-8, 8);
+                    }
+                    f.x = constrain(f.x, 60, 840);
+                    f.y = constrain(f.y, 80, 470);
+                }
+                
+                // Player
+                fill(65, 105, 225);
+                ellipse(player.x, player.y, 26, 26);
+                fill(255);
+                textAlign(CENTER);
+                text(role, player.x, player.y - 22);
+                
+                // Instructions
+                fill(255, 255, 200);
+                textSize(12);
+                text("Walk to house door to enter | Walk to school", width/2, 40);
+            }
+            
+            // ========== HOUSE INTERIOR ==========
+            else if (location === "house") {
+                fill(160, 110, 60);
+                rect(40, 80, 820, 480);
+                
+                // Floor
+                fill(120, 85, 55);
+                rect(40, 400, 820, 160);
+                
+                // Window
+                fill(135, 206, 250);
+                rect(80, 120, 130, 100);
+                
+                // Bed
+                fill(139, 69, 19);
+                rect(80, 280, 120, 70);
+                fill(255, 182, 193);
+                rect(85, 275, 110, 20);
+                
+                // Fridge
+                fill(180);
+                rect(430, 200, 60, 90);
+                fill(100);
+                rect(440, 210, 40, 30);
+                fill(100);
+                rect(440, 250, 40, 30);
+                fill(255);
+                textSize(8);
+                text("FRIDGE", 460, 285);
+                
+                // Table
+                fill(101, 67, 33);
+                rect(280, 320, 140, 25);
+                
+                // Family members inside
+                for (let f of family) {
+                    fill(f.color);
+                    ellipse(f.x, f.y, 20, 20);
+                    fill(255);
+                    textSize(8);
+                    text(f.name, f.x, f.y - 18);
+                }
+                
+                // Player
+                fill(65, 105, 225);
+                ellipse(player.x, player.y, 24, 24);
+                fill(255);
+                textAlign(CENTER);
+                text(role, player.x, player.y - 20);
+                
+                fill(255, 220, 100);
+                textSize(11);
+                text("Press E near door to go outside", width/2, 560);
+            }
+            
+            // ========== SCHOOL ==========
+            else if (location === "school") {
+                fill(200, 180, 150);
+                rect(40, 60, 820, 500);
+                
+                fill(70, 130, 180);
+                rect(100, 120, 180, 120); // desks
+                
+                fill(255);
+                textSize(16);
+                text("SCHOOL CLASSROOM", width/2, 90);
+                
+                // Player at school
+                fill(65, 105, 225);
+                ellipse(player.x, player.y, 24, 24);
+                
+                fill(255);
+                textSize(12);
+                text("Press E to leave school", width/2, 560);
+                
+                if (keyIsDown(69)) { // E key
+                    location = "outside";
+                    player.x = 700;
+                    player.y = 350;
+                    addLog("You left school.", "#aaa");
+                }
+            }
+            
+            // Clamp player
+            player.x = constrain(player.x, 50, width - 50);
+            player.y = constrain(player.y, 80, height - 50);
+            
+            // Random events
+            if (gameStarted && frameCount % 280 === 0 && random() < 0.3) {
+                const events = ["Steve told a funny story!", "Mom made cookies!", "You saw a cat outside."];
+                addLog(events[Math.floor(random() * events.length)], "#ffe66d");
+            }
+            
+            // Auto age
+            if (gameStarted && frameCount % 900 === 0) {
+                age++;
+                if (age >= 100) {
+                    addLog("You reached 100 years old!", "#ff6b6b");
+                    setTimeout(() => {
+                        addLog("Respawning as new baby...", "#4ecdc4");
+                        role = "Baby";
+                        age = 0;
+                        energy = 60;
+                        hunger = 45;
+                        happiness = 75;
+                        location = "house";
+                        player.x = 280;
+                        player.y = 280;
+                        updateHUD();
+                    }, 2000);
+                }
+                updateHUD();
+            }
         }
     </script>
 </body>

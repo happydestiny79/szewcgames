@@ -11,7 +11,7 @@
 </head>
 <body>
 <h1 style="text-align:center; color:#ffcc66">Cat Tacos • Deaglan's Taco Truck</h1>
-<p style="text-align:center">Make detailed tacos for unique customers!</p>
+<p style="text-align:center">Build realistic tacos for patient customers!</p>
 
 <script>
 let player;
@@ -30,7 +30,7 @@ function setup() {
     x: 280,
     y: 395,
     vx: 0,
-    holding: null,
+    holding: null,        // tortilla, meat, cheese, veggies, taco
     cookingStage: 0,
     cookingTimer: 0
   };
@@ -54,7 +54,8 @@ function resetLevel() {
 function createCustomer(x) {
   let types = ["kid", "business", "tourist", "regular"];
   let type = random(types);
-  let basePatience = (type === "kid") ? 135 : (type === "business") ? 115 : (type === "tourist") ? 165 : 185;
+  // Much higher patience
+  let basePatience = (type === "kid") ? 180 : (type === "business") ? 155 : (type === "tourist") ? 220 : 260;
   return {
     x: x,
     type: type,
@@ -69,7 +70,7 @@ function createCustomer(x) {
 function draw() {
   background(40, 28, 18);
   
-  // Sky gradient
+  // Sky
   for (let i = 0; i < 280; i++) {
     let c = map(i, 0, 280, 55, 95);
     stroke(c, 50, 25);
@@ -81,13 +82,11 @@ function draw() {
   fill(255, 215, 120);
   ellipse(920, 65, 58, 58);
   
-  // Taco Truck - much better design
   drawTacoTruck();
   
   // Ground
   fill(75, 55, 35);
   rect(0, 470, width, 120);
-  // Ground detail lines
   stroke(55, 40, 25);
   strokeWeight(2);
   for (let i = 0; i < 12; i++) {
@@ -95,7 +94,6 @@ function draw() {
   }
   noStroke();
   
-  // Draw James
   drawJames();
   
   if (gameState === "start") {
@@ -108,7 +106,6 @@ function draw() {
     drawWinScreen();
   }
   
-  // Message
   if (messageTimer > 0) {
     fill(255, 255, 200);
     textSize(17);
@@ -128,11 +125,11 @@ function draw() {
 }
 
 function drawTacoTruck() {
-  // Main truck body (tan metal)
+  // Main truck body
   fill(195, 155, 100);
   rect(95, 260, 720, 215);
   
-  // Metal panel lines
+  // Metal panels
   stroke(130, 95, 55);
   strokeWeight(3);
   line(95, 300, 815, 300);
@@ -144,10 +141,9 @@ function drawTacoTruck() {
   fill(160, 115, 65);
   rect(95, 255, 720, 12);
   
-  // Service window (big)
+  // Service window
   fill(90, 160, 230, 160);
   rect(480, 285, 140, 110);
-  // Window frame
   stroke(80, 55, 30);
   strokeWeight(5);
   rect(480, 285, 140, 110);
@@ -157,21 +153,35 @@ function drawTacoTruck() {
   fill(130, 90, 50);
   rect(470, 395, 160, 25);
   
-  // Grill area (left side)
+  // Grill station
   fill(70);
   rect(160, 340, 100, 70);
   fill(220, 95, 40);
   rect(170, 350, 80, 50);
   
-  // Ingredient station
+  // Tortilla station
   fill(95, 165, 80);
   rect(280, 355, 75, 55);
   fill(255);
-  textSize(11);
+  textSize(10);
   textAlign(CENTER);
   text("TORTILLA", 317, 385);
   
-  // Black wheels with rims
+  // Cheese station (new)
+  fill(255, 210, 80);
+  rect(370, 355, 75, 55);
+  fill(40);
+  textSize(10);
+  text("CHEESE", 407, 385);
+  
+  // Veggies / Toppings station (new)
+  fill(80, 180, 100);
+  rect(460, 355, 75, 55);
+  fill(255);
+  textSize(9);
+  text("VEGGIES", 497, 385);
+  
+  // Wheels
   fill(20);
   ellipse(200, 485, 52, 52);
   ellipse(700, 485, 52, 52);
@@ -182,27 +192,25 @@ function drawTacoTruck() {
   ellipse(200, 485, 12, 12);
   ellipse(700, 485, 12, 12);
   
-  // Big CAT TACOS sign
+  // CAT TACOS sign
   fill(255, 230, 80);
   rect(240, 195, 340, 58);
-  // Sign border
   stroke(180, 130, 30);
   strokeWeight(4);
   rect(240, 195, 340, 58);
   noStroke();
   
-  // Text
   fill(40, 25, 5);
   textSize(28);
   textAlign(CENTER);
   text("CAT TACOS", 410, 232);
   
-  // Cat ears on the "A"
+  // Cat ears
   fill(255, 180, 40);
   triangle(365, 205, 378, 185, 391, 205);
   triangle(395, 205, 408, 185, 421, 205);
   
-  // Small cat face on sign
+  // Tiny cat face
   fill(40);
   ellipse(378, 218, 5, 5);
   ellipse(408, 218, 5, 5);
@@ -243,12 +251,18 @@ function drawJames() {
   ellipse(-6, -32, 5, 5);
   ellipse(6, -32, 5, 5);
   
-  // Holding items
+  // Holding items - more detailed
   if (player.holding === "tortilla") {
     fill(250, 220, 165);
     ellipse(26, -12, 22, 14);
   } else if (player.holding === "meat") {
     fill(185, 75, 45);
+    ellipse(26, -12, 20, 13);
+  } else if (player.holding === "cheese") {
+    fill(255, 220, 90);
+    ellipse(26, -12, 20, 13);
+  } else if (player.holding === "veggies") {
+    fill(90, 180, 80);
     ellipse(26, -12, 20, 13);
   } else if (player.holding === "taco") {
     fill(250, 205, 95);
@@ -257,6 +271,8 @@ function drawJames() {
     rect(19, -10, 14, 5);
     fill(85, 165, 65);
     rect(20, -14, 5, 3);
+    fill(255, 220, 90);
+    rect(23, -8, 4, 3);
   }
   
   pop();
@@ -269,12 +285,12 @@ function drawStartScreen() {
   text("CAT TACOS", width/2, 105);
   textSize(18);
   text("Press SPACE to start your taco truck!", width/2, 140);
-  text("Detailed taco making • Patient customers • Fun variety", width/2, 168);
+  text("Realistic taco building • Very patient customers", width/2, 168);
   
   textSize(15);
   text("Controls:", width/2, 205);
-  text("← →  Walk     G = Grab Tortilla     SPACE = Cook / Serve", width/2, 228);
-  text("T = Talk to customers (restores patience)", width/2, 250);
+  text("← →  Walk     G = Grab Ingredients     SPACE = Cook / Add / Serve", width/2, 228);
+  text("T = Talk to customers (greatly restores patience)", width/2, 250);
 }
 
 function drawLevelUpScreen() {
@@ -298,7 +314,7 @@ function drawWinScreen() {
 }
 
 function drawGame() {
-  // Cooking progress bar
+  // Cooking progress
   if (player.cookingStage > 0) {
     fill(255, 210, 60);
     rect(172, 353, player.cookingStage * 24, 10);
@@ -306,7 +322,7 @@ function drawGame() {
       fill(255, 100, 50);
       textSize(10);
       textAlign(CENTER);
-      text("READY!", 220, 378);
+      text("COOKED!", 220, 378);
     }
   }
   
@@ -315,7 +331,6 @@ function drawGame() {
     if (!c.served) {
       drawCustomer(c);
       
-      // Patience bar
       let pct = c.patience / c.maxPatience;
       fill(255, 60, 60);
       rect(c.x - 22, 340, 44, 7);
@@ -374,11 +389,11 @@ function updateLogic() {
   player.x += player.vx;
   player.x = constrain(player.x, 65, 950);
   
-  // Patience drain (slower)
+  // Much slower patience drain
   for (let i = customers.length - 1; i >= 0; i--) {
     let c = customers[i];
     if (!c.served) {
-      c.patience -= 0.07 + level * 0.012;
+      c.patience -= 0.045 + level * 0.008;
       if (c.patience <= 0) {
         score -= 4;
         customers.splice(i, 1);
@@ -387,17 +402,17 @@ function updateLogic() {
     }
   }
   
-  // Cooking
+  // Cooking timer
   if (player.cookingStage > 0) {
-    player.cookingTimer += 1.25;
-    if (player.cookingTimer > 32) {
+    player.cookingTimer += 1.2;
+    if (player.cookingTimer > 30) {
       player.cookingStage = min(player.cookingStage + 1, 3);
       player.cookingTimer = 0;
     }
-    if (player.cookingStage >= 3 && player.cookingTimer > 55) {
+    if (player.cookingStage >= 3 && player.cookingTimer > 50) {
       player.cookingStage = 0;
       player.holding = null;
-      showMessage("Taco got overcooked!");
+      showMessage("Meat got overcooked!");
       score -= 3;
     }
   }
@@ -429,29 +444,49 @@ function keyPressed() {
   if ((key === 'g' || key === 'G') && dist(player.x, player.y, 317, 383) < 50) {
     if (!player.holding) {
       player.holding = "tortilla";
-      showMessage("Fresh tortilla acquired!");
+      showMessage("Fresh tortilla!");
     }
   }
   
-  // Cook / progress
+  // Cheese station
+  if ((key === 'g' || key === 'G') && dist(player.x, player.y, 407, 383) < 50) {
+    if (player.holding === "meat") {
+      player.holding = "cheese";
+      showMessage("Added cheese!");
+      score += 4;
+    }
+  }
+  
+  // Veggies station
+  if ((key === 'g' || key === 'G') && dist(player.x, player.y, 497, 383) < 50) {
+    if (player.holding === "cheese") {
+      player.holding = "veggies";
+      showMessage("Added fresh veggies!");
+      score += 5;
+    }
+  }
+  
+  // Grill / Cook meat + serve
   if (key === ' ' && dist(player.x, player.y, 210, 380) < 60) {
+    // Start cooking meat
     if (player.holding === "tortilla" && player.cookingStage === 0) {
       player.cookingStage = 1;
       player.holding = "meat";
-      showMessage("Cooking the filling...");
-    } else if (player.holding === "meat" && player.cookingStage < 3) {
+      showMessage("Cooking the meat...");
+    } 
+    // Finish cooking
+    else if (player.holding === "meat" && player.cookingStage < 3) {
       player.cookingStage++;
       if (player.cookingStage === 3) {
-        player.holding = "taco";
-        showMessage("Perfect taco!");
-        score += 9;
+        showMessage("Meat is perfectly cooked!");
+        score += 8;
       }
     }
   }
   
-  // Serve
+  // Serve at window
   if ((key === 's' || key === 'S' || key === ' ') && dist(player.x, player.y, 540, 390) < 55) {
-    if (player.holding === "taco") {
+    if (player.holding === "veggies") {
       let closest = null;
       let minD = 85;
       for (let c of customers) {
@@ -463,14 +498,19 @@ function keyPressed() {
       if (closest) {
         closest.served = true;
         served++;
+        
         let pct = closest.patience / closest.maxPatience;
-        let rating = (pct > 0.6) ? 3 : (pct > 0.3) ? 2 : 1;
+        let rating = (pct > 0.65) ? 3 : (pct > 0.35) ? 2 : 1;
+        
         closest.rating = rating;
-        closest.tip = rating * 4;
-        score += rating * 13 + closest.tip;
+        closest.tip = rating * 5;
+        score += rating * 14 + closest.tip;
+        
         player.holding = null;
         player.cookingStage = 0;
+        
         showMessage("Served! Rating: " + rating + "/3 (+$" + closest.tip + ")");
+        
         setTimeout(() => {
           let idx = customers.indexOf(closest);
           if (idx > -1) customers.splice(idx, 1);
@@ -479,12 +519,12 @@ function keyPressed() {
     }
   }
   
-  // Talk
+  // Talk to customers
   if ((key === 't' || key === 'T')) {
     let talked = false;
     for (let c of customers) {
       if (!c.served && abs(c.x - player.x) < 70) {
-        c.patience = min(c.patience + 38, c.maxPatience);
+        c.patience = min(c.patience + 45, c.maxPatience);
         talked = true;
       }
     }
