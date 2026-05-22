@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breyona's Glam Adventure ✨</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a0033;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        canvas {
+            border: 6px solid #ff69b4;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(255, 105, 180, 0.6);
+        }
+        .info {
+            text-align: center;
+            margin-bottom: 15px;
+            z-index: 10;
+        }
+        h1 {
+            margin: 0;
+            color: #ff69b4;
+            text-shadow: 0 0 10px #ff1493;
+            font-size: 2.2em;
+        }
+        .story {
+            font-size: 15px;
+            color: #ddd;
+            max-width: 600px;
+            line-height: 1.4;
+        }
+        .controls {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>✨ BREYONA'S GLAM MAZE ✨</h1>
+        <div class="story">
+            Breyona loves doing makeup because it makes her look CUTE! 💄<br>
+            But someone threw something at her while she was singing... now villains are trying to attack her at the house!<br>
+            Use your <strong>Flying powers</strong> and <strong>Laser Eyes</strong> to get through the maze, do your makeup, and zap the bullies! 
+            (Up/Down arrows + Space to fly • Mouse to shoot lasers)
+        </div>
+    </div>
+    
+    <script>
+        let breyona;
+        let bullies = [];
+        let makeupItems = [];
+        let doors = [];
+        let lasers = [];
+        let score = 0;
+        let level = 1;
+        let gameState = "play"; // play, win, lose
+        let makeupApplied = 0;
+        let flyCooldown = 0;
+        
+        function setup() {
+            createCanvas(800, 600);
+            
+            breyona = {
+                x: 100,
+                y: 300,
+                size: 40,
+                vy: 0,
+                flying: false
+            };
+            
+            resetLevel();
+        }
+        
+        function resetLevel() {
+            bullies = [];
+            makeupItems = [];
+            doors = [];
+            lasers = [];
+            
+            // Create bullies (enemies)
+            for (let i = 0; i < 4 + level; i++) {
+                bullies.push({
+                    x: random(300, 750),
+                    y: random(80, 520),
+                    size: 35,
+                    vx: random(-2, 2),
+                    vy: random(-1.5, 1.5)
+                });
+            }
+            
+            // Makeup power-ups
+            for (let i = 0; i < 5; i++) {
+                makeupItems.push({
+                    x: random(150, 700),
+                    y: random(100, 500),
+                    collected: false
+                });
+            }
+            
+            // Doors to go through (maze-like)
+            for (let i = 0; i < 3; i++) {
+                doors.push({
+                    x: 650 + i * 40,
+                    y: 150 + i * 120,
+                    w: 50,
+                    h: 80
+                });
+            }
+            
+            makeupApplied = 0;
+            flyCooldown = 0;
+        }
+        
+        function draw() {
+            background(20, 0, 40);
+            
+            // House / Maze background
+            fill(60, 20, 80);
+            rect(0, 0, width, height);
+            
+            // Walls / rooms suggestion
+            stroke(255, 182, 193);
+            strokeWeight(3);
+            // Vertical walls
+            line(250, 0, 250, 250);
+            line(250, 350, 250, height);
+            line(500, 100, 500, 400);
+            
+            // Floor pattern
+            noStroke();
+            fill(40, 10, 60);
+            for (let i = 0; i < 8; i++) {
+                rect(0, i * 75, width, 75);
+            }
+            
+            // Draw doors
+            fill(139, 69, 19);
+            for (let d of doors) {
+                rect(d.x, d.y, d.w, d.h);
+                fill(255, 215, 0);
+                ellipse(d.x + 40, d.y + 40, 8, 8);
+                fill(139, 69, 19);
+            }
+            
+            // Draw makeup items
+            for (let m of makeupItems) {
+                if (!m.collected) {
+                    fill(255, 105, 180);
+                    ellipse(m.x, m.y, 25, 25);
+                    fill(255, 255, 255);
+                    textSize(14);
+                    text("💄", m.x - 8, m.y + 5);
+                }
+            }
+            
+            // Draw Breyona (cute character)
+            drawBreyona();
+            
+            // Draw bullies
+            for (let b of bullies) {
+                fill(180, 50, 50);
+                ellipse(b.x, b.y, b.size, b.size);
+                fill(255);
+                textSize(20);
+                text("😠", b.x - 10, b.y + 7);
+                
+                // Move bullies
+                b.x += b.vx;
+                b.y += b.vy;
+                
+                // Bounce off walls
+                if (b.x < 250 || b.x > width - 30) b.vx *= -1;
+                if (b.y < 50 || b.y > height - 30) b.vy *= -1;
+            }
+            
+            // Draw lasers
+            fill(0, 255, 255);
+            for (let l of lasers) {
+                ellipse(l.x, l.y, 12, 6);
+                l.x += 12;
+            }
+            
+            // Remove off-screen lasers
+            lasers = lasers.filter(l => l.x < width + 20);
+            
+            // Check laser hits on bullies
+            for (let i = lasers.length - 1; i >= 0; i--) {
+                for (let j = bullies.length - 1; j >= 0; j--) {
+                    let l = lasers[i];
+                    let b = bullies[j];
+                    if (dist(l.x, l.y, b.x, b.y) < 30) {
+                        bullies.splice(j, 1);
+                        lasers.splice(i, 1);
+                        score += 100;
+                        break;
+                    }
+                }
+            }
+            
+            // Check makeup collection
+            for (let m of makeupItems) {
+                if (!m.collected && dist(breyona.x, breyona.y, m.x, m.y) < 35) {
+                    m.collected = true;
+                    makeupApplied++;
+                    score += 50;
+                    // Cute effect
+                    fill(255, 182, 193);
+                    textSize(20);
+                    text("✨ CUTE! ✨", breyona.x - 30, breyona.y - 30);
+                }
+            }
+            
+            // Check door reaching (win condition for level)
+            for (let d of doors) {
+                if (breyona.x > d.x && breyona.x < d.x + d.w &&
+                    breyona.y > d.y && breyona.y < d.y + d.h) {
+                    level++;
+                    score += 200;
+                    resetLevel();
+                    breyona.x = 100;
+                    breyona.y = 300;
+                }
+            }
+            
+            // Check bully collision (lose health / game over)
+            for (let i = bullies.length - 1; i >= 0; i--) {
+                let b = bullies[i];
+                if (dist(breyona.x, breyona.y, b.x, b.y) < 45) {
+                    // Hit! Push back
+                    breyona.x -= 30;
+                    score = max(0, score - 20);
+                    
+                    if (makeupApplied > 0) {
+                        makeupApplied--;
+                    } else if (level > 1) {
+                        level--;
+                        resetLevel();
+                    } else {
+                        gameState = "lose";
+                    }
+                }
+            }
+            
+            // Update flying
+            if (flyCooldown > 0) flyCooldown--;
+            
+            // Gravity / flying physics
+            if (!breyona.flying) {
+                breyona.vy += 0.6;
+            }
+            breyona.y += breyona.vy;
+            
+            // Floor and ceiling
+            if (breyona.y > height - 40) {
+                breyona.y = height - 40;
+                breyona.vy = 0;
+            }
+            if (breyona.y < 50) {
+                breyona.y = 50;
+                breyona.vy = 0;
+            }
+            
+            // UI
+            fill(255);
+            textSize(20);
+            text(`Score: ${score}`, 20, 40);
+            text(`Level: ${level} / 14`, 20, 70);
+            text(`Makeup Power: ${makeupApplied}`, 20, 100);
+            
+            if (gameState === "win") {
+                fill(0, 255, 150);
+                textSize(36);
+                text("YOU DID IT! 💖 Breyona looks AMAZING!", width/2 - 280, height/2);
+                textSize(18);
+                text("Press R to play again", width/2 - 100, height/2 + 50);
+            }
+            
+            if (gameState === "lose") {
+                fill(255, 50, 50);
+                textSize(36);
+                text("Oh no! The bullies got you...", width/2 - 220, height/2);
+                textSize(18);
+                text("Press R to try again", width/2 - 90, height/2 + 50);
+            }
+            
+            // Special level 14 message
+            if (level >= 14) {
+                fill(255, 215, 0);
+                textSize(18);
+                text("🌟 FINAL LEVEL - You're unstoppable! 🌟", width/2 - 180, 30);
+            }
+        }
+        
+        function drawBreyona() {
+            push();
+            translate(breyona.x, breyona.y);
+            
+            // Body
+            fill(255, 182, 193);
+            ellipse(0, 0, breyona.size, breyona.size * 1.1);
+            
+            // Head
+            fill(255, 218, 185);
+            ellipse(0, -15, 32, 32);
+            
+            // Cute hair
+            fill(60, 30, 10);
+            arc(0, -22, 38, 30, PI, TWO_PI);
+            
+            // Eyes
+            fill(255);
+            ellipse(-8, -18, 8, 8);
+            ellipse(8, -18, 8, 8);
+            fill(0, 100, 255);
+            ellipse(-8, -18, 4, 4);
+            ellipse(8, -18, 4, 4);
+            
+            // Makeup sparkles when powered
+            if (makeupApplied > 0) {
+                fill(255, 105, 180);
+                textSize(14);
+                text("💖", -12, -35);
+                text("✨", 8, -32);
+            }
+            
+            // Flying effect
+            if (breyona.vy < -1) {
+                fill(200, 200, 255, 150);
+                ellipse(-15, 15, 20, 8);
+                ellipse(15, 15, 20, 8);
+            }
+            
+            pop();
+        }
+        
+        function keyPressed() {
+            if (gameState === "play") {
+                if (keyCode === UP_ARROW || key === ' ') {
+                    // Fly up
+                    breyona.vy = -10;
+                    flyCooldown = 10;
+                }
+                if (keyCode === DOWN_ARROW) {
+                    breyona.vy = 8;
+                }
+            }
+            
+            if (key === 'r' || key === 'R') {
+                gameState = "play";
+                level = 1;
+                score = 0;
+                makeupApplied = 0;
+                breyona.x = 100;
+                breyona.y = 300;
+                resetLevel();
+            }
+        }
+        
+        function mousePressed() {
+            if (gameState === "play") {
+                // Shoot laser eyes!
+                lasers.push({
+                    x: breyona.x + 20,
+                    y: breyona.y - 10
+                });
+                
+                // Extra laser if powered up
+                if (makeupApplied > 2) {
+                    lasers.push({
+                        x: breyona.x + 20,
+                        y: breyona.y + 15
+                    });
+                }
+            }
+        }
+        
+        function mouseDragged() {
+            // Hold mouse to keep shooting
+            if (gameState === "play" && frameCount % 4 === 0) {
+                lasers.push({
+                    x: breyona.x + 20,
+                    y: breyona.y - 10 + random(-5, 5)
+                });
+            }
+        }
+    </script>
+</body>
+</html>

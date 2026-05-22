@@ -170,43 +170,8 @@ function draw() {
 }
 
 // Simple chiptune background music
-function startMusic() {
-  if (!musicEnabled) return;
-  try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    musicOsc = audioContext.createOscillator();
-    musicGain = audioContext.createGain();
-    const filter = audioContext.createBiquadFilter();
-    
-    musicOsc.type = 'sawtooth';
-    musicOsc.frequency.value = 80;
-    filter.type = 'lowpass';
-    filter.frequency.value = 800;
-    musicGain.gain.value = 0.08;
-    
-    const lfo = audioContext.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.value = 0.3;
-    const lfoGain = audioContext.createGain();
-    lfoGain.gain.value = 20;
-    
-    lfo.connect(lfoGain);
-    lfoGain.connect(musicOsc.frequency);
-    
-    musicOsc.connect(filter);
-    filter.connect(musicGain);
-    musicGain.connect(audioContext.destination);
-    
-    musicOsc.start();
-    lfo.start();
-  } catch(e) {}
 }
 
-function toggleMusic() {
-  musicEnabled = !musicEnabled;
-  if (musicEnabled && !audioContext) {
-    startMusic();
-  } else if (audioContext) {
     musicGain.gain.value = musicEnabled ? 0.08 : 0;
   }
 }
@@ -468,8 +433,8 @@ function keyPressed() {
       for (let i = spirits.length - 1; i >= 0; i--) {
         if (abs(spirits[i].x - jake.x) < 120) {
           spirits.splice(i, 1);
-      score++;  // Award point for defeating the spirit
           score++;
+          totalSpirits++;
         }
       }
     }
@@ -491,43 +456,8 @@ function keyPressed() {
 }
 
 // Simple chiptune background music
-function startMusic() {
-  if (!musicEnabled) return;
-  try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    musicOsc = audioContext.createOscillator();
-    musicGain = audioContext.createGain();
-    const filter = audioContext.createBiquadFilter();
-    
-    musicOsc.type = 'sawtooth';
-    musicOsc.frequency.value = 80;
-    filter.type = 'lowpass';
-    filter.frequency.value = 800;
-    musicGain.gain.value = 0.08;
-    
-    const lfo = audioContext.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.value = 0.3;
-    const lfoGain = audioContext.createGain();
-    lfoGain.gain.value = 20;
-    
-    lfo.connect(lfoGain);
-    lfoGain.connect(musicOsc.frequency);
-    
-    musicOsc.connect(filter);
-    filter.connect(musicGain);
-    musicGain.connect(audioContext.destination);
-    
-    musicOsc.start();
-    lfo.start();
-  } catch(e) {}
 }
 
-function toggleMusic() {
-  musicEnabled = !musicEnabled;
-  if (musicEnabled && !audioContext) {
-    startMusic();
-  } else if (audioContext) {
     musicGain.gain.value = musicEnabled ? 0.08 : 0;
   }
 }
