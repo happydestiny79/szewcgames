@@ -1,0 +1,5 @@
+[application]
+config/name="Scavenger Hunt"
+config/description="Map/Streetview style scavenger hunt prototype"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.3")
